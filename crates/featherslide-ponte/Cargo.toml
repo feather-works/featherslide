@@ -1,0 +1,30 @@
+[package]
+name = "featherslide-ponte"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77.2"
+description = "Despacho legado de comandos Rust do FeatherSlide."
+
+# O despacho JSON permanece isolado do motor, com testes nativos próprios.
+[dependencies]
+featherslide-core = { path = "../featherslide-core" }
+featherslide-io = { path = "../featherslide-io" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lib]
+name = "featherslide_ponte"
+crate-type = ["rlib"]
+
+[profile.release]
+opt-level = "s"
+
+[lints.clippy]
+too_many_lines = "deny"
+cognitive_complexity = "deny"
+
+
+# Provisório: feather-shapes 0.1.1 (estilos prontos do WordArt, wordart::ESTILOS) em
+# desenvolvimento na pasta irmã, até a tag v0.1.1 ser publicada. Remover este bloco depois.
+[patch."https://github.com/FeatherOffice/feather-shapes"]
+feather-shapes = { path = "../../../feather-shapes" }

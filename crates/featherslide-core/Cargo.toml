@@ -1,0 +1,28 @@
+[package]
+name = "featherslide-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77.2"
+description = "O motor do FeatherSlide: a apresentação (slides e elementos), a edição com desfazer e o quadro de cada slide."
+
+# Só `serde` e o `feather-shapes` (formas, ícones e diagramas comuns da suíte, Rust puro, sem
+# interface): o motor compila em segundos e roda no app, no teste e em WebAssembly. Ler e
+# gravar arquivo (.fsdz) é do `featherslide-io`.
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+feather-shapes = { git = "https://github.com/FeatherOffice/feather-shapes", tag = "v0.1.0" }
+
+[lib]
+name = "featherslide_core"
+
+# Ligados no primeiro commit (RECEITA.md §4). `#[allow]` para calar não passa:
+# quebre a função.
+[lints.clippy]
+too_many_lines = "deny"
+cognitive_complexity = "deny"
+
+
+# Provisório: feather-shapes 0.1.1 (estilos prontos do WordArt, wordart::ESTILOS) em
+# desenvolvimento na pasta irmã, até a tag v0.1.1 ser publicada. Remover este bloco depois.
+[patch."https://github.com/FeatherOffice/feather-shapes"]
+feather-shapes = { path = "../../../feather-shapes" }

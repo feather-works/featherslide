@@ -1,0 +1,43 @@
+[package]
+name = "featherslide-io"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77.2"
+description = "Ler e gravar os arquivos do FeatherSlide: o .fsdz (próprio), e ler .pptx e .odp."
+
+# Todas Rust puro, sem biblioteca C por trás (regra 7 do CLAUDE.md da raiz):
+# - `zip` (deflate): o contêiner .fsdz (FORMATO.md);
+# - `arrow` (só IPC, a mesma versão do `featherdocs-io` e do `feathersheet-io`): a apresentação
+#   dentro do .fsdz é Arrow colunar, como o `.fdoz` e o `.fshz` — nada de JSON no arquivo;
+# - `quick-xml` (a mesma do `featherdocs-io`): o XML do .pptx e do .odp, lido em árvore pequena.
+[dependencies]
+featherslide-core = { path = "../featherslide-core" }
+# Adaptador de gráficos na borda IO, sem dependência nova no core (.fsdz).
+feather-charts = { path = "../../../feather-charts" }
+feather-draw = { git = "https://github.com/FeatherOffice/feather-draw", tag = "v0.1.1" }
+feather-image = { path = "../../../feather-io/crates/feather-image" }
+zip = { version = "4.2.0", default-features = false, features = ["deflate"] }
+arrow = { version = "56", default-features = false, features = ["ipc"] }
+quick-xml = "0.42"
+serde_json = "1"
+tiny-skia = "0.11"
+usvg = { version = "0.42", default-features = false }
+eot-parse = "1.0.4"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+
+[lib]
+name = "featherslide_io"
+
+[lints.clippy]
+too_many_lines = "deny"
+cognitive_complexity = "deny"
+
+[dev-dependencies]
+zip = { version = "4.2.0", default-features = false, features = ["deflate"] }
+
+
+# Provisório: feather-shapes 0.1.1 (estilos prontos do WordArt, wordart::ESTILOS) em
+# desenvolvimento na pasta irmã, até a tag v0.1.1 ser publicada. Remover este bloco depois.
+[patch."https://github.com/FeatherOffice/feather-shapes"]
+feather-shapes = { path = "../../../feather-shapes" }

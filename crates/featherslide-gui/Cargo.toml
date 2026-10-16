@@ -1,0 +1,54 @@
+[package]
+name = "featherslide-gui"
+version = "0.1.0"
+description = "Interface nativa Iced do FeatherSlide — leve, rápida e sem WebKit"
+authors = ["FeatherSlide"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[[bin]]
+name = "featherslide"
+path = "src/main.rs"
+
+[dependencies]
+feather-ui = { git = "https://github.com/FeatherOffice/feather-ui", tag = "v0.2.5" }
+feather-draw = { git = "https://github.com/FeatherOffice/feather-draw", tag = "v0.1.1" }
+feather-image = { path = "../../../feather-io/crates/feather-image" }
+featheroffice-table-adapters = { path = "../../../FeatherOffice/featheroffice/crates/featheroffice-table-adapters", default-features = false, features = ["slide"] }
+feather-tables = { path = "../../../feather-io/crates/feather-tables" }
+featherslide-core = { path = "../featherslide-core" }
+featherslide-ortografia = { path = "../featherslide-ortografia" }
+featherslide-io = { path = "../featherslide-io" }
+featherslide-mcp = { path = "../featherslide-mcp" }
+iced = { version = "0.13", features = ["canvas", "image", "svg", "advanced", "tokio"] }
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "tokio"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+arboard = { version = "3", default-features = false, features = ["image-data", "wayland-data-control"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+# Iced, a decodificação e o desenho em build sem otimização são ordens de grandeza mais lentos
+# (abrir arquivo, menu do botão direito): dependências e o próprio crate otimizados também no `cargo run`.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+
+# Provisório: feather-shapes 0.1.1 (estilos prontos do WordArt, wordart::ESTILOS) em
+# desenvolvimento na pasta irmã, até a tag v0.1.1 ser publicada. Remover este bloco depois.
+[patch."https://github.com/FeatherOffice/feather-shapes"]
+feather-shapes = { path = "../../../feather-shapes" }
+
+# Provisório: feather-ui 0.2.6 (texto_contorno do WordArt, pressão da caneta) em
+# desenvolvimento na pasta irmã, até a tag v0.2.6 ser publicada. Remover este bloco depois.
+[patch."https://github.com/FeatherOffice/feather-ui"]
+feather-ui = { path = "../../../feather-ui" }
