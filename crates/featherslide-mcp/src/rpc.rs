@@ -10,7 +10,7 @@ use crate::fonte::Fonte;
 
 const VERSOES: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
-const INSTRUCOES: &str = "FeatherSlide: apresentações da suíte FeatherOffice, 100% local. COMO TRABALHAR: comece por slide_resumo para conhecer a apresentação e os slides existentes; use slide_ver para ver a imagem renderizada do slide com os rótulos de ID; manipule slides com slide_inserir, slide_duplicar, slide_excluir, slide_mover, slide_layout e slide_fundo; insira e formate elementos com slide_elemento_inserir e slide_elemento_editar (texto, coordenadas x/y/largura/altura, cores, preenchimento, contorno, fontes e alinhamentos); desfaça erros com slide_desfazer. Ao vivo: com o aplicativo aberto, as ferramentas agem diretamente na tela do usuário.";
+const INSTRUCOES: &str = "FeatherSlide: apresentações da suíte FeatherWorks, 100% local. COMO TRABALHAR: comece por slide_resumo para conhecer a apresentação e os slides existentes; use slide_ver para ver a imagem renderizada do slide com os rótulos de ID; manipule slides com slide_inserir, slide_duplicar, slide_excluir, slide_mover, slide_layout e slide_fundo; insira e formate elementos com slide_elemento_inserir e slide_elemento_editar (texto, coordenadas x/y/largura/altura, cores, preenchimento, contorno, fontes e alinhamentos); desfaça erros com slide_desfazer. Ao vivo: com o aplicativo aberto, as ferramentas agem diretamente na tela do usuário.";
 
 fn resposta(id: &Value, resultado: Value) -> Value {
     json!({ "jsonrpc": "2.0", "id": id, "result": resultado })

@@ -13,9 +13,9 @@ description = "Ler e gravar os arquivos do FeatherSlide: o .fsdz (próprio), e l
 [dependencies]
 featherslide-core = { path = "../featherslide-core" }
 # Adaptador de gráficos na borda IO, sem dependência nova no core (.fsdz).
-feather-charts = { path = "../../../feather-charts" }
-feather-draw = { git = "https://github.com/FeatherOffice/feather-draw", tag = "v0.1.1" }
-feather-image = { path = "../../../feather-io/crates/feather-image" }
+feather-charts = { git = "https://github.com/feather-works/feather-charts", tag = "v0.3.2" }
+feather-draw = { git = "https://github.com/feather-works/feather-draw", tag = "v0.1.1" }
+feather-image = { git = "https://github.com/feather-works/feather-io", tag = "v0.1.3" }
 zip = { version = "4.2.0", default-features = false, features = ["deflate"] }
 arrow = { version = "56", default-features = false, features = ["ipc"] }
 quick-xml = "0.42"
@@ -35,9 +35,3 @@ cognitive_complexity = "deny"
 
 [dev-dependencies]
 zip = { version = "4.2.0", default-features = false, features = ["deflate"] }
-
-
-# Provisório: feather-shapes 0.1.1 (estilos prontos do WordArt, wordart::ESTILOS) em
-# desenvolvimento na pasta irmã, até a tag v0.1.1 ser publicada. Remover este bloco depois.
-[patch."https://github.com/FeatherOffice/feather-shapes"]
-feather-shapes = { path = "../../../feather-shapes" }

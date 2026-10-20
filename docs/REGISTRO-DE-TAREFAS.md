@@ -3,7 +3,7 @@
 > Era o README de `featherslide/` enquanto o produto morava no repositório de desenvolvimento da suíte (até 15/10/2026). Fica como histórico das entregas e validações; links para `featheroffice/` e outros produtos apontam para pastas que não existem neste repositório.
 
 
-> **Produto independente — repositório planejado:** `FeatherOffice/featherslide`.
+> **Produto independente — repositório planejado:** `feather-works/featherslide`.
 > O projeto ainda está nesta pasta do repositório de desenvolvimento; a separação Git não foi realizada.
 
 **Apresentações:** formato nativo `.fsdz`; desenvolvimento e versões próprios.
@@ -287,5 +287,5 @@ Os ícones SVG da interface e da galeria são do [Tabler Icons](https://github.c
 versão 3.49.0, © Paweł Kuna, licença MIT. Os caminhos vetoriais ficam embutidos no
 aplicativo e funcionam sem rede. Os dados e a licença
 (`dados/TABLER-LICENSE.txt`) ficam no crate comum
-[`feather-shapes`](https://github.com/FeatherOffice/feather-shapes) e o crédito
+[`feather-shapes`](https://github.com/feather-works/feather-shapes) e o crédito
 também aparece em Configurações → Sobre.

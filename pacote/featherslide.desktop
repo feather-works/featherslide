@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=FeatherSlide
+GenericName=Apresentações
+Comment=Apresentações da suíte FeatherWorks — tudo local, sem conta
+Exec=featherslide %F
+Icon=featherslide
+Terminal=false
+Categories=Office;Presentation;
+Keywords=apresentação;slides;pptx;powerpoint;odp;
+StartupWMClass=featherslide
+MimeType=application/x-featherslide;application/vnd.openxmlformats-officedocument.presentationml.presentation;application/vnd.oasis.opendocument.presentation;

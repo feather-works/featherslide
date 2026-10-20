@@ -162,9 +162,9 @@ mod testes {
             largura: 400.0, altura: 160.0,
             dados: dados::gravar_tabela(&grade), ..Elemento::default()
         };
-        let comum = featheroffice_table_adapters::slide_para_comum(&original).unwrap();
+        let comum = featherslide_tabelas::slide_para_comum(&original).unwrap();
         assert_eq!(comum.dimensoes(), (2, 2));
-        let volta = featheroffice_table_adapters::comum_para_slide(&comum, &original).unwrap();
+        let volta = featherslide_tabelas::comum_para_slide(&comum, &original).unwrap();
         assert_eq!(volta, original);
     }
 

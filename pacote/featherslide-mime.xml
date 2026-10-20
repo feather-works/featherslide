@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- O tipo do .fsdz, que o sistema não conhece: é o que deixa o gerenciador
+     de arquivos mostrar "Apresentação do FeatherSlide" e abrir com dois cliques. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-featherslide">
+    <comment>Apresentação do FeatherSlide</comment>
+    <comment xml:lang="pt_BR">Apresentação do FeatherSlide</comment>
+    <icon name="featherslide"/>
+    <glob pattern="*.fsdz"/>
+  </mime-type>
+</mime-info>

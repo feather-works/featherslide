@@ -6,7 +6,7 @@ use featherslide_io::fsdz;
 fn executar(destino: &std::path::Path) -> Result<(), String> {
     let mut sessao = Sessao::default();
     sessao.apresentacao_mut().titulo = "Apresentação ⚡ UTF-8".into();
-    sessao.apresentacao_mut().autor = "Equipe FeatherOffice".into();
+    sessao.apresentacao_mut().autor = "Equipe FeatherWorks".into();
     let id = sessao.apresentacao().slides[0].elementos[0].id;
     sessao.texto_definir(id, "Relatório de energia: ação e café")?;
     sessao.slide_novo("em_branco")?;

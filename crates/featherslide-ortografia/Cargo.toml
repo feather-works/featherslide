@@ -19,9 +19,3 @@ cognitive_complexity = "deny"
 
 [dev-dependencies]
 featherslide-io = { path = "../featherslide-io" }
-
-
-# Provisório: feather-shapes 0.1.1 (estilos prontos do WordArt, wordart::ESTILOS) em
-# desenvolvimento na pasta irmã, até a tag v0.1.1 ser publicada. Remover este bloco depois.
-[patch."https://github.com/FeatherOffice/feather-shapes"]
-feather-shapes = { path = "../../../feather-shapes" }

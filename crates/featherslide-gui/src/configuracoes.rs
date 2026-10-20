@@ -340,9 +340,9 @@ impl Estado {
                 "Sobre",
                 column![
                     text("FeatherSlide").size(22),
-                    text(format!("Versão {} · A suíte FeatherOffice", env!("CARGO_PKG_VERSION"))).size(12.5).color(COR_TEXTO_MUTED()),
+                    text(format!("Versão {} · A suíte FeatherWorks", env!("CARGO_PKG_VERSION"))).size(12.5).color(COR_TEXTO_MUTED()),
                     Space::with_height(8),
-                    text("Programa de apresentações da família FeatherOffice. Motor 100% Rust; esta interface nativa não usa WebKit.").size(13.5),
+                    text("Programa de apresentações da família FeatherWorks. Motor 100% Rust; esta interface nativa não usa WebKit.").size(13.5),
                     text("• Privacidade total: sem telemetria, sem contas, sem nuvem.").size(13.5),
                     text("• Formato .fsdz: contêiner aberto (ZIP com colunas Arrow). Abre também .pptx e .odp.").size(13.5),
                     text("• Ícones da interface e da galeria: Tabler Icons 3.49.0 (licença MIT, © Paweł Kuna) — https://github.com/tabler/tabler-icons.").size(13.5),

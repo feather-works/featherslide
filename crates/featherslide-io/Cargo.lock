@@ -413,7 +413,8 @@ dependencies = [
 
 [[package]]
 name = "feather-charts"
-version = "0.3.0"
+version = "0.3.2"
+source = "git+https://github.com/feather-works/feather-charts?tag=v0.3.2#306961e46e887b2fa0dd9f0f8dfcd2a58c4c1a5f"
 dependencies = [
  "feather-draw",
  "serde",
@@ -423,18 +424,20 @@ dependencies = [
 [[package]]
 name = "feather-draw"
 version = "0.1.1"
-source = "git+https://github.com/FeatherOffice/feather-draw?tag=v0.1.1#17404b4dad3cec398967d948d858ab46eed57d08"
+source = "git+https://github.com/feather-works/feather-draw?tag=v0.1.1#17404b4dad3cec398967d948d858ab46eed57d08"
 
 [[package]]
 name = "feather-image"
-version = "0.1.0"
+version = "0.1.3"
+source = "git+https://github.com/feather-works/feather-io?tag=v0.1.3#ba7dad98ada730a978cafd0f9e8a5995b233b81b"
 dependencies = [
  "image",
 ]
 
 [[package]]
 name = "feather-shapes"
-version = "0.1.1"
+version = "0.1.2"
+source = "git+https://github.com/feather-works/feather-shapes?tag=v0.1.2#bbdf0201c9d1c66d2742a177a6d393fe75a0e5ef"
 dependencies = [
  "feather-draw",
  "serde",

@@ -1,4 +1,4 @@
-//! Smoke de migração real FeatherSlide → FeatherOffice Drawing.
+//! Smoke de migração real FeatherSlide → FeatherWorks Drawing.
 //! cargo run --manifest-path featherslide/crates/featherslide-io/Cargo.toml --example drw011_formas -- /tmp/drw011-formas.svg
 use featherslide_core::modelo::{Elemento, Tipo};
 use featherslide_io::drawing::{cena_dos_elementos, exportar_svg};

@@ -6,7 +6,7 @@ use featherslide_core::{
     sessao::Sessao,
 };
 use featherslide_io::{fsdz, grafico_compartilhado::converter_elemento};
-use featheroffice_table_adapters::{comum_para_slide, slide_para_comum};
+use featherslide_tabelas::{comum_para_slide, slide_para_comum};
 use std::{env, error::Error, fs, path::PathBuf};
 
 fn main() -> Result<(), Box<dyn Error>> {

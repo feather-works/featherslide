@@ -1044,7 +1044,7 @@ impl FeatherSlideApp {
                     if let Some(texto) = texto {
                         let texto = texto.replace("\r\n", "\n").replace('\r', "\n");
                         cursor::substituir(&mut self.texto_edicao, &mut self.cursor_edicao, self.ancora_edicao.take(), &texto);
-                        if let Err(e) = featheroffice_table_adapters::slide_editar_celula(&mut self.sessao, id,r,c,&self.texto_edicao) { self.status = e; }
+                        if let Err(e) = featherslide_tabelas::slide_editar_celula(&mut self.sessao, id,r,c,&self.texto_edicao) { self.status = e; }
                     }
                     return Task::none();
                 }
@@ -1763,12 +1763,12 @@ impl FeatherSlideApp {
                         keyboard::Key::Named(Named::Escape) => self.editando_celula = None,
                         keyboard::Key::Named(Named::Backspace) => {
                             if cursor::apagar_antes(&mut self.texto_edicao, &mut self.cursor_edicao) {
-                                if let Err(erro) = featheroffice_table_adapters::slide_editar_celula(&mut self.sessao, id, r, c, &self.texto_edicao) { self.status = erro; }
+                                if let Err(erro) = featherslide_tabelas::slide_editar_celula(&mut self.sessao, id, r, c, &self.texto_edicao) { self.status = erro; }
                             }
                         }
                         keyboard::Key::Named(Named::Delete) => {
                             if cursor::apagar_depois(&mut self.texto_edicao, self.cursor_edicao) {
-                                if let Err(erro) = featheroffice_table_adapters::slide_editar_celula(&mut self.sessao, id, r, c, &self.texto_edicao) { self.status = erro; }
+                                if let Err(erro) = featherslide_tabelas::slide_editar_celula(&mut self.sessao, id, r, c, &self.texto_edicao) { self.status = erro; }
                             }
                         }
                         keyboard::Key::Named(Named::Home) => self.cursor_edicao = 0,
@@ -1797,13 +1797,13 @@ impl FeatherSlideApp {
                                 if !t.is_empty() {
                                     cursor::inserir(&mut self.texto_edicao, &mut self.cursor_edicao, &t);
                                     crate::ferramentas_texto::corrigir(&mut self.texto_edicao, &mut self.cursor_edicao, &self.config);
-                                    if let Err(erro) = featheroffice_table_adapters::slide_editar_celula(&mut self.sessao, id, r, c, &self.texto_edicao) { self.status = erro; }
+                                    if let Err(erro) = featherslide_tabelas::slide_editar_celula(&mut self.sessao, id, r, c, &self.texto_edicao) { self.status = erro; }
                                 }
                             }
                         }
                     }
                     if let Some(movimento) = movimento {
-                        match featheroffice_table_adapters::slide_navegar_celula(
+                        match featherslide_tabelas::slide_navegar_celula(
                             &self.sessao, id, r, c, movimento,
                         ) {
                             Ok(posicao) => destino = Some(posicao),
@@ -3820,7 +3820,7 @@ impl FeatherSlideApp {
             }
             FaixaMensagem::TabelaEstrutura(acao) => {
                 if let Some(&id) = self.sessao.estado().selecao.first() {
-                    if let Err(erro) = featheroffice_table_adapters::slide_editar_estrutura(&mut self.sessao, id, acao) { self.status = erro; }
+                    if let Err(erro) = featherslide_tabelas::slide_editar_estrutura(&mut self.sessao, id, acao) { self.status = erro; }
                 }
             }
             FaixaMensagem::EditarDadosGrafico => {

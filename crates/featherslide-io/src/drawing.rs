@@ -1,4 +1,4 @@
-//! Ponte real FeatherSlide → FeatherOffice Drawing.
+//! Ponte real FeatherSlide → FeatherWorks Drawing.
 //!
 //! Os IDs, o `Elemento` e a serialização .fsdz continuam no core; esta
 //! conversão empresta os elementos e produz geometria vetorial independente

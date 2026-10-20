@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let quadro = quadro(&slide, (960.0, 540.0), 1, &Dicas::default(), false);
     let callback = |_: &_| Some((visivel.width(), visivel.height(), visivel.as_raw().clone()));
-    let dados = pdf::exportar("APP-002 FeatherOffice Image", &[quadro], &callback);
+    let dados = pdf::exportar("APP-002 FeatherWorks Image", &[quadro], &callback);
     assert!(dados.starts_with(b"%PDF-1.5"));
     assert!(dados.windows(6).any(|x| x == b"/SMask"), "PDF deve manter alfa");
     let pdf = destino.join("imagem.pdf");

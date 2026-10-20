@@ -1178,7 +1178,7 @@ fn pintar_primitivas(f: &mut Frame, el: &ElementoDesenhado, ox: f32, oy: f32, es
     let py = |y: f32| oy + (el.y + dy + (y - by) * sy) * escala;
     let cor = |c: &str| cor_hex(c);
     // Caminhos vetoriais e compostos usam a mesma geometria neutra do
-    // exportador SVG FeatherOffice. Mantemos o caminho Iced anterior como
+    // exportador SVG FeatherWorks. Mantemos o caminho Iced anterior como
     // fallback para estilos sem equivalência fiel no backend novo.
     let viewport_drawing = feather_draw::Viewport::de_escala_logica(
         feather_draw::Unidade::Ponto,
