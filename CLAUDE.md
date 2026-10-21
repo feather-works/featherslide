@@ -10,6 +10,24 @@ Continuar no FeatherSlide; depois FeatherDocs, FeatherSheet e, se houver tempo,
 FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 1.684 entradas). Evidências: `docs/VERIFICACAO-FUNCIONALIDADES.md`.
 
+## Porta para o pelicano, lado a lado com o Iced (21/10/2026)
+
+- `crates/featherslide-pelicano` (binário `featherslide-pelicano`) é a cópia da interface
+  portada para o pelicano, para comparar com o `featherslide-gui` (Iced), que segue intacto.
+  Mudança feita num lado precisa ser repetida no outro até escolher um.
+- Usa `../../../pelicano` (já com tudo na v0.1.9) e `../../../feather-ui-pelicano` por
+  caminho: o feather-ui-pelicano (porta do feather-ui, não commitada) ainda não tem tag e
+  depende do pelicano por caminho; trocar os dois por git + tag juntos.
+- Canvas: o `Renderer` usa coordenadas da janela; só caminhos, `fill_text` e imagens seguem
+  `push_transform`.
+- Igual ao Iced, medido por captura: mistura de cores linear (texto), sombra, trilho da
+  barra de rolagem, setas das listas. `src/rastros.rs` compara redesenho parcial com o cheio.
+  Capturas: `FEATHERSLIDE_CAPTURAR_ABA=inserir|design|…` e `FEATHERSLIDE_CAPTURAR_TELA=inicio`
+  (nos dois apps). Testes com limite: `systemd-run --user --scope -p MemoryMax=8G
+  -p MemorySwapMax=0 -p CPUQuota=400% cargo test --release -j 4 …`.
+- Falta: lista de fontes cinza como no Iced, polegar da barra sob o mouse, "Selecionar tudo"
+  não cabe em 1280 px (nos dois), picos de 1,4–1,7 s com milhares de elementos.
+
 ## Formas comuns no `feather-shapes` (14/10/2026)
 
 - A parte pura de formas, ícones e diagramas saiu do core para o crate comum

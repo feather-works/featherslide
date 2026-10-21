@@ -1011,8 +1011,17 @@ impl FeatherSlideApp {
             }
             Mensagem::CapturarTela => match self.passo_captura {
                 0 => {
+                    // `FEATHERSLIDE_CAPTURAR_TELA=inicio`: a tela Início, sem documento.
+                    if std::env::var("FEATHERSLIDE_CAPTURAR_TELA").as_deref() == Ok("inicio") {
+                        self.passo_captura = 1;
+                        return Task::none();
+                    }
                     // Uma caixa de texto selecionada, para a faixa aparecer ligada.
                     self.em_tela_inicio = false;
+                    if let Ok(a) = std::env::var("FEATHERSLIDE_CAPTURAR_ABA") {
+                        use crate::faixa::AbaDaFaixa as A;
+                        self.aba_faixa = match a.as_str() { "inserir" => A::Inserir, "organizar" => A::Organizar, "design" => A::Design, "transicoes" => A::Transicoes, "animacoes" => A::Animacoes, "apresentacao" => A::Apresentacao, "revisao" => A::Revisao, "exibir" => A::Exibir, _ => self.aba_faixa };
+                    }
                     if self.sessao.elemento_inserir(Tipo::Texto, None, None).is_ok() {
                         if let Some(id) = self.sessao.slide().elementos.last().map(|e| e.id) {
                             let _ = self.sessao.texto_definir(id, "Exemplo de texto");
@@ -5015,6 +5024,7 @@ impl FeatherSlideApp {
                 Space::with_width(Length::Fill),
                 button(row![icone_config(14.0, "#5f6368"), text("Configurações").size(12.5)].spacing(6).align_y(Alignment::Center)).padding([5, 12]).style(estilo_botao_secundario).on_press(Mensagem::Configuracoes),
             ]
+            .spacing(8)
             .align_y(Alignment::Center),
         ).padding([0, 14]).align_y(Alignment::Center).width(Length::Fill).height(Length::Fixed(BARRA_ALTURA)).style(estilo_container_topo);
         let id = self.janelas.principal?;
