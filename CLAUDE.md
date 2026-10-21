@@ -15,9 +15,8 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 - `crates/featherslide-pelicano` (binário `featherslide-pelicano`) é a cópia da interface
   portada para o pelicano, para comparar com o `featherslide-gui` (Iced), que segue intacto.
   Mudança feita num lado precisa ser repetida no outro até escolher um.
-- Usa `../../../pelicano` (já com tudo na v0.1.9) e `../../../feather-ui-pelicano` por
-  caminho: o feather-ui-pelicano (porta do feather-ui, não commitada) ainda não tem tag e
-  depende do pelicano por caminho; trocar os dois por git + tag juntos.
+- Depende do pelicano v0.1.9 e do feather-ui v0.3.0 (a versão sobre o pelicano) por git +
+  tag; o `featherslide-gui` segue no feather-ui v0.2.x (Iced).
 - Canvas: o `Renderer` usa coordenadas da janela; só caminhos, `fill_text` e imagens seguem
   `push_transform`.
 - Igual ao Iced, medido por captura: mistura de cores linear (texto), sombra, trilho da
