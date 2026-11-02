@@ -1,6 +1,6 @@
 [package]
 name = "featherslide-gui"
-version = "0.1.0"
+version = "0.1.1"
 description = "Interface nativa Iced do FeatherSlide — leve, rápida e sem WebKit"
 authors = ["FeatherSlide"]
 edition = "2021"

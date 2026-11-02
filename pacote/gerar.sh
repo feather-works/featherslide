@@ -2,7 +2,7 @@
 # Gera os instaladores do FeatherSlide em pacote/saida/<versão>/:
 #   featherslide_<v>_amd64.deb         Linux (Debian, Ubuntu, Mint…)
 #   featherslide-<v>-linux-x86_64.tar.gz   Linux portátil (qualquer distribuição)
-#   FeatherSlide-<v>-windows-x64.exe    Windows 10/11 (por usuário, sem administrador)
+#   FeatherSlide-<v>-windows-x64.exe    Windows 10/11 (Program Files\FeatherWorks, pede administrador)
 #   SHA256SUMS
 #
 # Uso: pacote/gerar.sh [linux|windows ...]   (sem argumentos = todos)
