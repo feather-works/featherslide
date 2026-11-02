@@ -13,6 +13,8 @@ use quick_xml::{Reader, XmlVersion};
 /// O nome dos nós que são só um pedaço de texto.
 pub const TEXTO: &str = "#texto";
 
+const PROFUNDIDADE_MAXIMA: usize = 256;
+
 #[derive(Clone, Debug, Default)]
 pub struct No {
     pub nome: String,
@@ -105,6 +107,11 @@ pub fn ler(bytes: &[u8], nome: &str) -> Result<No, String> {
     loop {
         let ev = leitor.read_event().map_err(|e| format!("{nome}: XML ilegível ({e})"))?;
         match ev {
+            // Arquivo de verdade não passa de algumas dezenas de níveis; um aninhamento enorme
+            // estouraria a pilha nas buscas recursivas (e ao soltar a árvore), fechando o app.
+            Event::Start(_) if pilha.len() > PROFUNDIDADE_MAXIMA => {
+                return Err(format!("{nome}: XML aninhado demais (mais de {PROFUNDIDADE_MAXIMA} níveis)"));
+            }
             Event::Start(e) => pilha.push(abrir(&e)),
             Event::Empty(e) => {
                 let no = abrir(&e);
@@ -152,6 +159,14 @@ mod testes {
         assert_eq!(no.nome, "p:presentation");
         assert!(no.filho("p:sldIdLst").is_some());
         assert!(ler(b"<?xml version=\"1.0\"?>\r\n", "so espaco").is_err());
+    }
+
+    #[test]
+    fn aninhamento_enorme_da_erro_sem_estourar_a_pilha() {
+        let xml = format!("{}{}", "<a>".repeat(200_000), "</a>".repeat(200_000));
+        assert!(ler(xml.as_bytes(), "fundo").unwrap_err().contains("aninhado"));
+        let raso = format!("{}{}", "<a>".repeat(100), "</a>".repeat(100));
+        assert!(ler(raso.as_bytes(), "raso").is_ok());
     }
 
     #[test]

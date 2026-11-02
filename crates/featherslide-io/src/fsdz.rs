@@ -12,7 +12,7 @@
 //! O `.git/` embutido do contrato ainda não entrou (o FeatherDocs já tem; ver `CLAUDE.md`).
 
 use std::collections::HashMap;
-use std::io::{Cursor, Read, Write};
+use std::io::{Cursor, Write};
 use std::sync::Arc;
 
 use arrow::array::{Array, ArrayRef, BooleanArray, Float32Array, RecordBatch, StringArray, UInt64Array, UInt8Array};
@@ -554,10 +554,8 @@ fn elementos_arrow(slides: &[Slide], imagens: &mut Vec<(String, Vec<u8>)>) -> Re
 pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
     let mut zip = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|_| "Este arquivo não é um .fsdz (não é um ZIP).".to_string())?;
     let mut parte = |nome: &str| -> Result<Vec<u8>, String> {
-        let mut f = zip.by_name(nome).map_err(|_| format!("O .fsdz está incompleto: falta {nome}."))?;
-        let mut v = Vec::new();
-        f.read_to_end(&mut v).map_err(|e| format!("Não consegui ler {nome}: {e}"))?;
-        Ok(v)
+        let f = zip.by_name(nome).map_err(|_| format!("O .fsdz está incompleto: falta {nome}."))?;
+        crate::pacote::ler_com_teto(f, nome)
     };
     let cabeca = Lida::de(&parte("data/apresentacao.arrow")?, "apresentacao.arrow")?;
     if cabeca.meta("aplicativo") != Some(APLICATIVO) {

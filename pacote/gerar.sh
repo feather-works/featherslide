@@ -12,7 +12,9 @@ set -euo pipefail
 
 pacote="$(cd "$(dirname "$0")" && pwd)"
 raiz="$(dirname "$pacote")"
-gui="$raiz/crates/featherslide-gui"
+gui="$raiz/crates/featherslide"
+# Respeita CARGO_TARGET_DIR (pasta de build fora do repositório, quando o disco está cheio).
+alvo="${CARGO_TARGET_DIR:-$gui/target}"
 versao="$(sed -n 's/^version = "\(.*\)"/\1/p' "$gui/Cargo.toml" | head -1)"
 saida="$pacote/saida/$versao"
 alvos=("$@")
@@ -22,7 +24,7 @@ echo "FeatherSlide $versao → $saida"
 
 linux() {
   cargo build --release --manifest-path "$gui/Cargo.toml"
-  local bin="$gui/target/release/featherslide"
+  local bin="$alvo/release/featherslide"
   strip "$bin" 2>/dev/null || true
 
   # .deb
@@ -101,7 +103,7 @@ EOF
 
 windows() {
   cargo build --release --target x86_64-pc-windows-gnu --manifest-path "$gui/Cargo.toml"
-  local exe="$gui/target/x86_64-pc-windows-gnu/release/featherslide.exe"
+  local exe="$alvo/x86_64-pc-windows-gnu/release/featherslide.exe"
   x86_64-w64-mingw32-strip "$exe" 2>/dev/null || true
   (cd "$pacote" && makensis -V2 -DVERSAO="$versao" -DEXE="$exe" -DSAIDA="$saida/FeatherSlide-$versao-windows-x64.exe" featherslide.nsi)
 }

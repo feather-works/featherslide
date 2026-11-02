@@ -8,6 +8,23 @@ use std::rc::Rc;
 
 use crate::xml::{self, No};
 
+/// Teto de uma parte descompactada: um ZIP de poucos kB pode se expandir em GB (ZIP-bomba).
+pub(crate) const TETO_PARTE: u64 = 512 * 1024 * 1024;
+
+/// Lê uma parte do ZIP até o [`TETO_PARTE`]; passou disso, erro em vez de encher a memória.
+pub(crate) fn ler_com_teto(f: impl Read, nome: &str) -> Result<Vec<u8>, String> {
+    ler_ate(f, nome, TETO_PARTE)
+}
+
+fn ler_ate(f: impl Read, nome: &str, teto: u64) -> Result<Vec<u8>, String> {
+    let mut v = Vec::new();
+    f.take(teto + 1).read_to_end(&mut v).map_err(|e| format!("Não consegui ler {nome}: {e}"))?;
+    if v.len() as u64 > teto {
+        return Err(format!("{nome} passa de {} MB descompactado; o arquivo está corrompido ou é malicioso.", teto >> 20));
+    }
+    Ok(v)
+}
+
 pub struct Pacote<'a> {
     zip: zip::ZipArchive<Cursor<&'a [u8]>>,
     arvores: HashMap<String, Rc<No>>,
@@ -30,10 +47,8 @@ impl<'a> Pacote<'a> {
     /// Os bytes de uma parte.
     pub fn parte(&mut self, nome: &str) -> Result<Vec<u8>, String> {
         let formato = self.formato;
-        let mut f = self.zip.by_name(nome).map_err(|_| format!("O {formato} está incompleto: falta {nome}."))?;
-        let mut v = Vec::new();
-        f.read_to_end(&mut v).map_err(|e| format!("Não consegui ler {nome}: {e}"))?;
-        Ok(v)
+        let f = self.zip.by_name(nome).map_err(|_| format!("O {formato} está incompleto: falta {nome}."))?;
+        ler_com_teto(f, nome)
     }
 
     /// Uma parte como árvore XML (lida uma vez só).
@@ -81,6 +96,12 @@ pub fn resolver(pasta: &str, alvo: &str) -> String {
 #[cfg(test)]
 mod testes {
     use super::*;
+
+    #[test]
+    fn parte_acima_do_teto_da_erro() {
+        assert!(super::ler_ate(&[0u8; 11][..], "bomba", 10).is_err());
+        assert_eq!(super::ler_ate(&b"ok"[..], "pequena", 10).unwrap(), b"ok");
+    }
 
     #[test]
     fn caminho_relativo_resolvido() {

@@ -22,6 +22,12 @@ pub enum Fonte {
     Basica,
 }
 
+/// A fonte lida uma vez por processo (o arquivo TTF tem vários MB; o app desenha miniaturas o tempo todo).
+pub fn da_sessao() -> &'static Fonte {
+    static FONTE: std::sync::OnceLock<Fonte> = std::sync::OnceLock::new();
+    FONTE.get_or_init(carregar)
+}
+
 /// Carrega uma fonte do sistema operacional; se não encontrar, usa glifos básicos.
 pub fn carregar() -> Fonte {
     for c in CAMINHOS_FONTE {

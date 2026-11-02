@@ -4,28 +4,34 @@ Apresentações da suíte (sétimo app na contagem antiga; hoje um dos cinco). N
 nome novo em **07/10/2026** (a pasta `openslide/` só tinha o plano, movido para
 `docs/ARQUITETURA.md`). Regras da suíte: `../CLAUDE.md` e `../RECEITA.md` — valem todas.
 
-**Foco atual: 100% Rust com Iced, motor e interface.** Estimativa do usuário:
+**Foco atual: 100% Rust; a interface é o pelicano (o Iced foi apagado em 02/11/2026).** Estimativa do usuário:
 **~40% das funcionalidades prontas**, em 07/10/2026. Não é o avanço da migração.
 Continuar no FeatherSlide; depois FeatherDocs, FeatherSheet e, se houver tempo,
 FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 1.684 entradas). Evidências: `docs/VERIFICACAO-FUNCIONALIDADES.md`.
 
-## Porta para o pelicano, lado a lado com o Iced (21/10/2026)
+## Interface no pelicano; Iced apagado (02/11/2026)
 
-- `crates/featherslide-pelicano` (binário `featherslide-pelicano`) é a cópia da interface
-  portada para o pelicano, para comparar com o `featherslide-gui` (Iced), que segue intacto.
-  Mudança feita num lado precisa ser repetida no outro até escolher um.
-- Depende do pelicano v0.1.9 e do feather-ui v0.3.0 (a versão sobre o pelicano) por git +
-  tag; o `featherslide-gui` segue no feather-ui v0.2.x (Iced).
+- `crates/featherslide` (binário `featherslide`) é a interface, no pelicano. Até 02/11 se
+  chamava `featherslide-pelicano` e convivia com o `featherslide-gui` (Iced), apagado nessa data
+  junto com o `featherslide-ponte` (sem uso); os dois ficam no histórico do git. Menções ao
+  Iced abaixo são registro histórico.
+- Dependências: pelicano v0.1.23 e o feather-ui pela revisão `daeb89b` (ramo
+  `featherpdf-v0.3.11`, o mesmo do FeatherPDF: ícones de alinhar e o F12 com gráficos).
+  **Trocar pela tag do feather-ui antes de lançar.**
+- F12: o Monitor comum (`feather_ui::monitor`); `registro.rs` só guarda as linhas até o tique
+  entregá-las ao Console. Aba Organizar: grupo Alinhar como no FeatherPDF ("Ao slide" /
+  "À seleção", `alinhar_ao_slide`). Abas de documento com X (`Acao::FecharAba`).
+- Gravação automática e pontos de recuperação em fundo (`arquivos::gravar_em_fundo` →
+  `Mensagem::GravadoEmFundo`, anotado no documento pelo rascunho); fechar/sair gravam na hora.
+  `.pptx`/`.odp` salvo vai para um `.fsdz` ao lado sem cobrir outro (`fsdz_ao_lado`).
+- MCP ao vivo (`mcp_vivo.rs`): o canal de `featherslide_mcp::ao_vivo` entrega cada pedido ao
+  `update`, que empresta a sessão ao agente do MCP. `FEATHERSLIDE_VIVO=0` desliga.
+- Leitura de arquivo de fora: cada parte do ZIP tem teto de 512 MB descompactada
+  (`pacote::ler_com_teto`) e o XML, 256 níveis (`xml::PROFUNDIDADE_MAXIMA`).
 - Canvas: o `Renderer` usa coordenadas da janela; só caminhos, `fill_text` e imagens seguem
-  `push_transform`.
-- Igual ao Iced, medido por captura: mistura de cores linear (texto), sombra, trilho da
-  barra de rolagem, setas das listas. `src/rastros.rs` compara redesenho parcial com o cheio.
-  Capturas: `FEATHERSLIDE_CAPTURAR_ABA=inserir|design|…` e `FEATHERSLIDE_CAPTURAR_TELA=inicio`
-  (nos dois apps). Testes com limite: `systemd-run --user --scope -p MemoryMax=8G
-  -p MemorySwapMax=0 -p CPUQuota=400% cargo test --release -j 4 …`.
-- Falta: lista de fontes cinza como no Iced, polegar da barra sob o mouse, "Selecionar tudo"
-  não cabe em 1280 px (nos dois), picos de 1,4–1,7 s com milhares de elementos.
+  `push_transform`. Capturas: `FEATHERSLIDE_CAPTURAR=foto.png`, `FEATHERSLIDE_CAPTURAR_ABA=organizar|…`.
+  Testes com limite: `systemd-run --user --scope -p MemoryMax=6G -p MemorySwapMax=0 cargo test --release -j 4`.
 
 ## Formas comuns no `feather-shapes` (14/10/2026)
 
@@ -62,8 +68,8 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 ## Comandos atuais (de dentro de `featherslide/`)
 
 ```bash
-cargo run --release --manifest-path crates/featherslide-gui/Cargo.toml
-cargo check --manifest-path crates/featherslide-gui/Cargo.toml
+cargo run --release --manifest-path crates/featherslide/Cargo.toml
+cargo test --release --manifest-path crates/featherslide/Cargo.toml
 cargo test --manifest-path crates/featherslide-core/Cargo.toml
 cargo test --manifest-path crates/featherslide-io/Cargo.toml
 cargo test --manifest-path crates/featherslide-ortografia/Cargo.toml
@@ -154,16 +160,14 @@ cargo test --manifest-path crates/featherslide-ortografia/Cargo.toml
   apresentação inteira, até 200 passos).
 - `crates/featherslide-io` — `.fsdz` (ZIP + `data/apresentacao.arrow`, `slides.arrow`,
   `elementos.arrow`, `assets/` para imagens). Sem JSON no arquivo, como o `.fdoz`.
-- `crates/featherslide-ponte` — despacho Rust legado (`COMANDOS_DA_PONTE`),
-  preservado com seus testes; não é dependência da interface Iced.
-- `crates/featherslide-gui` — interface nativa atual em Iced; chama core/io diretamente.
+- `crates/featherslide` — a interface no pelicano; chama core/io diretamente.
 
 ## Limpeza da interface web (08/10/2026)
 
 O código TypeScript, seus testes, páginas HTML e configurações npm/Vite/Tauri
 foram retirados após a migração da interface para Iced. Execute e valide o
 aplicativo com Cargo, usando os comandos acima. A Ajuda preserva seu conteúdo
-em `crates/featherslide-gui/dados/pt-BR.json`. Recursos de fontes e ícones são
+em `crates/featherslide/dados/pt-BR.json`. Recursos de fontes e ícones são
 preservados para reutilização; a limpeza não implica que todas as funcionalidades
 do inventário estejam concluídas.
 

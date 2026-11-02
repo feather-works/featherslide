@@ -1,68 +1,68 @@
 # FeatherSlide
 
-**Apresentações da suíte FeatherWorks, escritas em Rust com interface nativa
-Iced** — leve, rápida e sem WebKit. Abre `.pptx` e `.odp`, grava no formato
-próprio `.fsdz` e roda inteira na sua máquina.
+**Presentations for the FeatherWorks suite, written in Rust with a native
+interface on [pelicano](https://github.com/feather-works/pelicano)** — light,
+fast and without WebKit. Opens `.pptx` and `.odp`, saves to its own `.fsdz`
+format and runs entirely on your machine.
 
-> **Estado:** em desenvolvimento ativo, com cerca de **40% das funcionalidades**
-> do inventário prontas. Versão alpha prevista para **30/10/2026**.
+> **Status:** in active development, with about **40% of the features** in the
+> inventory done.
 
 ---
 
-## O que já faz
+## What it does
 
-| Área | Destaques |
+| Area | Highlights |
 |---|---|
-| **Slides** | edição de slides e elementos com desfazer, layouts com fundo desenhado, texto com formatação |
-| **Formas** | catálogo de formas, ícones, SmartArt e WordArt pelo motor comum [`feather-shapes`](https://github.com/feather-works/feather-shapes) |
-| **Gráficos e tabelas** | gráficos pelo [`feather-charts`](https://github.com/feather-works/feather-charts), tabelas com estrutura editável, exportar gráfico em SVG |
-| **Arquivos** | abre `.pptx` e `.odp`; grava `.fsdz`; exporta PDF e imagem |
-| **Ortografia** | verificação com dicionários Hunspell lidos do disco, tudo local |
-| **IA local** | servidor MCP (`featherslide-mcp`) para uma IA ver, editar e criar apresentações, por stdio ou ao vivo no aplicativo |
+| **Slides** | slide and element editing with undo, layouts with drawn backgrounds, formatted text |
+| **Shapes** | shape catalog, icons, SmartArt and WordArt through the shared [`feather-shapes`](https://github.com/feather-works/feather-shapes) engine |
+| **Charts and tables** | charts through [`feather-charts`](https://github.com/feather-works/feather-charts), tables with editable structure, chart export as SVG |
+| **Files** | opens `.pptx` and `.odp`; saves `.fsdz`; exports PDF and image. Autosave and recovery points are written off the window thread |
+| **Spelling** | Hunspell dictionaries read from disk, all local |
+| **Local AI** | MCP server (`featherslide-mcp`) so an AI can view, edit and create presentations, over stdio or live in the open app |
 
-Inventário completo: [`docs/INVENTARIO-FUNCIONALIDADES.md`](docs/INVENTARIO-FUNCIONALIDADES.md) ·
-evidências da verificação: [`docs/VERIFICACAO-FUNCIONALIDADES.md`](docs/VERIFICACAO-FUNCIONALIDADES.md).
+Full inventory: [`docs/INVENTARIO-FUNCIONALIDADES.md`](docs/INVENTARIO-FUNCIONALIDADES.md) ·
+verification evidence: [`docs/VERIFICACAO-FUNCIONALIDADES.md`](docs/VERIFICACAO-FUNCIONALIDADES.md).
 
-## Formato `.fsdz`
+## The `.fsdz` format
 
-Contêiner compactado com **histórico Git embutido** (feito com
-[`gix`](https://github.com/Byron/gitoxide), Rust puro): as versões da
-apresentação ficam dentro do arquivo, sem servidor.
+A compressed container with **Git history embedded** (built with
+[`gix`](https://github.com/Byron/gitoxide), pure Rust): the presentation's
+versions live inside the file, with no server.
 
-## Estrutura
+## Layout
 
-| Crate | Papel |
+| Crate | Role |
 |---|---|
-| [`featherslide-core`](crates/featherslide-core) | a apresentação (slides e elementos), a edição com desfazer e o quadro de cada slide |
-| [`featherslide-io`](crates/featherslide-io) | `.fsdz`, leitura de `.pptx` e `.odp`, PDF e imagem |
-| [`featherslide-gui`](crates/featherslide-gui) | a interface nativa em Iced |
-| [`featherslide-tabelas`](crates/featherslide-tabelas) | edição das tabelas pelo motor comum `feather-tables` |
-| [`featherslide-ortografia`](crates/featherslide-ortografia) | verificação ortográfica Hunspell |
-| [`featherslide-mcp`](crates/featherslide-mcp) | servidor MCP para IA local |
-| [`featherslide-ponte`](crates/featherslide-ponte) | despacho legado de comandos |
+| [`featherslide`](crates/featherslide) | the app: native interface on pelicano and [`feather-ui`](https://github.com/feather-works/feather-ui) |
+| [`featherslide-core`](crates/featherslide-core) | the presentation (slides and elements), editing with undo and the frame of each slide |
+| [`featherslide-io`](crates/featherslide-io) | `.fsdz`, `.pptx` and `.odp` reading, PDF and image |
+| [`featherslide-tabelas`](crates/featherslide-tabelas) | table editing through the shared `feather-tables` engine |
+| [`featherslide-ortografia`](crates/featherslide-ortografia) | Hunspell spell checking |
+| [`featherslide-mcp`](crates/featherslide-mcp) | MCP server for a local AI |
 
-## Compilar
+## Build
 
-As bibliotecas da suíte vêm do GitHub por tag; o repositório compila sozinho.
+The suite libraries come from GitHub by tag or revision; the repository builds on its own.
 
 ```sh
-cd crates/featherslide-gui
+cd crates/featherslide
 cargo run --release
 ```
 
-Instaladores (`.deb`, `.tar.gz` e Windows): `pacote/gerar.sh`.
+Installers (`.deb`, `.tar.gz` and Windows): `pacote/gerar.sh`.
 
-## Privacidade
+## Privacy
 
-Tudo roda localmente. Nenhuma apresentação sai da máquina; não há conta, login,
-telemetria nem servidor.
+Everything runs locally. No presentation leaves the machine; there is no account,
+login, telemetry or server.
 
-## Documentação
+## Documentation
 
-- [Arquitetura](docs/ARQUITETURA.md)
-- [Personalização de formas e texto](docs/PERSONALIZACAO-FORMAS-TEXTO.md)
-- [Registro de tarefas](docs/REGISTRO-DE-TAREFAS.md) — histórico das entregas até a separação do repositório
+- [Architecture](docs/ARQUITETURA.md)
+- [Shape and text customization](docs/PERSONALIZACAO-FORMAS-TEXTO.md)
+- [Task log](docs/REGISTRO-DE-TAREFAS.md) — delivery history up to the repository split
 
-## Licença
+## License
 
-[GPL-3.0](LICENSE). As fontes Liberation em `assets/fontes/` seguem a licença SIL Open Font License.
+[GPL-3.0](LICENSE). The Liberation fonts in `assets/fontes/` are under the SIL Open Font License.
