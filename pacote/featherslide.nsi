@@ -31,6 +31,7 @@ SetCompressor /SOLID lzma
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "PortugueseBR"
 
+!include "FileFunc.nsh"
 !define DESINSTALAR "Software\Microsoft\Windows\CurrentVersion\Uninstall\FeatherSlide"
 
 Section "FeatherSlide"
@@ -56,6 +57,10 @@ Section "FeatherSlide"
   WriteRegStr HKCU "${DESINSTALAR}" "DisplayName" "FeatherSlide"
   WriteRegStr HKCU "${DESINSTALAR}" "DisplayVersion" "${VERSAO}"
   WriteRegStr HKCU "${DESINSTALAR}" "Publisher" "FeatherWorks"
+  ; Tamanho em "Programas e Recursos" (KB, do que foi instalado).
+  ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+  IntFmt $0 "0x%08X" $0
+  WriteRegDWORD HKCU "${DESINSTALAR}" "EstimatedSize" "$0"
   WriteRegStr HKCU "${DESINSTALAR}" "DisplayIcon" "$INSTDIR\featherslide.ico"
   WriteRegStr HKCU "${DESINSTALAR}" "URLInfoAbout" "https://github.com/feather-works/featherslide"
   WriteRegStr HKCU "${DESINSTALAR}" "UninstallString" '"$INSTDIR\desinstalar.exe"'

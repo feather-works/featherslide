@@ -10,6 +10,15 @@ use iced::{Element, Length, Task};
 use std::path::{Path, PathBuf};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
+/// Diálogo "Abrir" de apresentação: "Todas as apresentações" e um filtro por formato lido.
+pub(crate) fn dialogo_abrir() -> rfd::AsyncFileDialog {
+    rfd::AsyncFileDialog::new()
+        .add_filter("Todas as apresentações", &["fsdz", "pptx", "odp"])
+        .add_filter("FeatherSlide (*.fsdz)", &["fsdz"])
+        .add_filter("PowerPoint (*.pptx)", &["pptx"])
+        .add_filter("OpenDocument (*.odp)", &["odp"])
+}
+
 pub struct Documento {
     pub sessao: Sessao,
     pub caminho: Option<PathBuf>,
@@ -399,8 +408,7 @@ impl FeatherSlideApp {
             Abrir(leitura) => {
                 return Task::perform(
                     async move {
-                        rfd::AsyncFileDialog::new()
-                            .add_filter("Apresentações", &["fsdz", "pptx", "odp"])
+                        crate::arquivos::dialogo_abrir()
                             .pick_file()
                             .await
                             .map(|f| f.path().to_path_buf())
@@ -534,9 +542,8 @@ impl FeatherSlideApp {
             Importar => {
                 return Task::perform(
                     async {
-                        rfd::AsyncFileDialog::new()
+                        crate::arquivos::dialogo_abrir()
                             .set_title("Importar slides")
-                            .add_filter("Apresentações", &["fsdz", "pptx", "odp"])
                             .pick_file()
                             .await
                             .map(|f| f.path().to_path_buf())

@@ -2810,8 +2810,7 @@ impl FeatherSlideApp {
             Msg::ImportarModelo => {
                 return Task::perform(
                     async {
-                        rfd::AsyncFileDialog::new()
-                            .add_filter("Apresentações (*.fsdz, *.pptx, *.odp)", &["fsdz", "pptx", "odp"])
+                        crate::arquivos::dialogo_abrir()
                             .pick_file()
                             .await
                             .map(|f| f.path().to_path_buf())
@@ -2963,7 +2962,7 @@ impl FeatherSlideApp {
     fn abrir_dialogo_abrir(&self) -> Task<Mensagem> {
         Task::perform(
             async {
-                let mut dialogo = rfd::AsyncFileDialog::new().add_filter("Apresentações (*.fsdz, *.pptx, *.odp)", &["fsdz", "pptx", "odp"]);
+                let mut dialogo = crate::arquivos::dialogo_abrir();
                 if let Some(pasta) = crate::configuracao::pasta_das_apresentacoes() {
                     dialogo = dialogo.set_directory(pasta);
                 }
@@ -3357,9 +3356,8 @@ impl FeatherSlideApp {
             FaixaMensagem::SlidesImportar => {
                 return Task::perform(
                     async {
-                        rfd::AsyncFileDialog::new()
+                        crate::arquivos::dialogo_abrir()
                             .set_title("Reutilizar slides de outra apresentação")
-                            .add_filter("Apresentações", &["fsdz", "pptx", "odp"])
                             .pick_file().await.map(|f| f.path().to_path_buf())
                     },
                     Mensagem::ReutilizarArquivoEscolhido,

@@ -35,6 +35,7 @@ linux() {
     install -Dm644 "$pacote/icones/featherslide-$t.png" "$d/usr/share/icons/hicolor/${t}x${t}/mimetypes/application-x-featherslide.png"
   done
   install -Dm644 "$pacote/icones/featherslide.svg" "$d/usr/share/icons/hicolor/scalable/apps/featherslide.svg"
+  install -Dm644 "$pacote/icones/featherslide.svg" "$d/usr/share/icons/hicolor/scalable/mimetypes/application-x-featherslide.svg"
   install -Dm644 "$raiz/LICENSE" "$d/usr/share/doc/featherslide/copyright"
   local tamanho; tamanho="$(du -sk "$d/usr" | cut -f1)"
   mkdir -p "$d/DEBIAN"
@@ -82,9 +83,13 @@ install -m755 featherslide ~/.local/bin/featherslide
 sed "s#^Exec=featherslide#Exec=$HOME/.local/bin/featherslide#" featherslide.desktop > ~/.local/share/applications/featherslide.desktop
 cp featherslide-mime.xml ~/.local/share/mime/packages/featherslide.xml
 for t in 16 24 32 48 64 128 256 512; do
-  mkdir -p ~/.local/share/icons/hicolor/${t}x${t}/apps
+  mkdir -p ~/.local/share/icons/hicolor/${t}x${t}/apps ~/.local/share/icons/hicolor/${t}x${t}/mimetypes
   cp icones/featherslide-$t.png ~/.local/share/icons/hicolor/${t}x${t}/apps/featherslide.png
+  cp icones/featherslide-$t.png ~/.local/share/icons/hicolor/${t}x${t}/mimetypes/application-x-featherslide.png
 done
+mkdir -p ~/.local/share/icons/hicolor/scalable/apps ~/.local/share/icons/hicolor/scalable/mimetypes
+cp icones/featherslide.svg ~/.local/share/icons/hicolor/scalable/apps/featherslide.svg
+cp icones/featherslide.svg ~/.local/share/icons/hicolor/scalable/mimetypes/application-x-featherslide.svg
 update-mime-database ~/.local/share/mime 2>/dev/null || true
 update-desktop-database ~/.local/share/applications 2>/dev/null || true
 echo "FeatherSlide instalado. Procure por \"FeatherSlide\" no menu de aplicativos."
