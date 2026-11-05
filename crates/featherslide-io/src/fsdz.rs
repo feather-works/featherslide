@@ -361,6 +361,7 @@ struct Colunas {
     destino: Vec<u32>,
     link: Vec<String>,
     oculto: Vec<bool>,
+    anim_saida: Vec<bool>,
     grupo: Vec<u32>,
     opacidade: Vec<f32>,
     fundo_removido: Vec<f32>,
@@ -411,6 +412,7 @@ impl Colunas {
         self.destino.push(e.destino);
         self.link.push(e.link.clone());
         self.oculto.push(e.oculto);
+        self.anim_saida.push(e.animacao.saida);
         self.grupo.push(e.grupo);
         self.opacidade.push(e.opacidade);
         self.fundo_removido.push(e.fundo_removido);
@@ -490,6 +492,7 @@ impl Colunas {
             ("destino", Arc::new(arrow::array::UInt32Array::from(self.destino))),
             ("link", Arc::new(StringArray::from(self.link))),
             ("oculto", Arc::new(BooleanArray::from(self.oculto))),
+            ("anim_saida", Arc::new(BooleanArray::from(self.anim_saida))),
             ("grupo", Arc::new(arrow::array::UInt32Array::from(self.grupo))),
             ("opacidade", f(self.opacidade)),
             ("fundo_removido", f(self.fundo_removido)),
@@ -732,6 +735,7 @@ fn ler_elemento(t: &Lida, i: usize) -> Result<Elemento, String> {
             direcao: valor_de(&Direcao::TODOS, t.ou("anim_dir", 0, |t| t.u8("anim_dir", i))?),
             duracao: t.ou("anim_duracao", 0.5, |t| t.f32("anim_duracao", i))?,
             atraso: t.ou("anim_atraso", 0.0, |t| t.f32("anim_atraso", i))?,
+            saida: t.ou("anim_saida", false, |t| t.bool("anim_saida", i))?,
         },
     })
 }

@@ -329,6 +329,8 @@ pub enum FaixaMensagem {
     AnimTipo(TipoAnimacao),
     AnimInicio(InicioAnimacao),
     AnimDirecao(Direcao),
+    /// Liga/desliga "saída" na animação da seleção (o efeito toca ao contrário e o elemento some).
+    AnimSaida,
     AnimDuracao(f32),
     /// Gira os elementos selecionados (graus, horário).
     GirarSelecao(f32),

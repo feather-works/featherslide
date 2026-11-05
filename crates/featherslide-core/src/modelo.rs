@@ -747,11 +747,15 @@ pub struct Animacao {
     pub duracao: f32,
     /// Espera antes de começar, em segundos.
     pub atraso: f32,
+    /// Saída: o efeito toca ao contrário e o elemento some no fim (antes do passo, ele está na tela).
+    /// shortcut: um elemento tem uma animação só (entrada **ou** saída); várias por elemento quando pedirem.
+    #[serde(default)]
+    pub saida: bool,
 }
 
 impl Default for Animacao {
     fn default() -> Self {
-        Self { tipo: TipoAnimacao::Nenhuma, inicio: InicioAnimacao::AoClicar, direcao: Direcao::Esquerda, duracao: 0.5, atraso: 0.0 }
+        Self { tipo: TipoAnimacao::Nenhuma, inicio: InicioAnimacao::AoClicar, direcao: Direcao::Esquerda, duracao: 0.5, atraso: 0.0, saida: false }
     }
 }
 

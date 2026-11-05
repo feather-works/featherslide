@@ -2413,7 +2413,8 @@ impl FeatherSlideApp {
                 } else {
                     0.0
                 };
-                efeitos.insert(*id, (p, anim.clone()));
+                // A saída é a entrada ao contrário: 1 = ainda na tela, 0 = já saiu.
+                efeitos.insert(*id, (if anim.saida { 1.0 - p } else { p }, anim.clone()));
             }
         }
         efeitos
@@ -4148,6 +4149,7 @@ impl FeatherSlideApp {
             },
             FaixaMensagem::AnimInicio(i) => self.mudar_animacao(|a| a.inicio = i),
             FaixaMensagem::AnimDirecao(d) => self.mudar_animacao(|a| a.direcao = d),
+            FaixaMensagem::AnimSaida => self.mudar_animacao(|a| a.saida = !a.saida),
             FaixaMensagem::AnimDuracao(delta) => self.mudar_animacao(|a| a.duracao = (((a.duracao + delta) * 10.0).round() / 10.0).clamp(0.1, 20.0)),
             FaixaMensagem::AnimAtraso(delta) => self.mudar_animacao(|a| a.atraso = (((a.atraso + delta) * 10.0).round() / 10.0).clamp(0.0, 30.0)),
             FaixaMensagem::AnimOrdem(delta) => {
@@ -6525,4 +6527,21 @@ fn modo_de_leitura_apresenta_sem_tela_cheia_e_sai_limpo() {
     assert!(app.em_apresentacao && app.modo_leitura && app.plateia.is_none());
     let _ = app.sair_da_apresentacao();
     assert!(!app.em_apresentacao && !app.modo_leitura);
+}
+
+#[cfg(test)]
+#[test]
+fn animacao_de_saida_comeca_na_tela_e_termina_fora() {
+    use featherslide_core::modelo::{Animacao, TipoAnimacao};
+    let mut app = FeatherSlideApp::default();
+    let id = app.sessao.slide().elementos[0].id;
+    app.sessao.selecionar_por_id(id);
+    app.sessao.animacao_definir(Animacao { tipo: TipoAnimacao::Esmaecer, saida: true, ..Animacao::default() }).unwrap();
+    let _ = app.update(Mensagem::Faixa(FaixaMensagem::ApresentarDoAtual));
+    assert_eq!(app.efeitos_atuais().get(&id).map(|e| e.0), Some(1.0), "antes do clique, ainda na tela");
+    let _ = app.avancar();
+    app.repro.inicio_passo = None;
+    assert_eq!(app.efeitos_atuais().get(&id).map(|e| e.0), Some(0.0), "depois do passo, já saiu");
+    let lida = featherslide_io::fsdz::ler(&featherslide_io::fsdz::gravar(app.sessao.apresentacao()).unwrap()).unwrap();
+    assert!(lida.slides[0].elementos[0].animacao.saida, "a saída fica no .fsdz");
 }

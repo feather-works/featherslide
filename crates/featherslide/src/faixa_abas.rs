@@ -1225,11 +1225,12 @@ pub fn animacoes<'a>(c: &Contexto) -> Element<'a, Msg> {
             text("Efeito").size(11).color(COR_TEXTO_MUTED()),
             seletor,
         ].spacing(6).align(Align::Center)
-    ].spacing(3).into(), "Entrada e ênfase");
+    ].spacing(3).into(), "Entrada, ênfase e saída");
     let opcoes = grupo(
         column![
             text("Direção").size(10.5).color(COR_TEXTO_MUTED()),
             menu(a.direcao.nome(), &DIRECOES, |n| Msg::AnimDirecao(direcao_de(n)), 120.0, ligado && a.tipo.tem_direcao()),
+            dica(pequeno(icone_descer(13.0, "#5f6368"), "Saída", (ligado && a.tipo != TipoAnimacao::Nenhuma).then_some(Msg::AnimSaida), a.saida), "O efeito toca ao contrário e o elemento sai do slide."),
         ]
         .spacing(2)
         .into(),

@@ -500,6 +500,7 @@
           "F5 começa do primeiro slide; Shift+F5, do slide atual.",
           "Apresentação → Ensaiar intervalos: apresenta do começo e mede o tempo de cada slide; ao sair (Esc), os tempos viram o avanço automático de cada slide. Ctrl+Z desfaz.",
           "Exibir → Modo de leitura: apresenta na própria janela, sem tela cheia, para mostrar numa reunião por vídeo.",
+          "Animações → Saída: o efeito escolhido toca ao contrário e o elemento sai do slide. Antes do clique ele está na tela. Cada elemento tem uma animação: entrada ou saída.",
           "• Avance com →, Espaço, Enter ou clique; volte com ← ou Backspace. Home e End vão ao primeiro e ao último.",
           "• Esc sai da apresentação."
         ]

@@ -53,6 +53,8 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   (`ensaio_marcar` em `ir_na_apresentacao` e ao sair); ao sair, `Sessao::tempos_do_ensaio` grava
   `Transicao::apos` numa edição. Durante o ensaio o avanço automático antigo fica desligado.
 - **Modo de leitura** (Exibir): `app.modo_leitura` apresenta sem tela cheia e sem plateia.
+- **Animações de saída:** `Animacao::saida` (coluna `anim_saida` no `.fsdz`); `efeitos_atuais` e a
+  prévia invertem o andamento (`1 - p`). Um elemento tem uma animação só (entrada ou saída).
 - Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
 
 ## Auditoria de 05/11/2026 (11 correções)

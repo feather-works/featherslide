@@ -70,7 +70,7 @@ pub fn view<'a>(sessao: &Sessao) -> Element<'a, Msg> {
                         text(format!("{n}")).size(12).color(COR_TEXTO_MUTED()).width(Length::Fixed(18.0)),
                         column![
                             text(rotulo_do_elemento(sessao, id)).size(13),
-                            text(format!("{} · {inicio} · {:.1} s", a.tipo.nome(), a.duracao)).size(11).color(COR_TEXTO_MUTED()),
+                            text(format!("{}{} · {inicio} · {:.1} s", a.tipo.nome(), if a.saida { " (saída)" } else { "" }, a.duracao)).size(11).color(COR_TEXTO_MUTED()),
                         ]
                         .spacing(1),
                     ]

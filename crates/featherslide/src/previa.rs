@@ -57,7 +57,7 @@ impl Previa {
             Efeito::Transicao(de, t) => Some((de.clone(), t.clone(), p)),
             Efeito::Animacao(ids, a) => {
                 for id in ids {
-                    efeitos.insert(*id, (p, a.clone()));
+                    efeitos.insert(*id, (if a.saida { 1.0 - p } else { p }, a.clone()));
                 }
                 None
             }
