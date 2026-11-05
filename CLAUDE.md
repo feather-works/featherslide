@@ -55,6 +55,9 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 - **Modo de leitura** (Exibir): `app.modo_leitura` apresenta sem tela cheia e sem plateia.
 - **Animações de saída:** `Animacao::saida` (coluna `anim_saida` no `.fsdz`); `efeitos_atuais` e a
   prévia invertem o andamento (`1 - p`). Um elemento tem uma animação só (entrada ou saída).
+- **Modelos:** 25 em `MODELOS` (6 novos: reunião, treinamento, estudo de caso, defesa de TCC, evento,
+  alto contraste), cada um com tema próprio; reaproveitam o desenho de um anterior pelo mapa no
+  começo de `decorar` (e o roteiro, em `telas`, só no alto contraste).
 - Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
 
 ## Auditoria de 05/11/2026 (11 correções)

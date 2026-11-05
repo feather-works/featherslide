@@ -455,6 +455,7 @@
         "titulo": "Getting started",
         "corpo": [
           "On the home page, choose New presentation or Open. A new presentation starts with a title slide.",
+          "\u2022 The home page also has 24 ready-made templates with sample slides: class, training, weekly meeting, report, case study, thesis defense, event, pitch, high contrast and more.",
           "• The slide panel is on the left; the slide being edited in the middle; the speaker notes below.",
           "• The ribbon on top has the Home, Insert, Design, Transitions, Animations, Slide Show and View tabs. Double-click a tab (or Ctrl+F1) to swap the ribbon for menus.",
           "• Commands marked \"Coming soon\" do not work yet: each tooltip says what it will do."

@@ -13,7 +13,7 @@ pub struct Modelo {
     pub tema: &'static str,
 }
 
-pub const MODELOS: [Modelo; 19] = [
+pub const MODELOS: [Modelo; 25] = [
     Modelo { id: "em_branco", nome: "Em branco", descricao: "Um slide de título, sem nada mais.", tema: "office" },
     Modelo { id: "negocios", nome: "Negócios", descricao: "Faixas diagonais em azul-marinho com detalhe dourado.", tema: "executivo" },
     Modelo { id: "aula", nome: "Aula", descricao: "Objetivos, conteúdo, exemplos e exercícios.", tema: "floresta" },
@@ -33,6 +33,12 @@ pub const MODELOS: [Modelo; 19] = [
     Modelo { id: "planta", nome: "Planta", descricao: "Planta azul com grade, cotas e carimbo.", tema: "planta" },
     Modelo { id: "bauhaus", nome: "Bauhaus", descricao: "Círculo, meio-disco e losango em cores primárias.", tema: "bauhaus" },
     Modelo { id: "orbita", nome: "Órbita", descricao: "Planeta, anel e satélite coral sobre índigo.", tema: "orbita" },
+    Modelo { id: "reuniao", nome: "Reunião semanal", descricao: "Pauta, andamento, números e decisões da semana.", tema: "oceano" },
+    Modelo { id: "treinamento", nome: "Treinamento", descricao: "Passo a passo para ensinar uma ferramenta ou processo.", tema: "ardosia" },
+    Modelo { id: "estudo_caso", nome: "Estudo de caso", descricao: "Cliente, desafio, solução e resultados.", tema: "vinho" },
+    Modelo { id: "defesa", nome: "Defesa de TCC", descricao: "Introdução, método, resultados e conclusão.", tema: "escuro" },
+    Modelo { id: "evento", nome: "Evento", descricao: "Convite, programação, local e inscrição.", tema: "por_do_sol" },
+    Modelo { id: "alto_contraste", nome: "Alto contraste", descricao: "Letras grandes e contraste forte, para sala clara ou baixa visão.", tema: "contraste" },
 ];
 
 /// Um slide: layout e os textos (título, e o corpo ou subtítulo).
@@ -49,9 +55,56 @@ fn telas(id: &str) -> Vec<Tela> {
         "planta" => "tecnologia",
         "bauhaus" => "criativo",
         "orbita" => "pitch",
+        "alto_contraste" => "minimalista",
         outro => outro,
     };
     match id {
+        "reuniao" => vec![
+            ("titulo", "Reunião semanal", "Equipe · Semana de 00/00"),
+            ("titulo_conteudo", "Pauta", "Andamento da semana\nNúmeros\nDecisões\nPróxima semana"),
+            ("dois_conteudos", "Andamento", "Feito\nEntrega A\nCorreção B\n\nEm andamento\nTarefa C (70%)\nTarefa D (travada: falta acesso)"),
+            ("titulo_conteudo", "Números da semana", "Meta × realizado\nO que subiu\nO que caiu e por quê"),
+            ("titulo_conteudo", "Decisões", "O que foi decidido\nQuem faz\nAté quando"),
+            ("titulo_conteudo", "Próxima semana", "Prioridade 1\nPrioridade 2\nRiscos a acompanhar"),
+        ],
+        "treinamento" => vec![
+            ("titulo", "Treinamento", "Ferramenta ou processo · Instrutor(a)"),
+            ("titulo_conteudo", "O que você vai aprender", "Para que serve\nOs três passos principais\nOnde pedir ajuda"),
+            ("secao", "Passo a passo", ""),
+            ("titulo_conteudo", "Passo 1", "O que fazer\nOnde clicar\nComo saber que deu certo"),
+            ("titulo_conteudo", "Passo 2", "O que fazer\nOnde clicar\nComo saber que deu certo"),
+            ("dois_conteudos", "Certo e errado", "Faça assim\nConfira antes de enviar\nSalve com frequência\n\nEvite\nPular etapas\nTrabalhar na cópia antiga"),
+            ("titulo_conteudo", "Prática", "Exercício guiado\nTempo: 15 minutos\nTire dúvidas no fim"),
+            ("titulo_conteudo", "Dúvidas frequentes", "Esqueci a senha\nO arquivo não abre\nQuem procurar"),
+        ],
+        "estudo_caso" => vec![
+            ("titulo", "Estudo de caso", "Nome do cliente · Setor"),
+            ("titulo_conteudo", "O cliente", "Quem é\nTamanho e mercado\nO que buscava"),
+            ("titulo_conteudo", "O desafio", "O problema em uma frase\nO que já tinha sido tentado\nO custo de não resolver"),
+            ("titulo_conteudo", "A solução", "O que foi feito\nEm quanto tempo\nCom quem"),
+            ("dois_conteudos", "Resultados", "Antes\n10 dias por pedido\n15% de retrabalho\n\nDepois\n2 dias por pedido\n3% de retrabalho"),
+            ("somente_titulo", "\u{201c}A frase do cliente sobre o resultado.\u{201d}", ""),
+            ("titulo_conteudo", "O que aprendemos", "Lição 1\nLição 2\nOnde aplicar de novo"),
+        ],
+        "defesa" => vec![
+            ("titulo", "Título do trabalho", "Nome · Orientador(a) · Curso · Ano"),
+            ("titulo_conteudo", "Introdução", "Contexto\nProblema de pesquisa\nJustificativa"),
+            ("titulo_conteudo", "Objetivos", "Objetivo geral\nObjetivos específicos"),
+            ("titulo_conteudo", "Metodologia", "Tipo de pesquisa\nDados e amostra\nComo foi analisado"),
+            ("somente_titulo", "Resultados", ""),
+            ("titulo_conteudo", "Discussão", "O que os resultados mostram\nComparação com outros trabalhos\nLimitações"),
+            ("titulo_conteudo", "Conclusão", "Resposta ao problema\nContribuição\nTrabalhos futuros"),
+            ("titulo_conteudo", "Referências", "SOBRENOME, Nome. Título. Editora, ano.\nSOBRENOME, Nome. Título do artigo. Revista, ano."),
+            ("titulo", "Obrigado(a)", "Perguntas da banca"),
+        ],
+        "evento" => vec![
+            ("titulo", "Nome do evento", "Data · Local"),
+            ("titulo_conteudo", "Você está convidado", "O que é\nPara quem é\nPor que vale a pena ir"),
+            ("titulo_conteudo", "Programação", "09h00 · Abertura\n10h00 · Palestra principal\n12h00 · Almoço\n14h00 · Oficinas"),
+            ("dois_conteudos", "Quem fala", "Manhã\nNome · tema\nNome · tema\n\nTarde\nNome · tema\nNome · tema"),
+            ("titulo_conteudo", "Local e horário", "Endereço\nComo chegar\nEstacionamento"),
+            ("titulo", "Inscreva-se", "site ou contato · vagas limitadas"),
+        ],
         "negocios" => vec![
             ("titulo", "Título da proposta", "Nome da empresa · Data"),
             ("titulo_conteudo", "Agenda", "Contexto\nProposta\nInvestimento\nPróximos passos"),
@@ -175,6 +228,15 @@ pub(crate) fn decorar(ap: &mut Apresentacao, slide: &mut Slide, modelo: &str, la
     if modelo == "em_branco" || modelo.is_empty() {
         return;
     }
+    // Os modelos novos usam o desenho de um dos anteriores, nas cores do próprio tema.
+    let modelo = match modelo {
+        "reuniao" | "alto_contraste" => "minimalista",
+        "treinamento" => "aula",
+        "estudo_caso" => "elegante",
+        "defesa" => "relatorio",
+        "evento" => "criativo",
+        outro => outro,
+    };
     slide.transicao.tipo = TipoTransicao::Esmaecer;
     slide.transicao.direcao = Direcao::Esquerda;
     use Alinhamento::{Centro, Esquerda};
