@@ -171,7 +171,7 @@ fn ida_e_volta_com_tabela_grafico_tema_transicao_e_animacao() {
     s.formatar(Formatacao::Contorno("#ff6600".into())).unwrap();
     s.formatar(Formatacao::Espessura(3.5)).unwrap();
     s.grafico_inserir("pizza").unwrap();
-    s.animacao_definir(Animacao { tipo: TipoAnimacao::Voar, inicio: InicioAnimacao::AposAnterior, direcao: Direcao::Baixo, duracao: 1.5, atraso: 0.25 }).unwrap();
+    s.animacao_definir(Animacao { tipo: TipoAnimacao::Voar, inicio: InicioAnimacao::AposAnterior, direcao: Direcao::Baixo, duracao: 1.5, atraso: 0.25, saida: true }).unwrap();
     s.transicao_definir(Transicao { tipo: TipoTransicao::Cortina, direcao: Direcao::Cima, duracao: 1.2, apos: 4.0 }, true).unwrap();
     s.tema_aplicar("oceano").unwrap();
     let lida = fsdz::ler(&fsdz::gravar(s.apresentacao()).unwrap()).unwrap();
