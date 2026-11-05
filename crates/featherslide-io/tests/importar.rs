@@ -73,6 +73,27 @@ fn pptx_herda_posicao_cor_fonte_e_lista() {
     assert!((elipse.largura - 2_000_000.0 / 12_700.0 * 4.0 / 3.0).abs() < 0.5, "grupo escala os filhos: {}", elipse.largura);
 }
 
+#[test]
+fn pptx_16_10_mantem_o_tamanho_e_nao_estica() {
+    // Issue #1: 16:10 (720 × 450 pt) era encaixado em 16:9 e escalado diferente em x e y.
+    let bytes = pptx_minimo();
+    let mut z = zip::ZipArchive::new(Cursor::new(bytes)).unwrap();
+    let mut partes = Vec::new();
+    for i in 0..z.len() {
+        let mut f = z.by_index(i).unwrap();
+        let mut c = String::new();
+        std::io::Read::read_to_string(&mut f, &mut c).unwrap();
+        partes.push((f.name().to_string(), c.replace(r#"cy="5143500"/></p:presentation>"#, r#"cy="5715000"/></p:presentation>"#)));
+    }
+    let partes: Vec<(&str, &str)> = partes.iter().map(|(n, c)| (n.as_str(), c.as_str())).collect();
+    let ap = pptx::ler(&zip(&partes)).unwrap();
+    assert_eq!(ap.tamanho(), (720.0, 450.0));
+    let elipse = ap.slides[0].elementos.iter().find(|e| e.tipo == Tipo::Elipse).unwrap();
+    assert!((elipse.largura / elipse.altura - 2.0).abs() < 1e-3, "proporção da forma: {} × {}", elipse.largura, elipse.altura);
+    // 16:9 e 4:3 continuam no tamanho padrão.
+    assert_eq!(pptx::ler(&pptx_minimo()).unwrap().dimensoes, [0.0; 2]);
+}
+
 /// O que o Google Apresentações exporta: o desenho do tema mora no layout (setores, barras com
 /// os cantos de cima redondos, branco quase transparente), a foto é recortada em elipse com
 /// sombra, e a equação vem como `mc:AlternateContent` com a imagem no `mc:Fallback`.

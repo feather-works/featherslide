@@ -506,7 +506,7 @@
         "titulo": "Files",
         "corpo": [
           "The presentation is saved as .fsdz: a container with the slides in Arrow columns and the images as files.",
-          "• Open also reads .pptx (PowerPoint and Google Slides) and .odp (LibreOffice Impress): slides, boxes, shapes, images, background and notes. On save, the presentation becomes .fsdz (the original is not touched).",
+          "• Open also reads .pptx (PowerPoint and Google Slides) and .odp (LibreOffice Impress): slides, boxes, shapes, images, background and notes, at the file's own slide size (16:10, A4 and others are not stretched). On save, the presentation becomes .fsdz (the original is not touched).",
           "• Ctrl+S saves to the same file; Ctrl+Shift+S asks where.",
           "• In the browser (development mode), Save downloads the file."
         ]

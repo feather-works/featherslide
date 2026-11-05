@@ -100,8 +100,8 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
         pagina = v.first().and_then(|p| Some((medida(p.attr("fo:page-width")?)?, medida(p.attr("fo:page-height")?)?)));
     }
     let (pw, ph) = pagina.unwrap_or((792.0, 445.5));
-    let proporcao = if pw / ph > 1.55 { Proporcao::Larga } else { Proporcao::Padrao };
-    let (w, h) = proporcao.tamanho();
+    let (proporcao, dimensoes) = Proporcao::de_tamanho(pw, ph);
+    let (w, h) = if dimensoes[0] > 0.0 { (dimensoes[0], dimensoes[1]) } else { proporcao.tamanho() };
     let apresentacao = conteudo.caminho(&["office:body", "office:presentation"]).ok_or("O .odp não tem apresentação (falta office:presentation).")?;
     let mut leitor = Leitor { pac, estilos, sx: f64::from(w) / pw, sy: f64::from(h) / ph, proximo: 1 };
     let mut slides = Vec::new();
@@ -109,7 +109,7 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
     for p in apresentacao.filhos("draw:page") {
         slides.push(leitor.slide(p, mestres)?);
     }
-    Ok(Apresentacao { titulo, autor, proporcao, dimensoes: [0.0; 2], slides, proximo_id: leitor.proximo, fontes: Vec::new(), tema: String::new(), modelo: String::new(), metadados })
+    Ok(Apresentacao { titulo, autor, proporcao, dimensoes, slides, proximo_id: leitor.proximo, fontes: Vec::new(), tema: String::new(), modelo: String::new(), metadados })
 }
 
 /// O texto de um parágrafo (`text:p`, `text:h`): trechos, espaços (`text:s`), tabulações e quebras.

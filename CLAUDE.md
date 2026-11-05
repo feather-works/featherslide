@@ -33,6 +33,16 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   `push_transform`. Capturas: `FEATHERSLIDE_CAPTURAR=foto.png`, `FEATHERSLIDE_CAPTURAR_ABA=organizar|…`.
   Testes com limite: `systemd-run --user --scope -p MemoryMax=6G -p MemorySwapMax=0 cargo test --release -j 4`.
 
+## Tamanho do slide ao abrir `.pptx`/`.odp` (05/11/2026, issue #1)
+
+- Antes, todo arquivo de fora virava 16:9 ou 4:3 com escala diferente em x e y: num slide
+  16:10, A4 ou personalizado, tudo esticava e andava um pouco. `Proporcao::de_tamanho`
+  (core) devolve a proporção padrão só quando a razão bate (±0,5 %); senão, `dimensoes`
+  recebe o tamanho real em pontos (escala 1, igual nos dois eixos). Teste:
+  `io/tests/importar.rs::pptx_16_10_mantem_o_tamanho_e_nao_estica`.
+- Se o usuário ainda vir deslocamento num 16:9/4:3, a próxima suspeita é a medida
+  aproximada do texto (item 4 da Fila), não a geometria.
+
 ## Formas comuns no `feather-shapes` (14/10/2026)
 
 - A parte pura de formas, ícones e diagramas saiu do core para o crate comum

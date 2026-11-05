@@ -26,6 +26,22 @@ impl Proporcao {
             Proporcao::Padrao => (720.0, 540.0),
         }
     }
+
+    /// A proporção e as dimensões para um slide de fora com `w` × `h` pontos.
+    /// 16:9 e 4:3 viram o tamanho padrão (escala igual nos dois eixos); outro formato
+    /// (16:10, A4…) fica com as próprias dimensões, para nada esticar nem andar (issue #1).
+    pub fn de_tamanho(w: f64, h: f64) -> (Proporcao, [f32; 2]) {
+        let r = w / h;
+        let proporcao = if r > 1.55 { Proporcao::Larga } else { Proporcao::Padrao };
+        let (pw, ph) = proporcao.tamanho();
+        let padrao = (r / (f64::from(pw) / f64::from(ph)) - 1.0).abs() < 0.005;
+        let dentro = |v: f64| (36.0..=7200.0).contains(&v);
+        if padrao || !dentro(w) || !dentro(h) {
+            (proporcao, [0.0; 2])
+        } else {
+            (proporcao, [w as f32, h as f32])
+        }
+    }
 }
 
 /// O que um elemento é.

@@ -98,8 +98,8 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
     let pres = pac.xml("ppt/presentation.xml")?;
     let tam = pres.filho("p:sldSz");
     let (cx, cy) = (tam.and_then(|t| t.num("cx")).unwrap_or(12_192_000.0), tam.and_then(|t| t.num("cy")).unwrap_or(6_858_000.0));
-    let proporcao = if cx / cy > 1.55 { Proporcao::Larga } else { Proporcao::Padrao };
-    let (w, h) = proporcao.tamanho();
+    let (proporcao, dimensoes) = Proporcao::de_tamanho(cx / EMU_POR_PT, cy / EMU_POR_PT);
+    let (w, h) = if dimensoes[0] > 0.0 { (dimensoes[0], dimensoes[1]) } else { proporcao.tamanho() };
     let sx = f64::from(w) / cx;
     let sy = f64::from(h) / cy;
     let rels = pac.ligacoes("ppt/presentation.xml");
@@ -111,7 +111,7 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
     for c in caminhos {
         slides.push(leitor.slide(&c)?);
     }
-    Ok(Apresentacao { titulo, autor, proporcao, dimensoes: [0.0; 2], slides, proximo_id: leitor.proximo, fontes, tema: String::new(), modelo: String::new(), metadados })
+    Ok(Apresentacao { titulo, autor, proporcao, dimensoes, slides, proximo_id: leitor.proximo, fontes, tema: String::new(), modelo: String::new(), metadados })
 }
 
 /// A primeira ligação cujo caminho contém `pasta` (o layout de um slide, o mestre de um layout…).
