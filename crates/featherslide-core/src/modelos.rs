@@ -1049,7 +1049,7 @@ pub(crate) fn decorar(ap: &mut Apresentacao, slide: &mut Slide, modelo: &str, la
 /// A apresentação do modelo `id` (`None` se não existe).
 pub fn criar(id: &str) -> Option<Apresentacao> {
     let modelo = MODELOS.iter().find(|m| m.id == id)?;
-    let mut ap = Apresentacao { titulo: String::new(), autor: String::new(), proporcao: Proporcao::Larga, dimensoes: [0.0; 2], slides: Vec::new(), proximo_id: 1, fontes: Vec::new(), tema: String::new(), modelo: String::new(), metadados: crate::metadados::Metadados::novo() };
+    let mut ap = Apresentacao { titulo: String::new(), autor: String::new(), proporcao: Proporcao::Larga, dimensoes: [0.0; 2], slides: Vec::new(), proximo_id: 1, fontes: Vec::new(), tema: String::new(), modelo: String::new(), metadados: crate::metadados::Metadados::novo(), rodape: Default::default() };
     if modelo.tema != "office" {
         ap.tema = modelo.tema.into();
     }

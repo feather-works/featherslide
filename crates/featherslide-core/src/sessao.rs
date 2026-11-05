@@ -108,7 +108,7 @@ pub struct Sessao {
 
 impl Default for Sessao {
     fn default() -> Self {
-        Self::nova(Apresentacao { titulo: String::new(), autor: String::new(), proporcao: Proporcao::Larga, dimensoes: [0.0; 2], slides: Vec::new(), proximo_id: 1, fontes: Vec::new(), tema: String::new(), modelo: String::new(), metadados: crate::metadados::Metadados::novo() })
+        Self::nova(Apresentacao { titulo: String::new(), autor: String::new(), proporcao: Proporcao::Larga, dimensoes: [0.0; 2], slides: Vec::new(), proximo_id: 1, fontes: Vec::new(), tema: String::new(), modelo: String::new(), metadados: crate::metadados::Metadados::novo(), rodape: Default::default() })
     }
 }
 
@@ -207,10 +207,18 @@ impl Sessao {
     pub fn quadro(&self, indice: usize, conhecida: Option<u64>, editor: bool) -> Result<Option<Quadro>, String> {
         let slide = self.ap.slides.get(indice).ok_or_else(|| format!("O slide {} não existe.", indice + 1))?;
         let versao = self.versao_do_slide(slide.id) + 1;
+        // Com o número no rodapé, o lugar do slide também muda o desenho (a miniatura não fica velha).
+        let versao = if self.ap.rodape.numero { versao + ((indice as u64 + 1) << 40) } else { versao };
         if conhecida == Some(versao) {
             return Ok(None);
         }
-        Ok(Some(quadro::quadro(slide, self.ap.tamanho(), versao, &self.dicas, editor)))
+        let rodape = crate::rodape::elementos(&self.ap, indice, &self.dicas.hoje);
+        if rodape.is_empty() {
+            return Ok(Some(quadro::quadro(slide, self.ap.tamanho(), versao, &self.dicas, editor)));
+        }
+        let mut com_rodape = slide.clone();
+        com_rodape.elementos.extend(rodape);
+        Ok(Some(quadro::quadro(&com_rodape, self.ap.tamanho(), versao, &self.dicas, editor)))
     }
 
     /// O estado para a interface.

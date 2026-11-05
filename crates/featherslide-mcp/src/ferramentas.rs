@@ -63,6 +63,7 @@ fn slide_novo(ag: &mut Agente, args: &Value) -> Result<Conteudo, String> {
         tema: String::new(),
         modelo: String::new(),
         metadados: featherslide_core::metadados::Metadados::novo(),
+        rodape: Default::default(),
     };
     ag.sessao = Sessao::nova(ap);
     ag.arquivo = None;

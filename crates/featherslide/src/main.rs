@@ -33,6 +33,7 @@ mod galeria_layouts;
 mod reutilizar_slides;
 mod personalizadas;
 mod topicos;
+mod rodape;
 mod registro;
 mod desenho;
 mod drawing_iced;

@@ -511,3 +511,13 @@ fn margem_interna_da_caixa_persiste() {
     let lida = fsdz::ler(&fsdz::gravar(s.apresentacao()).unwrap()).unwrap();
     assert_eq!(lida.slides[0].elementos[0].margem, Some([0.0, 1.5, 9.6, 4.8]));
 }
+
+#[test]
+fn rodape_persiste() {
+    let mut s = Sessao::default();
+    s.rodape_definir(featherslide_core::modelo::Rodape { data: true, data_fixa: "a\tb".into(), numero: true, texto: "Empresa\nlinha".into(), sem_no_titulo: true }).unwrap();
+    let lida = fsdz::ler(&fsdz::gravar(s.apresentacao()).unwrap()).unwrap();
+    assert_eq!(lida.rodape, s.apresentacao().rodape);
+    let vazia = fsdz::ler(&fsdz::gravar(Sessao::default().apresentacao()).unwrap()).unwrap();
+    assert!(!vazia.rodape.ativo());
+}

@@ -435,6 +435,15 @@ pub fn gravar(ap: &Apresentacao) -> Result<Gravado, String> {
     let mut rels_pres: Vec<(String, &str, String)> = vec![("rId1".into(), R_MESTRE, "slideMasters/slideMaster1.xml".into()), ("rId2".into(), R_TEMA, "theme/theme1.xml".into()), ("rId3".into(), R_MESTRE_NOTAS, "notesMasters/notesMaster1.xml".into())];
     for (i, sl) in ap.slides.iter().enumerate() {
         let k = i + 1;
+        // O rodapé (data, número, texto) vai como caixas de texto comuns em cada slide.
+        let rodape = featherslide_core::rodape::elementos(ap, i, "");
+        let com_rodape;
+        let sl = if rodape.is_empty() {
+            sl
+        } else {
+            com_rodape = Slide { elementos: sl.elementos.iter().cloned().chain(rodape).collect(), ..sl.clone() };
+            &com_rodape
+        };
         let (xml, r) = slide(sl, k, &mut midia, &mut graficos, &mut de_fora);
         partes.push((format!("ppt/slides/slide{k}.xml"), xml.into_bytes()));
         partes.push((format!("ppt/slides/_rels/slide{k}.xml.rels"), r.into_bytes()));

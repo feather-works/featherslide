@@ -106,6 +106,8 @@ pub struct FeatherSlideApp {
     pub personalizadas: Option<personalizadas::Estado>,
     /// O painel da estrutura de tópicos, aberto.
     pub topicos: Option<crate::topicos::Estado>,
+    /// O rascunho do diálogo Cabeçalho e rodapé, aberto.
+    pub rodape: Option<featherslide_core::modelo::Rodape>,
     /// IDs da sequência em reprodução, sem depender dos índices físicos atuais.
     pub roteiro_personalizado: Option<Vec<u64>>,
     /// A miniatura apertada (pode virar clique, reordenação ou gatilho no slide).
@@ -304,6 +306,9 @@ pub enum Mensagem {
     ReutilizarConfirmar(featherslide_core::EstiloColagem),
     PersonalizadasFechar,
     TopicosFechar,
+    RodapeMudar(crate::rodape::Campo),
+    RodapeAplicar,
+    RodapeFechar,
     TopicosAplicar,
     PersonalizadaNome(String),
     PersonalizadaCriar,
@@ -453,6 +458,7 @@ impl Default for FeatherSlideApp {
             reutilizacao: None,
             personalizadas: None,
             topicos: None,
+            rodape: None,
             roteiro_personalizado: None,
             arrastando_slide: None,
             arrastando_secao: None,
@@ -573,6 +579,7 @@ impl FeatherSlideApp {
             titulo: ajuda::t("dicas.titulo"),
             subtitulo: ajuda::t("dicas.subtitulo"),
             corpo: ajuda::t("dicas.corpo"),
+            hoje: chrono_like_hoje().split(' ').next().unwrap_or("").to_string(),
         });
     }
 
@@ -1593,6 +1600,20 @@ impl FeatherSlideApp {
             }
             Mensagem::PersonalizadasFechar => self.personalizadas = None,
             Mensagem::TopicosFechar => self.topicos = None,
+            Mensagem::RodapeMudar(c) => {
+                if let Some(r) = &mut self.rodape {
+                    crate::rodape::mudar(r, c);
+                }
+            }
+            Mensagem::RodapeFechar => self.rodape = None,
+            Mensagem::RodapeAplicar => {
+                if let Some(r) = self.rodape.take() {
+                    self.status = match self.sessao.rodape_definir(r) {
+                        Ok(_) => "Rodapé aplicado a todos os slides (Ctrl+Z desfaz).".into(),
+                        Err(e) => e,
+                    };
+                }
+            }
             Mensagem::TopicosAplicar => {
                 if let Some(t) = &self.topicos {
                     match self.sessao.topicos_aplicar(&t.texto.text()) {
@@ -3769,22 +3790,11 @@ impl FeatherSlideApp {
             FaixaMensagem::WordArtEstilo(i) => { let _ = self.sessao.wordart_estilo(i); }
             FaixaMensagem::WordArtTransformacao(m, a) => { let _ = self.sessao.wordart_transformacao(m, a); }
             FaixaMensagem::WordArtSombra(b) => { let _ = self.sessao.wordart_sombra(b); }
-            FaixaMensagem::InserirDataHora => {
-                let data = chrono_like_hoje();
-                let _ = self.sessao.elemento_inserir(Tipo::Texto, Some([50.0, 500.0, 200.0, 36.0]), None);
-                if let Some(&id) = self.sessao.estado().selecao.first() {
-                    let _ = self.sessao.texto_definir(id, &data);
-                    let _ = self.sessao.formatar(Formatacao::Tamanho(14.0));
-                    let _ = self.sessao.formatar(Formatacao::CorDoTexto("#5f6368".into()));
-                }
-            }
-            FaixaMensagem::InserirNumeroSlide => {
-                let _ = self.sessao.elemento_inserir(Tipo::Texto, Some([880.0, 500.0, 60.0, 36.0]), None);
-                if let Some(&id) = self.sessao.estado().selecao.first() {
-                    let _ = self.sessao.texto_definir(id, &format!("{}", self.sessao.atual() + 1));
-                    let _ = self.sessao.formatar(Formatacao::Tamanho(14.0));
-                    let _ = self.sessao.formatar(Formatacao::CorDoTexto("#5f6368".into()));
-                }
+            FaixaMensagem::InserirDataHora | FaixaMensagem::InserirNumeroSlide => {
+                // Como no PowerPoint: abre o Cabeçalho e rodapé já com o item marcado.
+                let mut r = self.sessao.rodape().clone();
+                if matches!(msg, FaixaMensagem::InserirDataHora) { r.data = true } else { r.numero = true }
+                self.rodape = Some(r);
             }
             FaixaMensagem::IconeSubstituir(id) => {
                 self.galeria_figuras = None;
@@ -4439,6 +4449,10 @@ impl FeatherSlideApp {
         let tela = if self.painel_simbolos { crate::simbolos::sobrepor(tela, self.tamanho_janela.width) } else { tela };
         let tela = match &self.reutilizacao {
             Some(e) => reutilizar_slides::sobrepor(tela, e, self.tamanho_janela.width),
+            None => tela,
+        };
+        let tela = match &self.rodape {
+            Some(r) => crate::rodape::sobrepor(tela, r, self.tamanho_janela.width),
             None => tela,
         };
         let tela = match &self.topicos {
@@ -6634,4 +6648,20 @@ fn exportar_pptx_grava_e_avisa_o_que_ficou_de_fora() {
     app.sessao = featherslide_core::sessao::Sessao::nova(ap);
     assert!(app.exportar_pptx(&destino).contains("1 elemento(s) sem equivalente"), "o desenho livre ainda fica de fora");
     std::fs::remove_dir_all(pasta).unwrap();
+}
+
+#[cfg(test)]
+#[test]
+fn numero_do_slide_abre_o_rodape_e_aplica_a_todos() {
+    let mut app = FeatherSlideApp::default();
+    app.sessao.slide_novo("titulo_conteudo").unwrap();
+    let _ = app.update(Mensagem::Faixa(FaixaMensagem::InserirNumeroSlide));
+    assert!(app.rodape.as_ref().is_some_and(|r| r.numero && !r.data), "abre com o número marcado");
+    let _ = app.update(Mensagem::RodapeMudar(crate::rodape::Campo::Texto("Empresa".into())));
+    let _ = app.update(Mensagem::RodapeAplicar);
+    assert!(app.rodape.is_none());
+    assert_eq!(app.sessao.rodape().texto, "Empresa");
+    let q = app.sessao.quadro(1, None, false).unwrap().unwrap();
+    let textos: Vec<String> = q.elementos.iter().flat_map(|e| e.linhas.iter().map(|l| l.texto.clone())).collect();
+    assert!(textos.contains(&"2".to_string()) && textos.contains(&"Empresa".to_string()), "{textos:?}");
 }

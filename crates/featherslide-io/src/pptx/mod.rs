@@ -159,7 +159,7 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
     for c in caminhos {
         slides.push(leitor.slide(&c)?);
     }
-    Ok(Apresentacao { titulo, autor, proporcao, dimensoes, slides, proximo_id: leitor.proximo, fontes, tema: String::new(), modelo: String::new(), metadados })
+    Ok(Apresentacao { titulo, autor, proporcao, dimensoes, slides, proximo_id: leitor.proximo, fontes, tema: String::new(), modelo: String::new(), metadados, rodape: Default::default() })
 }
 
 /// A primeira ligação cujo caminho contém `pasta` (o layout de um slide, o mestre de um layout…).

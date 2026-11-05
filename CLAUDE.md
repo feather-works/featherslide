@@ -71,7 +71,12 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   tema próprio, slides com `p:sp` (geometria pronta por `Tipo`), `p:pic`, fundo sólido, giro, margem e
   anotações (com `notesMaster`). Tabela → `a:tbl` (cabeçalho e linhas alternadas como no slide);
   gráfico → `ppt/charts/chartN.xml` nativo com os valores em `c:numLit` (sem planilha embutida).
-  Ícone, WordArt e caminho ficam de fora e são contados (`Gravado::de_fora`). Conferido abrindo no LibreOffice (snap só lê arquivos na home).
+  Ícone, WordArt e caminho ficam de fora e são contados (`Gravado::de_fora`).
+- **Cabeçalho e rodapé** (Inserir → Data e hora / Nº do slide): `Apresentacao::rodape` (coluna `rodape`
+  em `apresentacao.arrow`), `core/src/rodape.rs` gera caixas `Papel::Fundo` na hora do quadro (ids no
+  topo do u64; não ficam no slide), `Dicas::hoje` traz a data local; com número, a versão do quadro
+  leva o índice (miniatura não fica velha). Vai para o PDF e para o `.pptx` como caixas comuns.
+  Falta: numeração inicial, por slide, e em anotações/folhetos. Conferido abrindo no LibreOffice (snap só lê arquivos na home).
 - Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
 
 ## Auditoria de 05/11/2026 (11 correções)

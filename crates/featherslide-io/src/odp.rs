@@ -109,7 +109,7 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
     for p in apresentacao.filhos("draw:page") {
         slides.push(leitor.slide(p, mestres)?);
     }
-    Ok(Apresentacao { titulo, autor, proporcao, dimensoes, slides, proximo_id: leitor.proximo, fontes: Vec::new(), tema: String::new(), modelo: String::new(), metadados })
+    Ok(Apresentacao { titulo, autor, proporcao, dimensoes, slides, proximo_id: leitor.proximo, fontes: Vec::new(), tema: String::new(), modelo: String::new(), metadados, rodape: Default::default() })
 }
 
 /// O texto de um parágrafo (`text:p`, `text:h`): trechos, espaços (`text:s`), tabulações e quebras.

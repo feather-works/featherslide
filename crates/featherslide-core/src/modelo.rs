@@ -839,6 +839,31 @@ pub struct Apresentacao {
     /// Propriedades do documento, preservadas no .fsdz e disponíveis ao usuário.
     #[serde(default)]
     pub metadados: crate::metadados::Metadados,
+    /// Data, número do slide e rodapé, desenhados sozinhos embaixo de cada slide.
+    #[serde(default)]
+    pub rodape: Rodape,
+}
+
+/// O "Cabeçalho e rodapé" da apresentação inteira: o que aparece embaixo de cada slide.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Rodape {
+    /// Mostra a data (à esquerda).
+    pub data: bool,
+    /// A data escrita pela pessoa; vazia = a data de hoje, atualizada ao abrir.
+    pub data_fixa: String,
+    /// Mostra o número do slide (à direita).
+    pub numero: bool,
+    /// O texto do rodapé (no meio); vazio = nenhum.
+    pub texto: String,
+    /// Não mostra nada no slide de título (layout `titulo`).
+    pub sem_no_titulo: bool,
+}
+
+impl Rodape {
+    /// Mostra alguma coisa?
+    pub fn ativo(&self) -> bool {
+        self.data || self.numero || !self.texto.trim().is_empty()
+    }
 }
 
 impl Apresentacao {

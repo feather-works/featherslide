@@ -23,6 +23,8 @@ pub struct Dicas {
     pub titulo: String,
     pub subtitulo: String,
     pub corpo: String,
+    /// A data de hoje no fuso da pessoa (`dd/mm/aaaa`), para o rodapé; vazia = a do relógio UTC.
+    pub hoje: String,
 }
 
 /// Uma linha de texto pronta: o texto e onde fica a linha de base, em pontos do slide.

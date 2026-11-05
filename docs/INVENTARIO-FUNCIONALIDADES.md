@@ -1274,20 +1274,20 @@ Inserir → SVG; Formato da Forma → Vetores libera as peças e exporta a sele�
 
 ## 18. Cabeçalhos, rodapés e elementos dinâmicos
 
-- [/] **FTS-0972** — Inserir número do slide. **Parcial**.
-- [ ] **FTS-0973** — Ocultar número no slide de título. **A verificar**.
+- [x] **FTS-0972** — Inserir número do slide. **Feito**.
+- [x] **FTS-0973** — Ocultar número no slide de título. **Feito**.
 - [ ] **FTS-0974** — Definir numeração inicial. **A verificar**.
-- [/] **FTS-0975** — Inserir data fixa. **Parcial**.
-- [ ] **FTS-0976** — Inserir data automática. **A verificar**.
-- [ ] **FTS-0977** — Inserir rodapé. **A verificar**.
+- [x] **FTS-0975** — Inserir data fixa. **Feito**.
+- [x] **FTS-0976** — Inserir data automática. **Feito**.
+- [x] **FTS-0977** — Inserir rodapé. **Feito**.
 - [ ] **FTS-0978** — Inserir texto de cabeçalho em anotações e folhetos. **A verificar**.
 - [ ] **FTS-0979** — Aplicar a um slide. **A verificar**.
-- [ ] **FTS-0980** — Aplicar a todos. **A verificar**.
-- [ ] **FTS-0981** — Excluir elementos dinâmicos. **A verificar**.
+- [x] **FTS-0980** — Aplicar a todos. **Feito**.
+- [x] **FTS-0981** — Excluir elementos dinâmicos. **Feito**.
 - [ ] **FTS-0982** — Definir estilos herdados. **A verificar**.
 - [ ] **FTS-0983** — Definir posicionamento. **A verificar**.
 - [ ] **FTS-0984** — Definir formatação. **A verificar**.
-- [ ] **FTS-0985** — Atualizar campos dinâmicos. **A verificar**.
+- [x] **FTS-0985** — Atualizar campos dinâmicos. **Feito**.
 
 ## 19. Comentários e revisão
 

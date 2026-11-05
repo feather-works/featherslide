@@ -222,6 +222,7 @@ fn apresentacao_arrow(ap: &Apresentacao) -> Result<Vec<u8>, String> {
             ("proximo_id", Arc::new(UInt64Array::from(vec![ap.proximo_id]))),
             ("tema", Arc::new(StringArray::from(vec![ap.tema.as_str()]))),
             ("modelo", Arc::new(StringArray::from(vec![ap.modelo.as_str()]))),
+            ("rodape", Arc::new(StringArray::from(vec![rodape_gravar(&ap.rodape)]))),
             ("assunto", Arc::new(StringArray::from(vec![ap.metadados.assunto.as_str()]))),
             ("empresa", Arc::new(StringArray::from(vec![ap.metadados.empresa.as_str()]))),
             ("gerente", Arc::new(StringArray::from(vec![ap.metadados.gerente.as_str()]))),
@@ -605,6 +606,7 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
             estendidos: mapa_ler(&cabeca.ou("metadados_estendidos", String::new(), |t| t.texto("metadados_estendidos", 0))?)?,
             apresentacoes_personalizadas: Vec::new(),
         },
+        rodape: rodape_ler(&cabeca.ou("rodape", String::new(), |t| t.texto("rodape", 0))?),
     };
     if formato >= 9 {
         let dados = Lida::de(&parte("data/personalizadas.arrow")?, "personalizadas.arrow")?;
@@ -628,6 +630,21 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
 }
 
 /// A margem interna gravada (`esq,cima,dir,baixo`, em pontos); vazio = a padrão.
+/// O rodapé numa célula de texto: `data\tdata_fixa\tnumero\ttexto\tsem_no_titulo` (o escape é o das grades).
+fn rodape_gravar(r: &featherslide_core::modelo::Rodape) -> String {
+    if !r.ativo() && r.data_fixa.is_empty() {
+        return String::new();
+    }
+    let b = |v: bool| if v { "1" } else { "0" }.to_string();
+    featherslide_core::dados::codificar(&vec![vec![b(r.data), r.data_fixa.clone(), b(r.numero), r.texto.clone(), b(r.sem_no_titulo)]])
+}
+
+fn rodape_ler(texto: &str) -> featherslide_core::modelo::Rodape {
+    let g = featherslide_core::dados::decodificar(texto);
+    let c = |i: usize| g.first().and_then(|l| l.get(i)).cloned().unwrap_or_default();
+    featherslide_core::modelo::Rodape { data: c(0) == "1", data_fixa: c(1), numero: c(2) == "1", texto: c(3), sem_no_titulo: c(4) == "1" }
+}
+
 fn margem_ler(texto: &str) -> Result<Option<[f32; 4]>, String> {
     if texto.is_empty() {
         return Ok(None);

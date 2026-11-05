@@ -7,7 +7,7 @@ use featherslide_core::{Formatacao, Ordem};
 
 fn sessao() -> Sessao {
     let mut s = Sessao::default();
-    s.definir_dicas(Dicas { titulo: "Clique para adicionar título".into(), subtitulo: "Subtítulo".into(), corpo: "Texto".into() });
+    s.definir_dicas(Dicas { titulo: "Clique para adicionar título".into(), subtitulo: "Subtítulo".into(), corpo: "Texto".into(), ..Dicas::default() });
     s
 }
 

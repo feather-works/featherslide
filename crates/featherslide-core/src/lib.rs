@@ -34,6 +34,7 @@ pub mod modelo;
 pub mod metadados;
 pub mod personalizadas;
 pub mod quadro;
+pub mod rodape;
 pub mod svgpath;
 pub mod vetores;
 pub mod sessao;
