@@ -484,7 +484,8 @@
         "corpo": [
           "Double-click a box (or press Enter with it selected) to type. Esc or a click outside finishes.",
           "• Empty layout boxes show a gray hint that does not appear in the slide show.",
-          "• Font, size, color, bold, italic, underline and alignment apply to all the text of the selected box."
+          "• Font, size, color, bold, italic, underline and alignment apply to all the text of the selected box.",
+          "• Line breaks use the real letter widths (Liberation Sans/Arial and Liberation Serif/Times, the same as the PDF): text breaks on the same lines on screen and in the PDF."
         ]
       },
       "formas": {

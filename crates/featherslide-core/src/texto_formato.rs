@@ -26,7 +26,7 @@ pub fn nivel(e: &Elemento, byte: usize) -> i8 {
 }
 pub fn avancar(e: &Elemento, byte: usize, c: char) -> f32 {
     let t = e.estilo.tamanho * if nivel(e, byte) == 0 { 1.0 } else { 0.65 };
-    (medida::largura(&c.to_string(), t, e.estilo.negrito) + e.espacamento_letras).max(0.1)
+    (medida::largura_na_fonte(&c.to_string(), t, e.estilo.negrito, e.estilo.italico, &e.estilo.fonte) + e.espacamento_letras).max(0.1)
 }
 pub fn atualizar_indices(e: &mut Elemento, novo: &str) {
     let mut prefixo = 0;

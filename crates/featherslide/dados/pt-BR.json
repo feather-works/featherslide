@@ -484,7 +484,8 @@
         "corpo": [
           "Duplo clique numa caixa (ou Enter com ela selecionada) para escrever. Esc ou um clique fora terminam.",
           "• As caixas vazias do layout mostram uma dica em cinza que não aparece na apresentação.",
-          "• Fonte, tamanho, cor, negrito, itálico, sublinhado e alinhamento valem para o texto inteiro da caixa selecionada."
+          "• Fonte, tamanho, cor, negrito, itálico, sublinhado e alinhamento valem para o texto inteiro da caixa selecionada.",
+          "• A quebra de linha usa as larguras reais das letras (Liberation Sans/Arial e Liberation Serif/Times, as mesmas do PDF): o texto cai nas mesmas linhas na tela e no PDF."
         ]
       },
       "formas": {

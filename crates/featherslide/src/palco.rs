@@ -904,7 +904,7 @@ impl PalcoPrograma {
             }
         }
         if let Some(el) = self.editando.and_then(|id| quadro.elementos.iter().find(|e| e.id == id)) {
-            let disp = featherslide_core::cursor::Disposicao { linhas: &el.linhas, tamanho: el.tamanho, negrito: el.negrito };
+            let disp = featherslide_core::cursor::Disposicao::de(el);
             if let Some((a, b)) = self.selecao_texto {
                 let cor = Color { a: 0.32, ..crate::tema::COR_AZUL_ACENTO() };
                 for (x, y, w) in featherslide_core::cursor::trechos(&self.texto_edicao, &disp, a, b) {

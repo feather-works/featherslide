@@ -427,9 +427,9 @@ impl Corretor {
                         sugestao: String::new(),
                         chave: String::new(),
                         erro: erros[proximo + pos].clone(),
-                        x: linha.x + medida::largura(&linha.texto[..ini], d.tamanho, d.negrito),
+                        x: linha.x + medida::largura_na_fonte(&linha.texto[..ini], d.tamanho, d.negrito, d.italico, &d.fonte),
                         y: linha.y,
-                        largura: medida::largura(palavra, d.tamanho, d.negrito),
+                        largura: medida::largura_na_fonte(palavra, d.tamanho, d.negrito, d.italico, &d.fonte),
                         tamanho: d.tamanho,
                     });
                     proximo += pos + 1;
@@ -444,7 +444,7 @@ impl Corretor {
 
     /// Os avisos de gramática do texto de `el`, posicionados nas linhas desenhadas de `d`.
     fn ondulados_de_gramatica(&self, indice: usize, el: &Elemento, d: &featherslide_core::quadro::ElementoDesenhado, saida: &mut Vec<Ondulado>) {
-        let disp = Disposicao { linhas: &d.linhas, tamanho: d.tamanho, negrito: d.negrito };
+        let disp = Disposicao::de(d);
         for p in gramatica::verificar(&el.texto) {
             let chave = format!("{}:{}", p.regra, el.texto[p.ancora.0..p.ancora.1].to_lowercase());
             if self.ignoradas_gramatica.contains(&chave) {

@@ -137,7 +137,7 @@ fn linhas_de(e: &Elemento, texto: &str) -> Vec<LinhaDeTexto> {
     let duas_colunas = est.colunas == 2;
     let larg_col = if duas_colunas { ((util - MARGEM_X) / 2.0).max(est.tamanho) } else { util };
     let personalizado = !e.indices_texto.is_empty() || e.espacamento_letras != 0.0;
-    let quebradas: Vec<String> = if personalizado { quebrar_personalizado(e,texto,larg_col) } else { texto.split('\n').flat_map(|p| medida::quebrar(p, est.tamanho, est.negrito, larg_col)).collect() };
+    let quebradas: Vec<String> = if personalizado { quebrar_personalizado(e,texto,larg_col) } else { texto.split('\n').flat_map(|p| medida::quebrar_na_fonte(p, est.tamanho, est.negrito, est.italico, &est.fonte, larg_col)).collect() };
     let total_linhas = quebradas.len();
     let corte = if duas_colunas { total_linhas.div_ceil(2) } else { total_linhas };
     let passo = est.tamanho * entrelinha;
@@ -161,7 +161,7 @@ fn linhas_de(e: &Elemento, texto: &str) -> Vec<LinhaDeTexto> {
             let base_x = e.x + m_esq + offset_x;
             let inicio = e.texto.get(byte..).and_then(|s|s.find(&texto)).map_or(byte,|p|byte+p);
             byte = inicio + texto.len();
-            let largura = if personalizado { texto.char_indices().map(|(i,c)|crate::texto_formato::avancar(e,inicio+i,c)).sum::<f32>() - if texto.is_empty(){0.0}else{e.espacamento_letras} } else { medida::largura(&texto, est.tamanho, est.negrito) };
+            let largura = if personalizado { texto.char_indices().map(|(i,c)|crate::texto_formato::avancar(e,inicio+i,c)).sum::<f32>() - if texto.is_empty(){0.0}else{e.espacamento_letras} } else { medida::largura_na_fonte(&texto, est.tamanho, est.negrito, est.italico, &est.fonte) };
             let x = match est.alinhamento {
                 Alinhamento::Esquerda | Alinhamento::Justificado => base_x,
                 Alinhamento::Centro => base_x + (larg_col - largura) / 2.0,

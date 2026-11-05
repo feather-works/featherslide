@@ -63,6 +63,10 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   ele mudou no slide da tela fica selecionado e a barra de status conta os slides tocados.
 - **Estrutura de tópicos** (Exibir → Tópicos): `core/src/topicos.rs` (texto ↔ títulos e corpos, aplicar
   numa edição, nunca apaga slide) e o painel `featherslide/src/topicos.rs` (`text_editor` do pelicano).
+- **Medida do texto (Fila 4):** `core/src/medida.rs` tem as tabelas AFM do FeatherDocs (Helvetica =
+  Liberation Sans, Times = Liberation Serif, monoespaçada 600); `largura_na_fonte`/`quebrar_na_fonte`
+  escolhem pela família. `Disposicao::de(&ElementoDesenhado)` leva a fonte ao cursor e à ortografia.
+  Família desconhecida (Calibri) mede como Sans: medir com a fonte exata da tela pede o medidor do pelicano.
 - Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
 
 ## Auditoria de 05/11/2026 (11 correções)
@@ -230,7 +234,7 @@ do inventário estejam concluídas.
 - **Seleção mora no motor** (como o cursor no FeatherDocs): os comandos agem sobre ela.
 - **Edição de texto nativa**: cursor e alteração do conteúdo são tratados pelo
   motor Rust; a interface Iced recebe as teclas e desenha o cursor. A medida
-  do texto ainda é aproximada; métricas reais da fonte continuam pendentes.
+  do texto usa as tabelas AFM (Liberation Sans/Serif); famílias fora delas ainda são aproximadas.
 - O que não tem motor aparece na faixa como "Em breve", desabilitado, com a dica do que
   fará (mesma decisão do FeatherDocs).
 
@@ -460,7 +464,7 @@ do inventário estejam concluídas.
    - **Fonte:** `tachado` (strikethrough no motor, salvo no `.fsdz` e desenhado no canvas), `limpar` (reverte formatação para o estilo padrão da caixa).
    - **Parágrafo:** `lista_marcadores` (alterna marcadores `• ` no motor), `lista_numerada` (alterna numeração ordenada `1. `, `2. ` etc. no motor), `entrelinha` (1.0, 1.15, 1.5, 2.0 com espaçamento proporcional no `quadro.rs`), `colunas_texto` (1 e 2 colunas distribuídas no motor), `direcao_texto` (rotação em passos de 90°), `alinhar_justificado` (`Alinhamento::Justificado` com distribuição visual no canvas e no motor, salvo no `.fsdz` e suportado no `.odp`).
    - **Edição:** `localizar` (Ctrl+F) e `substituir` (Ctrl+H) com painel flutuante `PainelDeBusca` integrado aos atalhos; motor de busca 100% Rust puro em `featherslide-core/src/busca.rs` (diferenciação de maiúsculas, palavra inteira com limites Unicode, navegação próximo/anterior com seleção e troca de slide no motor, substituição unitária e substituir tudo com registro atômico no histórico de desfazer).
-4. Medida real do texto (as métricas da fonte, como o FeatherDocs) — hoje é aproximada.
+4. Medida real do texto — **feita em 05/11/2026** com as tabelas AFM (ver "Brainstorm de 05/11/2026"); falta a fonte exata da tela para famílias fora da Liberation.
 5. Texto rico por trecho (negrito numa palavra), listas complexas, tabela, gráfico do FeatherSheet.
    **Dados de gráfico/tabela (decisão do usuário, 07/10):** editam-se no FeatherSheet (fórmula
    só lá); sem o FeatherSheet instalado, uma grade embutida só com valores fixos, sem fórmula.

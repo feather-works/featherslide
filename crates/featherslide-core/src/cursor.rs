@@ -27,6 +27,16 @@ pub struct Disposicao<'a> {
     pub linhas: &'a [LinhaDeTexto],
     pub tamanho: f32,
     pub negrito: bool,
+    pub italico: bool,
+    /// A família da fonte (a medida usa a tabela dela).
+    pub fonte: &'a str,
+}
+
+impl<'a> Disposicao<'a> {
+    /// A disposição de uma caixa do quadro (as linhas e a fonte em que foram medidas).
+    pub fn de(e: &'a crate::quadro::ElementoDesenhado) -> Self {
+        Self { linhas: &e.linhas, tamanho: e.tamanho, negrito: e.negrito, italico: e.italico, fonte: &e.fonte }
+    }
 }
 
 /// Leva `c` ao limite de letra mais próximo para trás, dentro do texto.
@@ -178,7 +188,7 @@ fn x_no_texto(l: &LinhaDeTexto, t: &str, inicio: usize, c: usize, d: &Disposicao
         let n=t[inicio..c].chars().count();
         return l.glifos.get(n).map_or(l.x+l.largura,|g|g.x);
     }
-    l.x + medida::largura(&t[inicio..c], d.tamanho, d.negrito)
+    l.x + medida::largura_na_fonte(&t[inicio..c], d.tamanho, d.negrito, d.italico, d.fonte)
 }
 
 /// O deslocamento dentro da linha cuja posição horizontal é a mais próxima de `x`.
@@ -277,7 +287,7 @@ mod testes {
     }
 
     fn disp(linhas: &[LinhaDeTexto]) -> Disposicao<'_> {
-        Disposicao { linhas, tamanho: 20.0, negrito: false }
+        Disposicao { linhas, tamanho: 20.0, negrito: false, italico: false, fonte: "" }
     }
 
     #[test]

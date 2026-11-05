@@ -697,17 +697,16 @@ impl FeatherSlideApp {
         tarefa
     }
 
-    /// As linhas desenhadas do elemento `id` (texto já quebrado), o tamanho da fonte e se é negrito.
-    fn linhas_do_elemento(&self, id: u64) -> Option<(Vec<featherslide_core::quadro::LinhaDeTexto>, f32, bool)> {
+    /// O elemento `id` como foi desenhado (as linhas já quebradas e a fonte em que foram medidas).
+    fn linhas_do_elemento(&self, id: u64) -> Option<featherslide_core::quadro::ElementoDesenhado> {
         let q = self.sessao.quadro(self.sessao.atual(), None, true).ok().flatten()?;
-        let e = q.elementos.into_iter().find(|e| e.id == id)?;
-        (!e.dica).then_some((e.linhas, e.tamanho, e.negrito))
+        q.elementos.into_iter().find(|e| e.id == id && !e.dica)
     }
 
     /// Onde o clique em (x, y) põe o cursor na caixa `id` (no fim do texto se não há linhas).
     fn cursor_no_clique(&self, id: u64, x: f32, y: f32) -> usize {
         match self.linhas_do_elemento(id) {
-            Some((linhas, tamanho, negrito)) => cursor::cursor_no_ponto(&self.texto_edicao, &Disposicao { linhas: &linhas, tamanho, negrito }, x, y),
+            Some(e) => cursor::cursor_no_ponto(&self.texto_edicao, &Disposicao::de(&e), x, y),
             None => self.texto_edicao.len(),
         }
     }
@@ -1972,7 +1971,7 @@ impl FeatherSlideApp {
                             self.ancora_edicao = None;
                         }
                         let linhas = self.linhas_do_elemento(id);
-                        let disp = linhas.as_ref().map(|(l, tam, neg)| Disposicao { linhas: l, tamanho: *tam, negrito: *neg });
+                        let disp = linhas.as_ref().map(Disposicao::de);
                         self.cursor_edicao = cursor::mover(&self.texto_edicao, self.cursor_edicao, m, disp.as_ref());
                         return Task::none();
                     }
