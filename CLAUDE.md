@@ -58,6 +58,9 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 - **Modelos:** 25 em `MODELOS` (6 novos: reunião, treinamento, estudo de caso, defesa de TCC, evento,
   alto contraste), cada um com tema próprio; reaproveitam o desenho de um anterior pelo mapa no
   começo de `decorar` (e o roteiro, em `telas`, só no alto contraste).
+- **MCP ao vivo (#3):** pedidos seguidos do agente (sem edição da pessoa no meio, até 30 s) viram um
+  passo do desfazer (`Sessao::marca_desfazer` / `juntar_desfazer_desde`, `app.mcp_grupo`); o que
+  ele mudou no slide da tela fica selecionado e a barra de status conta os slides tocados.
 - Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
 
 ## Auditoria de 05/11/2026 (11 correções)

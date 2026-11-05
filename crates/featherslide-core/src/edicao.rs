@@ -117,6 +117,21 @@ impl Sessao {
         let m=self.trocar(antes);self.ap.metadados=meta;self.sujo=sujo;Some(m)
     }
 
+    /// Quantos passos de desfazer existem agora: a marca para [`Sessao::juntar_desfazer_desde`].
+    pub fn marca_desfazer(&self) -> usize {
+        self.desfazer.len()
+    }
+
+    /// Junta num passo só tudo o que foi editado depois de `marca` (um pedido do agente do MCP
+    /// vira um Ctrl+Z). shortcut: se o desfazer chegou ao teto de passos no meio, a marca perde a
+    /// conta e nada é juntado — contar por número de série se isso incomodar.
+    pub fn juntar_desfazer_desde(&mut self, marca: usize) {
+        self.confirmar_previa();
+        if self.desfazer.len() > marca + 1 {
+            self.desfazer.truncate(marca + 1);
+        }
+    }
+
     /// Desfaz a última edição (`None` se não há o que desfazer).
     pub fn desfazer(&mut self) -> Option<Mudanca> {
         self.confirmar_previa();

@@ -15,7 +15,7 @@
     "config_glossario_dica": "Save exact translations between languages. Uses the local glossary only.",
     "config_mcp_titulo": "FeatherSlide MCP",
     "config_mcp_dica": "An MCP client can open, inspect and edit local presentations. Run this command from the repository root or configure the featherslide-mcp executable in the client (stdio transport).",
-    "config_mcp_estado": "With FeatherSlide open, every AI edit goes to the presentation on screen (and can be undone with Ctrl+Z). Without it, the server uses a separate session.",
+    "config_mcp_estado": "With FeatherSlide open, every AI edit goes to the presentation on screen: what it changed stays selected, and one Ctrl+Z undoes the AI's whole run of edits. Without it, the server uses a separate session.",
     "diagrama_editar": "Edit diagram",
     "diagrama_titulo": "Custom diagram",
     "diagrama_dica": "Select the number or edit the text to show actions. Indentation shows the level. Apply updates the drawing.",

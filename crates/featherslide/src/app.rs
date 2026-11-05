@@ -143,6 +143,8 @@ pub struct FeatherSlideApp {
     pub ensaio: Option<(Vec<(u64, f32)>, std::time::Instant)>,
     /// Modo de leitura: a apresentação na própria janela, sem tela cheia nem segunda tela.
     pub modo_leitura: bool,
+    /// O trabalho do agente do MCP em curso: a marca do desfazer, a versão depois do último pedido e quando.
+    pub mcp_grupo: Option<(usize, u64, std::time::Instant)>,
     pub modo_apresentador: bool,
     pub monitores_apresentacao: Vec<crate::monitores::Monitor>,
     /// "Janela" e os nomes dos monitores, para a lista da plateia (o `pick_list` empresta as opções).
@@ -468,6 +470,7 @@ impl Default for FeatherSlideApp {
             cronometro: Default::default(),
             ensaio: None,
             modo_leitura: false,
+            mcp_grupo: None,
             modo_apresentador: false,
             monitores_apresentacao: Vec::new(),
             opcoes_plateia: Vec::new(),

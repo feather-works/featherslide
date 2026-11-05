@@ -15,7 +15,7 @@
     "config_glossario_dica": "Cadastre traduções exatas entre idiomas. Usa apenas o glossário local.",
     "config_mcp_titulo": "MCP do FeatherSlide",
     "config_mcp_dica": "Um cliente MCP pode abrir, consultar e editar apresentações locais. Execute este comando na raiz do repositório ou configure o executável featherslide-mcp no cliente (transporte stdio).",
-    "config_mcp_estado": "Com o FeatherSlide aberto, cada edição da IA vai para a apresentação na tela (e pode ser desfeita com Ctrl+Z). Sem ele, o servidor usa uma sessão separada.",
+    "config_mcp_estado": "Com o FeatherSlide aberto, cada edição da IA vai para a apresentação na tela: o que ela mudou fica selecionado, e um Ctrl+Z desfaz o trabalho seguido da IA de uma vez. Sem ele, o servidor usa uma sessão separada.",
     "diagrama_editar": "Editar diagrama",
     "diagrama_titulo": "Diagrama personalizado",
     "diagrama_dica": "Selecione pelo número ou edite o texto para abrir as ações. O recuo indica o nível. Aplicar atualiza o desenho.",
