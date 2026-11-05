@@ -40,6 +40,7 @@ pub mod sessao;
 pub mod temas;
 
 mod edicao;
+mod topicos;
 mod efeitos;
 pub mod modelos;
 mod elementos;

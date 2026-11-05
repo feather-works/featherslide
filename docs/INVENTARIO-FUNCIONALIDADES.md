@@ -209,7 +209,7 @@ representam funcionalidades do PowerPoint nem exigem instalar todas as bibliotec
 
 - [x] **FTS-0139** — Exibição normal. **Feito**.
 - [x] **FTS-0140** — Classificador de slides. **Feito**.
-- [ ] **FTS-0141** — Estrutura de tópicos. **A verificar**.
+- [x] **FTS-0141** — Estrutura de tópicos. **Feito**.
 - [ ] **FTS-0142** — Página de anotações. **A verificar**.
 - [x] **FTS-0143** — Modo de leitura. **Feito**.
 - [x] **FTS-0144** — Apresentação em tela cheia. **Feito**.

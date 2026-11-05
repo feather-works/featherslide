@@ -254,6 +254,8 @@ pub enum FaixaMensagem {
     Ensaiar,
     /// A apresentação numa janela comum (sem tela cheia), para mostrar numa reunião por vídeo.
     ModoLeitura,
+    /// Abre a estrutura de tópicos: a apresentação como texto (títulos e corpos).
+    Topicos,
     PersonalizadasAbrir,
     // Exibição
     ZoomMais,

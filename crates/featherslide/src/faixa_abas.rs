@@ -1363,6 +1363,7 @@ pub fn exibir<'a>(c: &Contexto) -> Element<'a, Msg> {
             grande(icone_normal(22.0, "#1a73e8"), "Normal", Some(Msg::ExibirNormal), !c.classificacao),
             grande(icone_classificacao(22.0, "#1a73e8"), "Classificação", Some(Msg::Classificacao), c.classificacao),
             dica(grande(icone_apresentar(22.0, "#5f6368"), "Modo de leitura", Some(Msg::ModoLeitura), false), "Apresenta na própria janela, sem tela cheia: bom para mostrar numa reunião por vídeo. Esc sai."),
+            dica(grande(icone_lista(22.0, "#5f6368"), "Tópicos", Some(Msg::Topicos), false), "Estrutura de tópicos: a apresentação como texto, um título por linha e o corpo com Tab."),
         ]
         .spacing(4)
         .into(),

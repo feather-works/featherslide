@@ -61,6 +61,8 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 - **MCP ao vivo (#3):** pedidos seguidos do agente (sem edição da pessoa no meio, até 30 s) viram um
   passo do desfazer (`Sessao::marca_desfazer` / `juntar_desfazer_desde`, `app.mcp_grupo`); o que
   ele mudou no slide da tela fica selecionado e a barra de status conta os slides tocados.
+- **Estrutura de tópicos** (Exibir → Tópicos): `core/src/topicos.rs` (texto ↔ títulos e corpos, aplicar
+  numa edição, nunca apaga slide) e o painel `featherslide/src/topicos.rs` (`text_editor` do pelicano).
 - Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
 
 ## Auditoria de 05/11/2026 (11 correções)

@@ -104,6 +104,8 @@ pub struct FeatherSlideApp {
     pub reutilizacao: Option<reutilizar_slides::Estado>,
     /// Editor de sequências personalizadas (somente estado da interface).
     pub personalizadas: Option<personalizadas::Estado>,
+    /// O painel da estrutura de tópicos, aberto.
+    pub topicos: Option<crate::topicos::Estado>,
     /// IDs da sequência em reprodução, sem depender dos índices físicos atuais.
     pub roteiro_personalizado: Option<Vec<u64>>,
     /// A miniatura apertada (pode virar clique, reordenação ou gatilho no slide).
@@ -301,6 +303,8 @@ pub enum Mensagem {
     ReutilizarFechar,
     ReutilizarConfirmar(featherslide_core::EstiloColagem),
     PersonalizadasFechar,
+    TopicosFechar,
+    TopicosAplicar,
     PersonalizadaNome(String),
     PersonalizadaCriar,
     PersonalizadaSelecionar(usize),
@@ -447,6 +451,7 @@ impl Default for FeatherSlideApp {
             ir_numero: None,
             reutilizacao: None,
             personalizadas: None,
+            topicos: None,
             roteiro_personalizado: None,
             arrastando_slide: None,
             arrastando_secao: None,
@@ -1587,6 +1592,18 @@ impl FeatherSlideApp {
                 return self.ortografia_iniciar();
             }
             Mensagem::PersonalizadasFechar => self.personalizadas = None,
+            Mensagem::TopicosFechar => self.topicos = None,
+            Mensagem::TopicosAplicar => {
+                if let Some(t) = &self.topicos {
+                    match self.sessao.topicos_aplicar(&t.texto.text()) {
+                        Ok(_) => {
+                            self.status = "Estrutura aplicada aos slides (Ctrl+Z desfaz).".into();
+                            self.topicos = None;
+                        }
+                        Err(e) => self.status = e,
+                    }
+                }
+            }
             Mensagem::PersonalizadaNome(nome) => {
                 if let Some(p) = self.personalizadas.as_mut() { p.nome_novo = nome; }
             }
@@ -4269,6 +4286,9 @@ impl FeatherSlideApp {
                 self.roteiro_personalizado = None;
                 return self.comecar_apresentacao(false);
             }
+            FaixaMensagem::Topicos => {
+                self.topicos = Some(crate::topicos::Estado { texto: pelicano::Content::with_text(&self.sessao.topicos()) });
+            }
             FaixaMensagem::ModoLeitura => {
                 self.roteiro_personalizado = None;
                 self.modo_leitura = true;
@@ -4389,6 +4409,10 @@ impl FeatherSlideApp {
         let tela = if self.painel_simbolos { crate::simbolos::sobrepor(tela, self.tamanho_janela.width) } else { tela };
         let tela = match &self.reutilizacao {
             Some(e) => reutilizar_slides::sobrepor(tela, e, self.tamanho_janela.width),
+            None => tela,
+        };
+        let tela = match &self.topicos {
+            Some(t) => crate::topicos::sobrepor(tela, t, self.tamanho_janela.width),
             None => tela,
         };
         let tela = match &self.personalizadas {
@@ -6547,4 +6571,17 @@ fn animacao_de_saida_comeca_na_tela_e_termina_fora() {
     assert_eq!(app.efeitos_atuais().get(&id).map(|e| e.0), Some(0.0), "depois do passo, já saiu");
     let lida = featherslide_io::fsdz::ler(&featherslide_io::fsdz::gravar(app.sessao.apresentacao()).unwrap()).unwrap();
     assert!(lida.slides[0].elementos[0].animacao.saida, "a saída fica no .fsdz");
+}
+
+#[cfg(test)]
+#[test]
+fn estrutura_de_topicos_abre_com_o_texto_e_aplica() {
+    let mut app = FeatherSlideApp::default();
+    let _ = app.update(Mensagem::Faixa(FaixaMensagem::Topicos));
+    assert!(app.topicos.is_some());
+    app.topicos.as_ref().unwrap().texto.set_text("Abertura\n\tquem sou\nPlano\n\tum\n\tdois\n");
+    let _ = app.update(Mensagem::TopicosAplicar);
+    assert!(app.topicos.is_none(), "fecha ao aplicar");
+    assert_eq!(app.sessao.apresentacao().slides.len(), 2);
+    assert!(app.sessao.topicos().starts_with("Abertura\n\tquem sou\nPlano\n"));
 }
