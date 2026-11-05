@@ -18,7 +18,7 @@ format and runs entirely on your machine.
 | **Presenting** | full screen, presenter view on a second screen, reading mode in a window, rehearse timings |
 | **Shapes** | shape catalog, icons, SmartArt and WordArt through the shared [`feather-shapes`](https://github.com/feather-works/feather-shapes) engine |
 | **Charts and tables** | charts through [`feather-charts`](https://github.com/feather-works/feather-charts), tables with editable structure, chart export as SVG |
-| **Files** | opens `.pptx` and `.odp` at their own slide size; saves `.fsdz`; exports PDF and image. Autosave and recovery points are written off the window thread |
+| **Files** | opens `.pptx` and `.odp` at their own slide size; saves `.fsdz`; exports `.pptx` (slides, text, shapes, photos, notes), PDF and image. Autosave and recovery points are written off the window thread |
 | **Spelling** | Hunspell dictionaries read from disk, all local |
 | **Local AI** | MCP server (`featherslide-mcp`) so an AI can view, edit and create presentations, over stdio or live in the open app |
 

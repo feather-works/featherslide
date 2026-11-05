@@ -116,6 +116,8 @@ pub enum FaixaMensagem {
     /// Abre o painel de propriedades e estatísticas da apresentação.
     Propriedades,
     ExportarPdf,
+    /// Exporta como PowerPoint (.pptx), para quem usa o PowerPoint ou o Google Apresentações.
+    ExportarPptx,
     Desfazer,
     Refazer,
     // Slides

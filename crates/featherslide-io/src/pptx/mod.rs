@@ -12,6 +12,7 @@
 //! estilo diferente por trecho (vale o predominante), animações e transições.
 
 mod cores;
+pub mod gravar;
 mod fontes;
 mod texto;
 

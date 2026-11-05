@@ -371,6 +371,7 @@ pub enum Mensagem {
     ArquivoEscolhidoParaSalvar(Option<PathBuf>),
     CopiaEscolhida(Option<PathBuf>),
     PdfEscolhido(Option<PathBuf>),
+    PptxEscolhido(Option<PathBuf>),
     // Edição de texto
     // Apresentação e Zoom
     Zoom(f32),
@@ -1777,6 +1778,13 @@ impl FeatherSlideApp {
                 };
             }
             Mensagem::PdfEscolhido(None) => {}
+            Mensagem::PptxEscolhido(Some(mut p)) => {
+                if p.extension().map_or(true, |e| !e.eq_ignore_ascii_case("pptx")) {
+                    p.set_extension("pptx");
+                }
+                self.status = self.exportar_pptx(&p);
+            }
+            Mensagem::PptxEscolhido(None) => {}
             Mensagem::CopiaEscolhida(Some(p)) => { self.salvar_copia(p); }
             Mensagem::CopiaEscolhida(None) => {}
             Mensagem::ArquivoEscolhidoParaSalvar(caminho) => {
@@ -2966,6 +2974,16 @@ impl FeatherSlideApp {
     }
 
     /// Grava o PDF (um slide por página; os ocultos ficam de fora). Devolve o número de páginas.
+    /// Exporta como `.pptx` e diz na barra de status o que ficou de fora.
+    fn exportar_pptx(&self, destino: &std::path::Path) -> String {
+        let nome = destino.file_name().unwrap_or_default().to_string_lossy().to_string();
+        match featherslide_io::pptx::gravar::salvar(self.sessao.apresentacao(), destino) {
+            Ok(g) if g.de_fora == 0 => format!("PowerPoint exportado: {nome}"),
+            Ok(g) => format!("PowerPoint exportado: {nome}. {} elemento(s) sem equivalente ficaram de fora (tabelas, gráficos, ícones, WordArt, desenhos livres).", g.de_fora),
+            Err(e) => format!("Não consegui exportar o PowerPoint: {e}"),
+        }
+    }
+
     fn exportar_pdf(&self, destino: &std::path::Path, so_atual: bool) -> Result<usize, String> {
         let ap = self.sessao.apresentacao();
         let mut quadros: Vec<_> = (0..ap.slides.len()).filter(|&i| if so_atual { i == self.sessao.atual() } else { !ap.slides[i].oculto }).filter_map(|i| self.sessao.quadro(i, None, false).ok().flatten()).collect();
@@ -3386,6 +3404,19 @@ impl FeatherSlideApp {
                 if self.impressao.is_none() {
                     self.impressao = Some(crate::imprimir::Impressao::nova());
                 }
+            }
+            FaixaMensagem::ExportarPptx => {
+                let sugerido = std::path::Path::new(&self.nome_arquivo).with_extension("pptx").to_string_lossy().to_string();
+                return Task::perform(
+                    async move {
+                        let mut dialogo = rfd::AsyncFileDialog::new().set_file_name(&sugerido).add_filter("PowerPoint (*.pptx)", &["pptx"]);
+                        if let Some(pasta) = crate::configuracao::pasta_das_apresentacoes() {
+                            dialogo = dialogo.set_directory(pasta);
+                        }
+                        dialogo.save_file().await.map(|f| f.path().to_path_buf())
+                    },
+                    Mensagem::PptxEscolhido,
+                );
             }
             FaixaMensagem::ExportarPdf => {
                 self.pdf_so_atual = false;
@@ -5206,6 +5237,7 @@ impl FeatherSlideApp {
                 Space::new(6, 0),
                 tira(icone_salvar(19.0, ativo), Some(FaixaMensagem::Salvar), "Salvar (Ctrl+S)"),
                 tira(icone_pdf(19.0, ativo), Some(FaixaMensagem::ExportarPdf), "Exportar como PDF (Ctrl+Shift+E)"),
+                tira(icone_apresentar(19.0, ativo), Some(FaixaMensagem::ExportarPptx), "Exportar como PowerPoint (.pptx)"),
                 tira(icone_imprimir(19.0, ativo), Some(FaixaMensagem::Imprimir), "Imprimir (Ctrl+P)"),
                 tira(icone_dados(19.0, ativo), Some(FaixaMensagem::Propriedades), "Propriedades da apresentação"),
                 tira(icone_desfazer(19.0, if estado.pode_desfazer { "#5f6368" } else { "#bdc1c6" }), estado.pode_desfazer.then_some(FaixaMensagem::Desfazer), "Voltar (Ctrl+Z)"),
@@ -6583,4 +6615,18 @@ fn estrutura_de_topicos_abre_com_o_texto_e_aplica() {
     assert!(app.topicos.is_none(), "fecha ao aplicar");
     assert_eq!(app.sessao.apresentacao().slides.len(), 2);
     assert!(app.sessao.topicos().starts_with("Abertura\n\tquem sou\nPlano\n"));
+}
+
+#[cfg(test)]
+#[test]
+fn exportar_pptx_grava_e_avisa_o_que_ficou_de_fora() {
+    let pasta = std::env::temp_dir().join(format!("fs-pptx-{}", featherslide_io::documentos::id()));
+    std::fs::create_dir_all(&pasta).unwrap();
+    let mut app = FeatherSlideApp::default();
+    let destino = pasta.join("a.pptx");
+    assert!(app.exportar_pptx(&destino).starts_with("PowerPoint exportado"));
+    assert!(featherslide_io::pptx::ler(&std::fs::read(&destino).unwrap()).is_ok());
+    app.sessao.elemento_inserir(featherslide_core::modelo::Tipo::Tabela, None, None).unwrap();
+    assert!(app.exportar_pptx(&destino).contains("1 elemento(s) sem equivalente"), "tabela ainda fica de fora");
+    std::fs::remove_dir_all(pasta).unwrap();
 }

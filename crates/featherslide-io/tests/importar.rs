@@ -357,3 +357,29 @@ fn pptx_le_foto_cortada_com_src_rect() {
     assert_eq!(img_cortada.height(), 50);
 }
 
+
+#[test]
+fn pptx_gravado_le_de_volta_igual() {
+    use featherslide_core::sessao::Sessao;
+    use featherslide_core::Formatacao;
+    let mut s = Sessao::default();
+    let id = s.apresentacao().slides[0].elementos[0].id;
+    s.texto_definir(id, "Título & <acentuação>").unwrap();
+    s.notas_definir("falar do orçamento\nsegunda linha").unwrap();
+    s.slide_novo("em_branco").unwrap();
+    s.elemento_inserir(Tipo::Elipse, Some([100.0, 50.0, 200.0, 100.0]), None).unwrap();
+    s.formatar(Formatacao::Preenchimento("#34a853".into())).unwrap();
+    const PNG: &str = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    s.elemento_inserir(Tipo::Imagem, Some([400.0, 300.0, 120.0, 90.0]), Some(PNG.into())).unwrap();
+    let g = pptx::gravar::gravar(s.apresentacao()).unwrap();
+    assert_eq!(g.de_fora, 0);
+    let lida = pptx::ler(&g.bytes).unwrap();
+    assert_eq!(lida.slides.len(), 2);
+    assert_eq!(lida.tamanho(), s.apresentacao().tamanho());
+    assert!(lida.slides[0].elementos.iter().any(|e| e.texto == "Título & <acentuação>" && e.papel == Papel::Titulo), "{:?}", lida.slides[0].elementos.iter().map(|e| &e.texto).collect::<Vec<_>>());
+    assert_eq!(lida.slides[0].notas, "falar do orçamento\nsegunda linha");
+    let elipse = lida.slides[1].elementos.iter().find(|e| e.tipo == Tipo::Elipse).expect("elipse");
+    assert_eq!((elipse.x, elipse.y, elipse.largura, elipse.altura), (100.0, 50.0, 200.0, 100.0));
+    assert_eq!(elipse.preenchimento, "#34a853");
+    assert!(lida.slides[1].elementos.iter().any(|e| e.tipo == Tipo::Imagem && (e.x - 400.0).abs() < 0.01));
+}

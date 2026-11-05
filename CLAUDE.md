@@ -67,6 +67,10 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   Liberation Sans, Times = Liberation Serif, monoespaçada 600); `largura_na_fonte`/`quebrar_na_fonte`
   escolhem pela família. `Disposicao::de(&ElementoDesenhado)` leva a fonte ao cursor e à ortografia.
   Família desconhecida (Calibri) mede como Sans: medir com a fonte exata da tela pede o medidor do pelicano.
+- **Exportar `.pptx`** (botão na barra de cima): `io/src/pptx/gravar.rs` — um mestre e um layout em branco,
+  tema próprio, slides com `p:sp` (geometria pronta por `Tipo`), `p:pic`, fundo sólido, giro, margem e
+  anotações (com `notesMaster`). Tabela, gráfico, ícone, WordArt e caminho ficam de fora e são contados
+  (`Gravado::de_fora`). Conferido abrindo no LibreOffice (snap só lê arquivos na home).
 - Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
 
 ## Auditoria de 05/11/2026 (11 correções)

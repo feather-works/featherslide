@@ -513,6 +513,7 @@
         "corpo": [
           "A apresentação é gravada como .fsdz: um contêiner com os slides em colunas Arrow e as imagens como arquivos.",
           "• Abrir também lê .pptx (PowerPoint e Google Apresentações) e .odp (LibreOffice Impress): slides, caixas, formas, imagens, fundo e anotações, no tamanho de slide do arquivo (16:10, A4 e outros não são esticados). Ao salvar, a apresentação vira .fsdz (o original não é tocado).",
+          "• Para mandar a quem usa PowerPoint ou Google Apresentações: o botão Exportar como PowerPoint (.pptx), na barra de cima. Vão slides, caixas de texto, formas, fotos, fundo e anotações; tabelas, gráficos, ícones, WordArt e desenhos livres ainda ficam de fora (a barra de status avisa quantos).",
           "• A margem interna de cada caixa de texto vem do arquivo .pptx (inclusive margem zero), e fica guardada no .fsdz.",
           "• Cada vez que a apresentação é salva (também pelo salvamento automático), a versão anterior fica no Histórico de versões, em Arquivos; ficam as 20 mais recentes.",
           "• Ctrl+S salva no mesmo arquivo; Ctrl+Shift+S pergunta onde.",
