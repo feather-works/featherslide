@@ -81,7 +81,12 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   área = polígono claro + linha forte por série), galeria, janela de dados, adaptador comum (`area`) e
   `.pptx` (`c:doughnutChart`, `c:areaChart`).
 - **Prévia do MCP** (`featherslide-mcp/src/renderizar.rs::pintar_primitivas`): agora desenha as peças de
-  tabela, gráfico e ícone (antes só vetores: a IA via tabelas e gráficos em branco). Conferido abrindo no LibreOffice (snap só lê arquivos na home).
+  tabela, gráfico e ícone (antes só vetores: a IA via tabelas e gráficos em branco).
+- **Tabelas:** colar texto com Tab (FeatherSheet/Excel) vira tabela (`dados::grade_colada`,
+  `Sessao::tabela_de_grade`, até 60 × 20, um Ctrl+Z). Estilo em `Elemento::ajustes` da tabela:
+  `[alternadas, 1ª coluna, totais]` (`dados::opcoes_tabela`; sem ajustes = só alternadas); a cor do
+  cabeçalho é o preenchimento, as faixas são ela 85% clara, cabeçalho escuro tem letra branca
+  (`cor_escura`). Faixa: Inserir → Estilo da tabela. O `.pptx` leva o mesmo. Conferido abrindo no LibreOffice (snap só lê arquivos na home).
 - Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
 
 ## Auditoria de 05/11/2026 (11 correções)

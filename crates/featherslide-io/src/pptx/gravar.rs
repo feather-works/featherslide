@@ -238,16 +238,29 @@ fn tabela(e: &Elemento, id: usize) -> String {
         Alinhamento::Direita => "r",
         _ => "l",
     };
-    let cor = hex(&est.cor).map_or(String::new(), |c| format!(r#"<a:solidFill><a:srgbClr val="{c}"/></a:solidFill>"#));
-    let mut t = String::from(r#"<a:tbl><a:tblPr firstRow="1"/><a:tblGrid>"#);
+    let [faixas, primeira_coluna, totais] = featherslide_core::dados::opcoes_tabela(e);
+    let cabecalho_escuro = featherslide_core::dados::cor_escura(&format!("#{cabecalho}"));
+    let faixa = if e.preenchimento.is_empty() { "F8F9FA".to_string() } else {
+        // A mesma conta do slide: a cor do cabeçalho 85% clareada com branco.
+        let c = |i: usize| u8::from_str_radix(&cabecalho[2 * i..2 * i + 2], 16).unwrap_or(255) as f32;
+        format!("{:02X}{:02X}{:02X}", (c(0) + (255.0 - c(0)) * 0.85).round() as u8, (c(1) + (255.0 - c(1)) * 0.85).round() as u8, (c(2) + (255.0 - c(2)) * 0.85).round() as u8)
+    };
+    let cor_de = |destaque: bool| {
+        let c = if destaque && cabecalho_escuro { Some("FFFFFF".to_string()) } else { hex(&est.cor) };
+        c.map_or(String::new(), |c| format!(r#"<a:solidFill><a:srgbClr val="{c}"/></a:solidFill>"#))
+    };
+    let n = g.len();
+    let mut t = format!(r#"<a:tbl><a:tblPr firstRow="1"{}{}{}/><a:tblGrid>"#, if faixas { r#" bandRow="1""# } else { "" }, if primeira_coluna { r#" firstCol="1""# } else { "" }, if totais { r#" lastRow="1""# } else { "" });
     for _ in 0..colunas {
         let _ = write!(t, r#"<a:gridCol w="{larg}"/>"#);
     }
     t.push_str("</a:tblGrid>");
     for (r, linha) in g.iter().enumerate() {
         let _ = write!(t, r#"<a:tr h="{alt}">"#);
-        for celula in linha {
-            let negrito = if est.negrito || r == 0 { r#" b="1""# } else { "" };
+        let destaque = r == 0 || (totais && r + 1 == n && n > 1);
+        for (c, celula) in linha.iter().enumerate() {
+            let cor = cor_de(destaque);
+            let negrito = if est.negrito || destaque || (primeira_coluna && c == 0) { r#" b="1""# } else { "" };
             let rpr = format!(r#" lang="pt-BR" sz="{}"{negrito}"#, (est.tamanho * 100.0).round().clamp(100.0, 400_000.0) as i64);
             t.push_str("<a:tc><a:txBody><a:bodyPr/><a:lstStyle/>");
             for p in celula.split('\n') {
@@ -258,7 +271,7 @@ fn tabela(e: &Elemento, id: usize) -> String {
                 t.push_str("</a:p>");
             }
             t.push_str(r#"</a:txBody><a:tcPr anchor="ctr">"#);
-            let fundo = if r == 0 { cabecalho.clone() } else if r % 2 == 0 { "F8F9FA".into() } else { "FFFFFF".into() };
+            let fundo = if destaque { cabecalho.clone() } else if faixas && r % 2 == 0 { faixa.clone() } else { "FFFFFF".into() };
             let linha_borda = |lado: &str| match &borda {
                 Some(c) => format!(r#"<a:{lado} w="{}"><a:solidFill><a:srgbClr val="{c}"/></a:solidFill></a:{lado}>"#, emu(e.espessura)),
                 None => format!(r#"<a:{lado}><a:noFill/></a:{lado}>"#),

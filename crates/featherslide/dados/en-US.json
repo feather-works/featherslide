@@ -494,7 +494,8 @@
           "Insert → Shapes puts a rectangle, ellipse, triangle, arrow or line in the middle of the slide.",
           "• Fill and Outline (Home → Drawing) pick the colors; Weight, the outline thickness.",
           "• Insert → Image embeds the image in the presentation: the .fsdz carries it along.",
-          "• Insert → Chart: column, bar, line, area, pie and doughnut. Double-click the chart to edit its data; the type can also be changed in the data window."
+          "• Insert → Chart: column, bar, line, area, pie and doughnut. Double-click the chart to edit its data; the type can also be changed in the data window.",
+          "• Table: copy cells in FeatherSheet or Excel and paste (Ctrl+V) on the slide: it becomes a table. With the table selected, Insert → Table style picks the color and turns on banded rows, bold first column and a total row."
         ]
       },
       "apresentar": {

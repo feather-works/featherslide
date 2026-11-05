@@ -80,6 +80,8 @@ pub struct Contexto {
     pub preenchimento: String,
     pub contorno: String,
     pub espessura: f32,
+    /// As opções de estilo da tabela selecionada (linhas alternadas, primeira coluna, totais).
+    pub tabela_opcoes: [bool; 3],
     pub indice_texto: i8,
     pub sublinhado_duplo: bool,
     pub tachado_duplo: bool,
@@ -451,6 +453,41 @@ pub fn inserir<'a>(c: &Contexto) -> Element<'a, Msg> {
                     ].spacing(4),
                 ].spacing(4).into(),
                 "Bordas da tabela",
+            ));
+            // Estilos prontos: a cor do cabeçalho (as linhas alternadas seguem a mesma cor, mais clara).
+            let estilo = |cor: &'static str, nome: &'static str| -> Element<'a, Msg> {
+                let hex = u32::from_str_radix(if cor.is_empty() { "e8f0fe" } else { &cor[1..] }, 16).unwrap_or(0xffffff);
+                let fundo = Color::rgb8((hex >> 16) as u8, (hex >> 8) as u8, hex as u8);
+                let quadrado = container(Space::new(Length::Fixed(18.0), Length::Fixed(14.0))).style(move |_: &Theme| Style {
+                    background: Some(Background::Color(fundo)),
+                    border: Border { color: COR_BORDA(), width: 1.0, radius: [2.0; 4] },
+                    ..Default::default()
+                });
+                dica(button(quadrado).padding(2).style(estilo_botao_pequeno(c.preenchimento == cor)).on_press(Msg::Preenchimento(cor.into())), nome)
+            };
+            let [faixas, primeira, totais] = c.tabela_opcoes;
+            abas.push(grupo(
+                column![
+                    row![
+                        estilo("", "Azul claro (o padrão)"),
+                        estilo("#1a73e8", "Azul"),
+                        estilo("#34a853", "Verde"),
+                        estilo("#f29900", "Laranja"),
+                        estilo("#d93025", "Vermelho"),
+                        estilo("#8e24aa", "Roxo"),
+                        estilo("#3c4043", "Grafite"),
+                    ]
+                    .spacing(2),
+                    row![
+                        pequeno(icone_grade(12.0, "#5f6368"), "Alternadas", Some(Msg::TabelaOpcoes([!faixas, primeira, totais])), faixas),
+                        pequeno(icone_negrito(12.0, "#5f6368"), "1ª coluna", Some(Msg::TabelaOpcoes([faixas, !primeira, totais])), primeira),
+                        pequeno(icone_lista_num(12.0, "#5f6368"), "Totais", Some(Msg::TabelaOpcoes([faixas, primeira, !totais])), totais),
+                    ]
+                    .spacing(2),
+                ]
+                .spacing(4)
+                .into(),
+                "Estilo da tabela",
             ));
         }
         "grafico" => abas.push(grupo(

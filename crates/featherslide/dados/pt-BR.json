@@ -494,7 +494,8 @@
           "Inserir → Formas põe retângulo, elipse, triângulo, seta ou linha no meio do slide.",
           "• Preenchimento e Contorno (Página inicial → Desenho) escolhem as cores; Espessura, a grossura do contorno.",
           "• Inserir → Imagem embute a imagem na apresentação: o .fsdz leva a imagem junto.",
-          "• Inserir → Gráfico: colunas, barras, linhas, área, pizza e rosca. Clique duas vezes no gráfico para editar os dados; o tipo também se troca na janela de dados."
+          "• Inserir → Gráfico: colunas, barras, linhas, área, pizza e rosca. Clique duas vezes no gráfico para editar os dados; o tipo também se troca na janela de dados.",
+          "• Tabela: copie células no FeatherSheet ou no Excel e cole (Ctrl+V) no slide: vira uma tabela. Com a tabela selecionada, Inserir → Estilo da tabela escolhe a cor e liga linhas alternadas, primeira coluna em negrito e linha de totais."
         ]
       },
       "apresentar": {

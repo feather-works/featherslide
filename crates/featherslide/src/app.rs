@@ -2766,6 +2766,7 @@ impl FeatherSlideApp {
             preenchimento: estado.selecao.first().and_then(|id| self.sessao.slide().elementos.iter().find(|e| e.id == *id)).map(|e| e.preenchimento.clone()).unwrap_or_default(),
             contorno: estado.selecao.first().and_then(|id| self.sessao.slide().elementos.iter().find(|e| e.id == *id)).map(|e| e.contorno.clone()).unwrap_or_default(),
             espessura: estado.selecao.first().and_then(|id| self.sessao.slide().elementos.iter().find(|e| e.id == *id)).map_or(1.0, |e| e.espessura),
+            tabela_opcoes: estado.selecao.first().and_then(|id| self.sessao.slide().elementos.iter().find(|e| e.id == *id)).map_or([true, false, false], featherslide_core::dados::opcoes_tabela),
         }
     }
 
@@ -4243,6 +4244,11 @@ impl FeatherSlideApp {
                     .filter(|e| featherslide_core::estilo_forma::aceita(e.tipo))
                     .map(crate::formato_forma::Estado::novo);
             },
+            FaixaMensagem::TabelaOpcoes(o) => {
+                if let Err(e) = self.sessao.tabela_opcoes_definir(o) {
+                    self.status = e;
+                }
+            }
             FaixaMensagem::Preenchimento(cor) => {
                 let _ = self.sessao.formatar(Formatacao::Preenchimento(cor));
             }

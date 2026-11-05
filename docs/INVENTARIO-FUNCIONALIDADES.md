@@ -621,13 +621,13 @@ Inserir → SVG; Formato da Forma → Vetores libera as peças e exporta a sele�
 
 ### 7.2. Formatação
 
-- [ ] **FTS-0475** — Estilos predefinidos. **A verificar**.
+- [x] **FTS-0475** — Estilos predefinidos. **Feito**.
 - [ ] **FTS-0476** — Estilos personalizados. **A verificar**.
-- [/] **FTS-0477** — Linha de cabeçalho. **Parcial**.
-- [ ] **FTS-0478** — Linha de totais. **A verificar**.
-- [ ] **FTS-0479** — Primeira coluna destacada. **A verificar**.
+- [x] **FTS-0477** — Linha de cabeçalho. **Feito**.
+- [x] **FTS-0478** — Linha de totais. **Feito**.
+- [x] **FTS-0479** — Primeira coluna destacada. **Feito**.
 - [ ] **FTS-0480** — Última coluna destacada. **A verificar**.
-- [/] **FTS-0481** — Linhas alternadas. **Parcial**.
+- [x] **FTS-0481** — Linhas alternadas. **Feito**.
 - [ ] **FTS-0482** — Colunas alternadas. **A verificar**.
 - [ ] **FTS-0483** — Preenchimento de células. **A verificar**.
 - [ ] **FTS-0484** — Bordas individuais. **A verificar**.
@@ -643,7 +643,7 @@ Inserir → SVG; Formato da Forma → Vetores libera as peças e exporta a sele�
 
 ### 7.3. Integração
 
-- [ ] **FTS-0494** — Colar tabelas do Excel. **A verificar**.
+- [x] **FTS-0494** — Colar tabelas do Excel. **Feito**.
 - [ ] **FTS-0495** — Incorporar planilhas Excel. **A verificar**.
 - [ ] **FTS-0496** — Vincular tabelas externas. **A verificar**.
 - [ ] **FTS-0497** — Atualizar conteúdo vinculado. **A verificar**.

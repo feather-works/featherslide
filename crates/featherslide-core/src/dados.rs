@@ -173,9 +173,36 @@ pub fn celula_no_ponto(e: &Elemento, px: f32, py: f32) -> Option<(usize, usize)>
     Some((r, c))
 }
 
+/// As opções de estilo de uma tabela, guardadas em `Elemento::ajustes` (como os ajustes das formas):
+/// `[linhas alternadas, primeira coluna destacada, linha de totais]`, 1 = ligado. Sem ajustes, só as
+/// linhas alternadas (o desenho de sempre).
+pub fn opcoes_tabela(e: &Elemento) -> [bool; 3] {
+    let liga = |i: usize, padrao: bool| e.ajustes.get(i).map_or(padrao, |v| *v > 0.5);
+    [liga(0, true), liga(1, false), liga(2, false)]
+}
+
+/// A cor escura pede letra branca (a soma dos canais abaixo da metade).
+pub fn cor_escura(cor: &str) -> bool {
+    let c = |i: usize| u32::from_str_radix(cor.get(1 + 2 * i..3 + 2 * i).unwrap_or("ff"), 16).unwrap_or(255);
+    cor.len() >= 7 && c(0) * 299 + c(1) * 587 + c(2) * 114 < 140_000
+}
+
+/// A grade de um texto colado de planilha (células por Tab, linhas por quebra), se for uma grade:
+/// pelo menos duas células e algum Tab. As linhas ficam com o mesmo número de colunas.
+pub fn grade_colada(texto: &str) -> Option<Grade> {
+    let texto = texto.replace("\r\n", "\n");
+    let texto = texto.trim_end_matches('\n');
+    if !texto.contains('\t') {
+        return None;
+    }
+    let grade: Grade = texto.split('\n').map(|l| l.split('\t').map(|c| c.trim().to_string()).collect()).collect();
+    (grade.iter().map(Vec::len).sum::<usize>() >= 2).then(|| retangular(grade))
+}
+
 pub fn primitivas_tabela(e: &Elemento) -> Vec<Primitiva> {
     let g = ler_tabela(e);
     let (n, m) = (g.len(), g[0].len());
+    let [faixas, primeira_coluna, totais] = opcoes_tabela(e);
     let (x, y, w, h) = caixa(e);
     let (cw, rh) = (w / m as f32, h / n as f32);
     let borda = if e.espessura <= 0.0 { "" } else if e.contorno.is_empty() { "#bdc1c6" } else { e.contorno.as_str() };
@@ -185,12 +212,15 @@ pub fn primitivas_tabela(e: &Elemento) -> Vec<Primitiva> {
     for (r, linha) in g.iter().enumerate() {
         for (c, celula) in linha.iter().enumerate() {
             let (cx, cy) = (x + c as f32 * cw, y + r as f32 * rh);
-            let fundo = if r == 0 { cabecalho } else if r % 2 == 0 { "#f8f9fa" } else { "#ffffff" };
+            let destaque = r == 0 || (totais && r + 1 == n && n > 1);
+            let faixa = if e.preenchimento.is_empty() { "#f8f9fa".to_string() } else { mistura_branco(cabecalho, 0.85) };
+            let fundo = if destaque { cabecalho } else if faixas && r % 2 == 0 { faixa.as_str() } else { "#ffffff" };
             p.push(ret(cx, cy, cw, rh, fundo, borda, e.espessura));
             if celula.is_empty() {
                 continue;
             }
-            let negrito = est.negrito || r == 0;
+            let negrito = est.negrito || destaque || (primeira_coluna && c == 0);
+            let cor_texto = if destaque && cor_escura(cabecalho) { "#ffffff" } else { est.cor.as_str() };
             let util = (cw - 2.0 * MARGEM_CELULA).max(est.tamanho);
             let mut linhas: Vec<String> = celula.split('\n').flat_map(|par| medida::quebrar(par, est.tamanho, negrito, util)).collect();
             let cabem = ((rh / (est.tamanho * PASSO)).floor() as usize).max(1);
@@ -203,7 +233,7 @@ pub fn primitivas_tabela(e: &Elemento) -> Vec<Primitiva> {
                     Alinhamento::Direita => (cx + cw - MARGEM_CELULA, "d"),
                     _ => (cx + MARGEM_CELULA, "e"),
                 };
-                p.push(texto(tx, ty, est.tamanho, &est.cor, negrito, alinh, l));
+                p.push(texto(tx, ty, est.tamanho, cor_texto, negrito, alinh, l));
             }
         }
     }
@@ -446,5 +476,41 @@ mod testes_rosca_area {
         let a = primitivas_grafico(&grafico("area"));
         assert_eq!(a.iter().filter(|q| matches!(q, Primitiva::Poligono { .. })).count(), 2, "uma área por série");
         assert_eq!(grafico_exemplo("rosca").titulo, "Gráfico de rosca");
+    }
+}
+
+#[cfg(test)]
+mod testes_tabela_estilo {
+    use super::*;
+    use crate::sessao::Sessao;
+
+    #[test]
+    fn colar_de_planilha_vira_tabela_com_um_desfazer() {
+        let mut s = Sessao::default();
+        let antes = s.slide().elementos.len();
+        s.colar("Produto\tVendas\r\nA\t10\r\nB\t20\r\n").unwrap();
+        let e = s.slide().elementos.last().unwrap();
+        assert_eq!(e.tipo, crate::modelo::Tipo::Tabela);
+        assert_eq!(ler_tabela(e), vec![vec!["Produto".to_string(), "Vendas".into()], vec!["A".into(), "10".into()], vec!["B".into(), "20".into()]]);
+        s.desfazer().unwrap();
+        assert_eq!(s.slide().elementos.len(), antes, "um Ctrl+Z tira a tabela inteira");
+        assert!(grade_colada("só texto\nsem tab").is_none());
+        assert!(grade_colada("um\tdois").is_some());
+    }
+
+    #[test]
+    fn opcoes_mudam_o_desenho_e_cabecalho_escuro_tem_letra_branca() {
+        let mut s = Sessao::default();
+        s.tabela_inserir(3, 2).unwrap();
+        s.formatar(crate::Formatacao::Preenchimento("#1a73e8".into())).unwrap();
+        s.tabela_opcoes_definir([false, true, true]).unwrap();
+        let e = s.slide().elementos.last().unwrap().clone();
+        assert_eq!(opcoes_tabela(&e), [false, true, true]);
+        let p = primitivas_tabela(&e);
+        let fundos: Vec<&str> = p.iter().filter_map(|q| if let Primitiva::Ret { preenchimento, .. } = q { Some(preenchimento.as_str()) } else { None }).collect();
+        assert_eq!(&fundos[4..6], &["#1a73e8", "#1a73e8"], "a linha de totais tem a cor do cabeçalho");
+        assert!(!fundos.contains(&"#f8f9fa"), "sem linhas alternadas");
+        let brancos = p.iter().filter(|q| matches!(q, Primitiva::Texto { cor, .. } if cor == "#ffffff")).count();
+        assert_eq!(brancos, 2, "o texto do cabeçalho azul fica branco");
     }
 }

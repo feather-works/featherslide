@@ -262,6 +262,49 @@ impl Sessao {
     }
 
     /// Insere uma tabela de verdade (um elemento só) com `linhas` × `colunas`, no meio do slide.
+    /// Uma tabela nova com a grade dada (a 1ª linha é o cabeçalho), no meio do slide.
+    pub fn tabela_de_grade(&mut self, grade: crate::dados::Grade) -> Result<Mudanca, String> {
+        let (linhas, colunas) = (grade.len(), grade.first().map_or(0, Vec::len));
+        if !(1..=60).contains(&linhas) || !(1..=20).contains(&colunas) {
+            return Err(format!("A tabela colada tem {linhas} linhas e {colunas} colunas; o máximo é 60 × 20."));
+        }
+        self.tabela_inserir(linhas.min(30), colunas.min(15)).or_else(|_| Err("Não foi possível criar a tabela.".to_string()))?;
+        let id = self.selecao[0];
+        let inserido = self.desfazer.pop();
+        let m = self.editar(|s| {
+            let (sl, sa) = s.ap.tamanho();
+            if let Some(e) = s.slide_mut().elementos.iter_mut().find(|e| e.id == id) {
+                e.dados = crate::dados::gravar_tabela(&grade);
+                e.altura = (28.0 * linhas as f32).min(sa * 0.85);
+                e.y = (sa - e.altura) / 2.0;
+                e.largura = e.largura.max((90.0 * colunas as f32).min(sl - 80.0));
+                e.x = (sl - e.largura) / 2.0;
+                if linhas > 12 {
+                    e.estilo.tamanho = 11.0;
+                }
+            }
+            Ok((vec![s.atual], false))
+        })?;
+        // "Inserir" e "preencher" são um passo só do desfazer.
+        if let (Some(r), Some(ultimo)) = (inserido, self.desfazer.last_mut()) {
+            *ultimo = r;
+        }
+        Ok(m)
+    }
+
+    /// As opções de estilo das tabelas selecionadas: linhas alternadas, primeira coluna, totais.
+    pub fn tabela_opcoes_definir(&mut self, opcoes: [bool; 3]) -> Result<Mudanca, String> {
+        if !self.slide().elementos.iter().any(|e| self.selecao.contains(&e.id) && e.tipo == Tipo::Tabela) {
+            return Err("Selecione uma tabela.".into());
+        }
+        self.editar(|s| {
+            for e in s.selecionados_mut().filter(|e| e.tipo == Tipo::Tabela) {
+                e.ajustes = opcoes.iter().map(|&v| if v { 1.0 } else { 0.0 }).collect();
+            }
+            Ok((vec![s.atual], false))
+        })
+    }
+
     pub fn tabela_inserir(&mut self, linhas: usize, colunas: usize) -> Result<Mudanca, String> {
         if !(1..=30).contains(&linhas) || !(1..=15).contains(&colunas) {
             return Err("A tabela deve ter de 1 a 30 linhas e de 1 a 15 colunas.".into());
@@ -1165,6 +1208,10 @@ impl Sessao {
         }
         if texto_do_sistema.trim().is_empty() {
             return Err("Não há nada para colar.".into());
+        }
+        // Células copiadas de uma planilha (FeatherSheet, Excel) viram uma tabela de verdade.
+        if let Some(grade) = crate::dados::grade_colada(texto_do_sistema) {
+            return self.tabela_de_grade(grade);
         }
         let texto = texto_do_sistema.replace("\r\n", "\n");
         self.elemento_inserir(Tipo::Texto, None, None)?;

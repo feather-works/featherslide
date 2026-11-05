@@ -269,6 +269,8 @@ pub enum FaixaMensagem {
     IconeSubstituir(String),
     EscalarSelecao(f32),
     TabelaEstrutura(&'static str),
+    /// Liga/desliga as opções de estilo da tabela: linhas alternadas, primeira coluna, linha de totais.
+    TabelaOpcoes([bool; 3]),
     EditarDadosGrafico,
     /// Exporta o gráfico selecionado pela API Charts/Drawing compartilhada.
     ExportarGraficoSvg,
