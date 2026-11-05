@@ -54,10 +54,11 @@ impl Sessao {
         })
     }
 
-    /// O link do elemento `id` do slide `indice`, se tiver.
+    /// O link do elemento `id` do slide `indice`, se tiver. Validado de novo aqui: o link pode ter
+    /// vindo de um arquivo recebido (`C:\x.exe`, `file:`), e quem chama o entrega ao sistema.
     pub fn link_do_elemento(&self, indice: usize, id: u64) -> Option<String> {
         let e = self.ap.slides.get(indice)?.elementos.iter().find(|e| e.id == id)?;
-        (!e.link.is_empty()).then(|| e.link.clone())
+        endereco_valido(&e.link).ok().filter(|u| *u == e.link)
     }
 
     /// Acrescenta um comentário ao slide atual.
@@ -123,5 +124,17 @@ mod testes {
         assert!(endereco_valido("a b").is_err());
         assert!(endereco_valido("javascript:alert(1)").is_err());
         assert!(endereco_valido("file:///etc/passwd").is_err());
+    }
+
+    #[test]
+    fn link_vindo_de_arquivo_e_validado_antes_de_abrir() {
+        let mut s = Sessao::default();
+        let id = s.ap.slides[0].elementos[0].id;
+        for ruim in ["C:\\Users\\Public\\x.exe", "file:///etc/passwd", "/usr/bin/xterm", "exemplo.com"] {
+            s.ap.slides[0].elementos[0].link = ruim.into();
+            assert_eq!(s.link_do_elemento(0, id), None, "{ruim}");
+        }
+        s.ap.slides[0].elementos[0].link = "https://exemplo.com".into();
+        assert_eq!(s.link_do_elemento(0, id).as_deref(), Some("https://exemplo.com"));
     }
 }

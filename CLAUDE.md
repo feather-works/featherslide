@@ -43,6 +43,23 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 - Se o usuário ainda vir deslocamento num 16:9/4:3, a próxima suspeita é a medida
   aproximada do texto (item 4 da Fila), não a geometria.
 
+## Auditoria de 05/11/2026 (11 correções)
+
+- **Links:** `Sessao::link_do_elemento` valida de novo (só http/https/mailto exatos); link vindo de
+  `.fsdz` recebido não chega mais ao `rundll32`/`xdg-open`.
+- **Gravação em ordem:** toda gravação tira uma `senha()` na thread da janela e passa por
+  `arquivos::gravar_em_ordem` (cadeado + maior senha por caminho): o salvamento automático que
+  termina depois de um Ctrl+S não cobre a versão nova. `Gravacao::origem` guarda o caminho do
+  pedido; se um "Salvar como" trocou o caminho no meio, o novo fica.
+- **Histórico:** `documentos::VERSOES_GUARDADAS = 20`; as mais velhas saem a cada gravação.
+  O MCP (`slide_salvar`) também usa `documentos::salvar` (com histórico).
+- **`.pptx`:** margem interna (`lIns`/`tIns`/`rIns`/`bIns`) entra na caixa de texto sem fundo
+  (o quadro só tem `MARGEM_X/Y` fixas; forma desenhada fica com a fixa — `shortcut:` no código).
+  Grupos girados/espelhados: `Transformacao::giro` (matriz de giro/espelho) gira o centro dos
+  filhos e soma o ângulo; exato com escala igual nos eixos.
+- Conta-gotas usa a foto reduzida (`raster_reduzido`) e uma só conta de enquadramento
+  (`ponto_na_imagem`).
+
 ## Formas comuns no `feather-shapes` (14/10/2026)
 
 - A parte pura de formas, ícones e diagramas saiu do core para o crate comum

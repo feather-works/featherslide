@@ -507,6 +507,7 @@
         "corpo": [
           "The presentation is saved as .fsdz: a container with the slides in Arrow columns and the images as files.",
           "• Open also reads .pptx (PowerPoint and Google Slides) and .odp (LibreOffice Impress): slides, boxes, shapes, images, background and notes, at the file's own slide size (16:10, A4 and others are not stretched). On save, the presentation becomes .fsdz (the original is not touched).",
+          "• Each time the presentation is saved (autosave included), the previous version goes to Version history, under Files; the 20 most recent are kept.",
           "• Ctrl+S saves to the same file; Ctrl+Shift+S asks where.",
           "• In the browser (development mode), Save downloads the file."
         ]

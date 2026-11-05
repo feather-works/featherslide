@@ -4,12 +4,12 @@ use crate::registro;
 use crate::icones::*;
 use crate::tema::*;
 use featherslide_core::sessao::Sessao;
-use featherslide_io::documentos::{historico, ler, listar, pesquisar, salvar};
+use featherslide_io::documentos::{historico, id, ler, listar, pesquisar, salvar};
 use featherslide_io::fsdz;
 use pelicano::*;
 use pelicano::column;
 use std::path::{Path, PathBuf};
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::Instant;
 
 /// Diálogo "Abrir" de apresentação: "Todas as apresentações" e um filtro por formato lido.
 pub(crate) fn dialogo_abrir() -> rfd::AsyncFileDialog {
@@ -44,14 +44,46 @@ pub(crate) fn destino_automatico(caminho: Option<&Path>, rascunho: &Path) -> (Pa
     }
 }
 
-/// A gravação em si: no arquivo da pessoa (com histórico) ou no rascunho de recuperação.
-fn gravar_pedido(ap: &featherslide_core::modelo::Apresentacao, destino: &Path, no_arquivo: bool) -> Result<(), String> {
-    if no_arquivo {
-        return salvar(ap, destino).map(|_| ());
+/// A senha de um pedido de gravação, tirada na thread da janela: senha maior = conteúdo mais novo.
+static SENHAS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+/// A maior senha já gravada em cada caminho. O cadeado também põe as gravações em fila.
+static GRAVADAS: std::sync::Mutex<Vec<(PathBuf, u64)>> = std::sync::Mutex::new(Vec::new());
+
+pub(crate) fn senha() -> u64 {
+    SENHAS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1
+}
+
+/// Grava só se nada mais novo já foi gravado em `destino`: o salvamento automático que termina
+/// depois de um Ctrl+S não pode pôr a versão velha por cima (perdia as últimas edições).
+pub(crate) fn gravar_em_ordem(destino: &Path, senha: u64, gravar: impl FnOnce() -> Result<(), String>) -> Result<(), String> {
+    let mut gravadas = GRAVADAS.lock().unwrap_or_else(|e| e.into_inner());
+    let i = gravadas.iter().position(|(p, _)| p == destino);
+    if i.is_some_and(|i| gravadas[i].1 > senha) {
+        return Ok(());
     }
-    let pasta = destino.parent().ok_or_else(|| "Pasta do rascunho inválida".to_string())?;
-    std::fs::create_dir_all(pasta).map_err(|e| e.to_string())?;
-    fsdz::salvar(ap, destino).map(|_| ())
+    gravar()?;
+    match i {
+        Some(i) => gravadas[i].1 = senha,
+        None => gravadas.push((destino.to_path_buf(), senha)),
+    }
+    Ok(())
+}
+
+/// O Ctrl+S, o Salvar como e o Salvar cópia: com histórico, na fila das gravações em fundo.
+pub(crate) fn salvar_em_ordem(ap: &featherslide_core::modelo::Apresentacao, destino: &Path) -> Result<(), String> {
+    gravar_em_ordem(destino, senha(), || salvar(ap, destino).map(|_| ()))
+}
+
+/// A gravação em si: no arquivo da pessoa (com histórico) ou no rascunho de recuperação.
+fn gravar_pedido(ap: &featherslide_core::modelo::Apresentacao, destino: &Path, no_arquivo: bool, senha: u64) -> Result<(), String> {
+    gravar_em_ordem(destino, senha, || {
+        if no_arquivo {
+            return salvar(ap, destino).map(|_| ());
+        }
+        let pasta = destino.parent().ok_or_else(|| "Pasta do rascunho inválida".to_string())?;
+        std::fs::create_dir_all(pasta).map_err(|e| e.to_string())?;
+        fsdz::salvar(ap, destino).map(|_| ())
+    })
 }
 
 /// O fim de uma gravação em fundo, para anotar no documento que a pediu (achado pelo rascunho).
@@ -62,6 +94,8 @@ pub struct Gravacao {
     pub no_arquivo: bool,
     pub versao: u64,
     pub resultado: Result<(), String>,
+    /// O caminho do documento quando a gravação foi pedida.
+    pub origem: Option<PathBuf>,
 }
 
 pub struct Documento {
@@ -139,18 +173,6 @@ impl Default for Estado {
     }
 }
 
-fn id() -> String {
-    static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    format!(
-        "{:020}-{}-{}",
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos(),
-        std::process::id(),
-        N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-    )
-}
 /// Rascunhos nunca mudam o arquivo original nem o estado de edição.
 pub fn checkpoint(sessao: &Sessao, path: &Path) -> Result<(), String> {
     if !sessao.estado().sujo {
@@ -158,7 +180,7 @@ pub fn checkpoint(sessao: &Sessao, path: &Path) -> Result<(), String> {
     }
     std::fs::create_dir_all(path.parent().ok_or("Pasta do rascunho inválida")?)
         .map_err(|e| e.to_string())?;
-    fsdz::salvar(sessao.apresentacao(), path).map(|_| ())
+    gravar_em_ordem(path, senha(), || fsdz::salvar(sessao.apresentacao(), path).map(|_| ()))
 }
 
 impl FeatherSlideApp {
@@ -325,19 +347,21 @@ impl FeatherSlideApp {
         if !self.gravando.insert(destino.clone()) {
             return Task::none();
         }
+        let senha = senha();
+        let origem = if self.rascunho == rascunho { self.caminho_arquivo.clone() } else { self.arquivos.abertos.iter().find(|d| d.rascunho == rascunho).and_then(|d| d.caminho.clone()) };
         // Nos testes, na mesma thread: o mesmo código e a mesma anotação, sem esperar a tarefa.
         if cfg!(test) {
-            let resultado = gravar_pedido(&ap, &destino, no_arquivo);
-            self.gravado_em_fundo(Gravacao { rascunho, destino, no_arquivo, versao, resultado });
+            let resultado = gravar_pedido(&ap, &destino, no_arquivo, senha);
+            self.gravado_em_fundo(Gravacao { rascunho, destino, no_arquivo, versao, resultado, origem });
             return Task::none();
         }
         Task::perform(
             async move {
                 let d = destino.clone();
-                let resultado = tokio::task::spawn_blocking(move || gravar_pedido(&ap, &d, no_arquivo))
+                let resultado = tokio::task::spawn_blocking(move || gravar_pedido(&ap, &d, no_arquivo, senha))
                     .await
                     .unwrap_or_else(|e| Err(e.to_string()));
-                Gravacao { rascunho, destino, no_arquivo, versao, resultado }
+                Gravacao { rascunho, destino, no_arquivo, versao, resultado, origem }
             },
             Mensagem::GravadoEmFundo,
         )
@@ -369,6 +393,10 @@ impl FeatherSlideApp {
         } else {
             return;
         };
+        // Um "Salvar como" no meio da gravação já trocou o caminho: o novo fica.
+        if *caminho != g.origem {
+            return;
+        }
         *caminho = Some(g.destino.clone());
         *nome_doc = nome;
         // Editou enquanto gravava: continua "não salvo", e o rascunho fica com o mais novo.
@@ -1493,5 +1521,26 @@ mod testes {
         assert_eq!(fsdz_ao_lado(&pptx), pasta.arquivo("relatorio.fsdz"));
         std::fs::write(pasta.arquivo("relatorio.fsdz"), b"outro trabalho").unwrap();
         assert_eq!(fsdz_ao_lado(&pptx), pasta.arquivo("relatorio (2).fsdz"));
+    }
+
+    #[test]
+    fn gravacao_velha_que_termina_depois_nao_cobre_a_nova() {
+        let pasta = Pasta::nova();
+        let destino = pasta.arquivo("a.fsdz");
+        let (velha, nova) = (senha(), senha());
+        gravar_em_ordem(&destino, nova, || std::fs::write(&destino, b"nova").map_err(|e| e.to_string())).unwrap();
+        gravar_em_ordem(&destino, velha, || std::fs::write(&destino, b"velha").map_err(|e| e.to_string())).unwrap();
+        assert_eq!(std::fs::read(&destino).unwrap(), b"nova");
+    }
+
+    #[test]
+    fn salvamento_automatico_que_termina_depois_do_salvar_como_nao_volta_o_caminho() {
+        let pasta = Pasta::nova();
+        let mut app = app();
+        let (a, b) = (pasta.arquivo("a.fsdz"), pasta.arquivo("b.fsdz"));
+        app.caminho_arquivo = Some(b.clone());
+        let rascunho = app.rascunho.clone();
+        app.gravado_em_fundo(Gravacao { rascunho, destino: a.clone(), no_arquivo: true, versao: 0, resultado: Ok(()), origem: Some(a) });
+        assert_eq!(app.caminho_arquivo, Some(b));
     }
 }

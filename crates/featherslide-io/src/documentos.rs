@@ -65,7 +65,8 @@ pub fn pasta_historico(path: &Path) -> PathBuf {
     nome.push(".versoes");
     path.with_file_name(nome)
 }
-fn id() -> String {
+/// Um nome único (hora em ns, processo, contador), em ordem de criação.
+pub fn id() -> String {
     static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     format!(
         "{:020}-{}-{}",
@@ -77,6 +78,9 @@ fn id() -> String {
         N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     )
 }
+/// Quantas versões anteriores ficam em `.versoes`; as mais velhas saem.
+pub const VERSOES_GUARDADAS: usize = 20;
+
 /// Preserva a versão anterior antes da substituição atômica do arquivo atual.
 pub fn salvar(ap: &Apresentacao, path: &Path) -> Result<usize, String> {
     let bytes = fsdz::gravar(ap)?;
@@ -89,6 +93,11 @@ pub fn salvar(ap: &Apresentacao, path: &Path) -> Result<usize, String> {
             let pasta = pasta_historico(path);
             std::fs::create_dir_all(&pasta).map_err(|e| e.to_string())?;
             gravar_atomico(&pasta.join(format!("{}.fsdz", id())), &anteriores)?;
+            // O salvamento automático grava a cada poucos segundos: sem teto, uma tarde de edição
+            // de um arquivo com fotos enchia o disco de cópias.
+            for velha in historico(path).into_iter().skip(VERSOES_GUARDADAS) {
+                let _ = std::fs::remove_file(velha);
+            }
         }
     }
     gravar_atomico(path, &bytes)?;
@@ -99,4 +108,27 @@ pub fn historico(path: &Path) -> Vec<PathBuf> {
     let mut lista = listar(&pasta_historico(path));
     lista.reverse();
     lista
+}
+
+#[cfg(test)]
+mod testes {
+    use super::*;
+
+    #[test]
+    fn historico_guarda_so_as_ultimas_versoes() {
+        let pasta = std::env::temp_dir().join(format!("ftslide-historico-{}", id()));
+        std::fs::create_dir(&pasta).unwrap();
+        let arquivo = pasta.join("a.fsdz");
+        let mut ap = featherslide_core::sessao::Sessao::default().apresentacao().clone();
+        for i in 0..VERSOES_GUARDADAS + 5 {
+            ap.titulo = format!("versão {i}");
+            salvar(&ap, &arquivo).unwrap();
+        }
+        let versoes = historico(&arquivo);
+        assert_eq!(versoes.len(), VERSOES_GUARDADAS);
+        // A mais recente guardada é a penúltima gravação.
+        let ultima = fsdz::ler(&std::fs::read(&versoes[0]).unwrap()).unwrap();
+        assert_eq!(ultima.titulo, format!("versão {}", VERSOES_GUARDADAS + 3));
+        std::fs::remove_dir_all(pasta).unwrap();
+    }
 }

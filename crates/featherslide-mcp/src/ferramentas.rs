@@ -88,7 +88,8 @@ fn slide_salvar(ag: &mut Agente, args: &Value) -> Result<Conteudo, String> {
     if let Some(pai) = caminho.parent().filter(|p| !p.as_os_str().is_empty()) {
         std::fs::create_dir_all(pai).map_err(|e| format!("Não foi possível criar a pasta: {e}"))?;
     }
-    let tamanho = featherslide_io::fsdz::salvar(ag.sessao.apresentacao(), &caminho)?;
+    // Com histórico, como o Ctrl+S: sobrescrever pelo agente ainda deixa a versão anterior em `.versoes`.
+    let tamanho = featherslide_io::documentos::salvar(ag.sessao.apresentacao(), &caminho)?;
     ag.sessao.marcar_gravado();
     ag.arquivo = Some(caminho.clone());
     Ok(texto(&json!({ "ok": true, "arquivo": caminho.display().to_string(), "bytes": tamanho })))

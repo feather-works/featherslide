@@ -320,8 +320,7 @@ pub(crate) fn decodificar(el: &ElementoDesenhado) -> Option<image::RgbaImage> {
 /// slide: como no PowerPoint, o usuário seleciona uma região e a cor "padrão" dela é a escolhida.
 /// Conta as cores em baldes de 16 níveis por canal e devolve a média do balde mais cheio.
 pub fn cor_dominante_na_area(el: &ElementoDesenhado, x: f32, y: f32, w: f32, h: f32) -> Option<String> {
-    let (_, bytes) = featherslide_io::base64::de_data_url(&el.imagem)?;
-    let img = image::load_from_memory(&bytes).ok()?.to_rgba8();
+    let img = raster_reduzido(el)?;
     // Uma região só de um clique (sem arrasto) vira um quadradinho em volta do ponto.
     let (x, y, w, h) = if w < 3.0 && h < 3.0 { (x - 3.0, y - 3.0, 6.0, 6.0) } else { (x, y, w, h) };
     let passos = 48;
@@ -366,18 +365,12 @@ pub fn retangulo_na_imagem(el: &ElementoDesenhado, x: f32, y: f32, w: f32, h: f3
 
 /// A cor do pixel da imagem que aparece no ponto (x, y) do slide (desfaz pan e zoom do enquadramento).
 fn pixel_no_ponto(el: &ElementoDesenhado, img: &image::RgbaImage, x: f32, y: f32) -> Option<[u8; 3]> {
-    let (iw, ih) = (img.width() as f32, img.height() as f32);
     let (u, v) = ((x - el.x) / el.largura.max(1.0), (y - el.y) / el.altura.max(1.0));
     if !(0.0..1.0).contains(&u) || !(0.0..1.0).contains(&v) {
         return None;
     }
-    let pan_x = el.ajustes.first().copied().unwrap_or(0.0);
-    let pan_y = el.ajustes.get(1).copied().unwrap_or(0.0);
-    let zoom = el.ajustes.get(2).copied().unwrap_or(1.0).clamp(0.1, 10.0);
-    let (prop_el, prop_img) = (el.largura / el.altura.max(1.0), iw / ih.max(1.0));
-    let (scale_u, scale_v) = if prop_img > prop_el { (prop_el / prop_img, 1.0) } else { (1.0, prop_img / prop_el) };
-    let su = 0.5 + (u - 0.5 - pan_x) * scale_u / zoom;
-    let sv = 0.5 + (v - 0.5 - pan_y) * scale_v / zoom;
+    let (iw, ih) = (img.width() as f32, img.height() as f32);
+    let (su, sv) = ponto_na_imagem(el, iw, ih, x, y);
     if !(0.0..1.0).contains(&su) || !(0.0..1.0).contains(&sv) {
         return None;
     }
@@ -385,28 +378,17 @@ fn pixel_no_ponto(el: &ElementoDesenhado, img: &image::RgbaImage, x: f32, y: f32
     Some([p.0[0], p.0[1], p.0[2]])
 }
 
+/// A foto reduzida (a mesma da tela): o conta-gotas não decodifica a foto inteira a cada clique.
+fn raster_reduzido(el: &ElementoDesenhado) -> Option<image::RgbaImage> {
+    let (_, bytes) = featherslide_io::base64::de_data_url(&el.imagem)?;
+    featherslide_io::imagem_compartilhada::decodificar_raster(&bytes, LADO_MAXIMO_IMAGEM)
+}
+
 /// A cor (`#rrggbb`) da imagem no ponto (x, y) do slide, para o conta-gotas do "remover fundo".
 /// Desfaz a mesma conta de enquadramento (pan/zoom) que `decodificar` faz; ignora a rotação.
 pub fn cor_no_ponto(el: &ElementoDesenhado, x: f32, y: f32) -> Option<String> {
-    let (_, bytes) = featherslide_io::base64::de_data_url(&el.imagem)?;
-    let img = image::load_from_memory(&bytes).ok()?.to_rgba8();
-    let (iw, ih) = (img.width() as f32, img.height() as f32);
-    let (u, v) = ((x - el.x) / el.largura.max(1.0), (y - el.y) / el.altura.max(1.0));
-    if !(0.0..1.0).contains(&u) || !(0.0..1.0).contains(&v) {
-        return None;
-    }
-    let pan_x = el.ajustes.first().copied().unwrap_or(0.0);
-    let pan_y = el.ajustes.get(1).copied().unwrap_or(0.0);
-    let zoom = el.ajustes.get(2).copied().unwrap_or(1.0).clamp(0.1, 10.0);
-    let (prop_el, prop_img) = (el.largura / el.altura.max(1.0), iw / ih.max(1.0));
-    let (scale_u, scale_v) = if prop_img > prop_el { (prop_el / prop_img, 1.0) } else { (1.0, prop_img / prop_el) };
-    let su = 0.5 + (u - 0.5 - pan_x) * scale_u / zoom;
-    let sv = 0.5 + (v - 0.5 - pan_y) * scale_v / zoom;
-    if !(0.0..1.0).contains(&su) || !(0.0..1.0).contains(&sv) {
-        return None;
-    }
-    let p = img.get_pixel((su * iw) as u32, (sv * ih) as u32);
-    Some(format!("#{:02x}{:02x}{:02x}", p.0[0], p.0[1], p.0[2]))
+    let p = pixel_no_ponto(el, &raster_reduzido(el)?, x, y)?;
+    Some(format!("#{:02x}{:02x}{:02x}", p[0], p[1], p[2]))
 }
 
 /// "Cor para transparência": o que tem a cor do fundo (a dada, ou a dos cantos) fica

@@ -25,21 +25,43 @@ use crate::pacote::Pacote;
 use crate::xml::No;
 use cores::Tema;
 use texto::Heranca;
+use featherslide_core::quadro::{MARGEM_X, MARGEM_Y};
 
 /// EMU por ponto (o `.pptx` mede em EMU: 914 400 por polegada).
 const EMU_POR_PT: f64 = 12_700.0;
 
-/// De EMU do slide (ou de dentro de um grupo) para pontos do slide do FeatherSlide.
+/// De EMU do slide (ou de dentro de um grupo) para pontos do slide do FeatherSlide: primeiro a
+/// escala sem giro (`ax`… a `by`), depois o giro e o espelho dos grupos (`giro`, em pontos do slide).
+/// shortcut: o giro é aplicado depois da escala acumulada, exato quando a escala é igual nos dois
+/// eixos (o slide é); grupo girado dentro de grupo esticado de forma desigual sai aproximado.
 #[derive(Clone, Copy)]
 struct Transformacao {
     ax: f64,
     bx: f64,
     ay: f64,
     by: f64,
+    /// (x, y) → (g0·x + g1·y + g4, g2·x + g3·y + g5): só giros e espelhos, sem escala.
+    giro: [f64; 6],
+}
+
+/// `a` depois de `b` (as duas como em [`Transformacao::giro`]).
+fn compor(a: [f64; 6], b: [f64; 6]) -> [f64; 6] {
+    [
+        a[0] * b[0] + a[1] * b[2],
+        a[0] * b[1] + a[1] * b[3],
+        a[2] * b[0] + a[3] * b[2],
+        a[2] * b[1] + a[3] * b[3],
+        a[0] * b[4] + a[1] * b[5] + a[4],
+        a[2] * b[4] + a[3] * b[5] + a[5],
+    ]
 }
 
 impl Transformacao {
-    /// A transformação de dentro de um grupo (`a:xfrm` com `a:chOff`/`a:chExt`).
+    fn nova(sx: f64, sy: f64) -> Self {
+        Self { ax: sx, bx: 0.0, ay: sy, by: 0.0, giro: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0] }
+    }
+
+    /// A transformação de dentro de um grupo (`a:xfrm` com `a:chOff`/`a:chExt`, `rot`, `flipH`/`flipV`).
     fn do_grupo(self, xfrm: &No) -> Self {
         let par = |nome: &str, a: &str, b: &str| xfrm.filho(nome).map_or((0.0, 0.0), |n| (n.num(a).unwrap_or(0.0), n.num(b).unwrap_or(0.0)));
         let (ox, oy) = par("a:off", "x", "y");
@@ -48,16 +70,41 @@ impl Transformacao {
         let (cex, cey) = par("a:chExt", "cx", "cy");
         let kx = if cex > 0.0 { ex / cex } else { 1.0 };
         let ky = if cey > 0.0 { ey / cey } else { 1.0 };
-        Self { ax: self.ax * kx, bx: self.ax * (ox - cox * kx) + self.bx, ay: self.ay * ky, by: self.ay * (oy - coy * ky) + self.by }
+        // O grupo espelha e depois gira em volta do próprio centro (em pontos do slide, antes dos giros de fora).
+        let (cx, cy) = (self.ax * (ox + ex / 2.0) + self.bx, self.ay * (oy + ey / 2.0) + self.by);
+        let graus = xfrm.num("rot").unwrap_or(0.0) / 60_000.0;
+        let (sen, cos) = graus.to_radians().sin_cos();
+        let fh = if xfrm.attr("flipH") == Some("1") { -1.0 } else { 1.0 };
+        let fv = if xfrm.attr("flipV") == Some("1") { -1.0 } else { 1.0 };
+        let (m0, m1, m2, m3) = (cos * fh, -sen * fv, sen * fh, cos * fv);
+        let local = [m0, m1, m2, m3, cx - (m0 * cx + m1 * cy), cy - (m2 * cx + m3 * cy)];
+        Self { ax: self.ax * kx, bx: self.ax * (ox - cox * kx) + self.bx, ay: self.ay * ky, by: self.ay * (oy - coy * ky) + self.by, giro: compor(self.giro, local) }
     }
 
-    /// O retângulo (x, y, largura, altura) em pontos, de um `a:xfrm`.
+    /// Os grupos de fora espelham (número ímpar de espelhos)?
+    fn espelhada(self) -> bool {
+        self.giro[0] * self.giro[3] - self.giro[1] * self.giro[2] < 0.0
+    }
+
+    /// O giro da forma no slide, em graus: o dela (`rot`) mais o dos grupos de fora.
+    fn rotacao(self, xfrm: &No) -> f32 {
+        let propria = xfrm.num("rot").unwrap_or(0.0) / 60_000.0;
+        let grupos = self.giro[2].atan2(self.giro[0]).to_degrees();
+        let total = if self.espelhada() { grupos - propria } else { grupos + propria };
+        total.rem_euclid(360.0) as f32
+    }
+
+    /// O retângulo (x, y, largura, altura) em pontos, de um `a:xfrm`; o centro segue o giro dos grupos.
     fn retangulo(self, xfrm: &No) -> Option<[f32; 4]> {
         let off = xfrm.filho("a:off")?;
         let ext = xfrm.filho("a:ext")?;
         let (x, y) = (off.num("x")?, off.num("y")?);
         let (w, h) = (ext.num("cx").unwrap_or(0.0), ext.num("cy").unwrap_or(0.0));
-        Some([(self.ax * x + self.bx) as f32, (self.ay * y + self.by) as f32, (self.ax * w) as f32, (self.ay * h) as f32])
+        let (w, h) = (self.ax * w, self.ay * h);
+        let (cx, cy) = (self.ax * x + self.bx + w / 2.0, self.ay * y + self.by + h / 2.0);
+        let g = self.giro;
+        let (cx, cy) = (g[0] * cx + g[1] * cy + g[4], g[2] * cx + g[3] * cy + g[5]);
+        Some([(cx - w / 2.0) as f32, (cy - h / 2.0) as f32, w as f32, h as f32])
     }
 }
 
@@ -106,7 +153,7 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
     let caminhos: Vec<String> = pres.filho("p:sldIdLst").map(|l| l.filhos("p:sldId").filter_map(|s| s.attr("r:id")).filter_map(|id| rels.get(id).cloned()).collect()).unwrap_or_default();
     let fontes = fontes::ler_fontes(&pres, &mut pac, &rels);
     let (titulo, autor, metadados) = crate::metadados_externos::pptx(&mut pac);
-    let mut leitor = Leitor { pac, t: Transformacao { ax: sx, bx: 0.0, ay: sy, by: 0.0 }, escala: (sx.min(sy) * EMU_POR_PT) as f32, proximo: 1, temas: HashMap::new() };
+    let mut leitor = Leitor { pac, t: Transformacao::nova(sx, sy), escala: (sx.min(sy) * EMU_POR_PT) as f32, proximo: 1, temas: HashMap::new() };
     let mut slides = Vec::new();
     for c in caminhos {
         slides.push(leitor.slide(&c)?);
@@ -373,7 +420,7 @@ impl Leitor<'_> {
         let prst = geom.and_then(|g| g.attr("prst")).unwrap_or("rect");
         let tipo = tipo_da_forma(prst, !preenchimento.is_empty() || !contorno.is_empty());
         if tipo == Tipo::Linha {
-            if xfrm.attr("flipH") == Some("1") {
+            if (xfrm.attr("flipH") == Some("1")) != t.espelhada() {
                 (x, w) = (x + w, -w);
             }
             if xfrm.attr("flipV") == Some("1") {
@@ -399,6 +446,18 @@ impl Leitor<'_> {
         if tipo == Tipo::Texto && texto.is_empty() && !papel.do_layout() {
             return None;
         }
+        // A margem interna do arquivo (`lIns`… em EMU; o padrão é 0,1" × 0,05"), na escala do slide.
+        // shortcut: o quadro só tem a margem fixa (MARGEM_X/Y); a caixa de texto (sem fundo nem contorno)
+        // absorve a diferença na própria caixa, e a forma desenhada fica com a fixa — margem por elemento
+        // no .fsdz quando aparecer forma desenhada com o texto deslocado.
+        if tipo == Tipo::Texto {
+            let margem = |nome: &str, padrao: f64| (heranca.corpos().iter().find_map(|b| b.num(nome)).unwrap_or(padrao) / EMU_POR_PT) as f32 * self.escala;
+            let (esq, cima, dir, baixo) = (margem("lIns", 91_440.0), margem("tIns", 45_720.0), margem("rIns", 91_440.0), margem("bIns", 45_720.0));
+            x += esq - MARGEM_X;
+            y += cima - MARGEM_Y;
+            w = (w - (esq + dir - 2.0 * MARGEM_X)).max(1.0);
+            h = (h - (cima + baixo - 2.0 * MARGEM_Y)).max(1.0);
+        }
         Some(Elemento {
             id: self.novo_id(),
             tipo,
@@ -407,7 +466,7 @@ impl Leitor<'_> {
             y,
             largura: w,
             altura: h,
-            rotacao: xfrm.num("rot").map_or(0.0, |r| (r / 60_000.0) as f32),
+            rotacao: t.rotacao(xfrm),
             preenchimento,
             contorno,
             espessura,
@@ -456,7 +515,7 @@ impl Leitor<'_> {
             y,
             largura: w,
             altura: h,
-            rotacao: xfrm.num("rot").map_or(0.0, |r| (r / 60_000.0) as f32),
+            rotacao: t.rotacao(xfrm),
             imagem: base64::para_data_url(tipo, &bytes).into(),
             recorte: recorte_da_imagem(prst),
             ajustes: ajustes_da_forma(prst, geom, xfrm),

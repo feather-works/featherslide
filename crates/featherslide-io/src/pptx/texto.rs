@@ -34,7 +34,7 @@ impl<'a> Heranca<'a> {
     }
 
     /// O `a:bodyPr` de cada nível.
-    fn corpos(&self) -> Vec<&'a No> {
+    pub(super) fn corpos(&self) -> Vec<&'a No> {
         [self.proprio, self.layout, self.mestre].into_iter().flatten().filter_map(|t| t.filho("a:bodyPr")).collect()
     }
 }

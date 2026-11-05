@@ -1755,17 +1755,14 @@ impl FeatherSlideApp {
             Mensagem::CopiaEscolhida(None) => {}
             Mensagem::ArquivoEscolhidoParaSalvar(caminho) => {
                 if let Some(mut p) = caminho {
+                    // O formato gravado é sempre `.fsdz`: o nome também.
                     if p.extension().map_or(true, |e| !e.eq_ignore_ascii_case("fsdz")) { p.set_extension("fsdz"); }
                     if self.arquivos.leitura && self.caminho_arquivo.as_ref().is_some_and(|atual| atual == &p || atual.canonicalize().ok().zip(p.canonicalize().ok()).is_some_and(|(a,b)| a == b)) {
                         self.status = "Escolha outro destino para a apresentação somente leitura".into();
                         return Task::none();
                     }
                     if !self.arquivos.leitura { self.atualizar_imagens_de_gatilhos(); }
-                    // O formato gravado é sempre `.fsdz`: o nome também.
-                    if p.extension().map_or(true, |e| !e.eq_ignore_ascii_case("fsdz")) {
-                        p.set_extension("fsdz");
-                    }
-                    match featherslide_io::documentos::salvar(self.sessao.apresentacao(), &p) {
+                    match crate::arquivos::salvar_em_ordem(self.sessao.apresentacao(), &p) {
                         Ok(_) => {
                             self.config.registrar_recente(&p);
                             self.caminho_arquivo = Some(p.clone());
@@ -2693,7 +2690,7 @@ impl FeatherSlideApp {
             self.status = "Escolha outro destino para salvar a cópia.".into();
             return false;
         }
-        match featherslide_io::documentos::salvar(self.sessao.apresentacao(), &destino) {
+        match crate::arquivos::salvar_em_ordem(self.sessao.apresentacao(), &destino) {
             Ok(_) => { self.status = format!("Cópia salva: {}", destino.display()); true }
             Err(e) => { self.status = format!("Não consegui salvar a cópia: {e}"); false }
         }
@@ -2722,7 +2719,7 @@ impl FeatherSlideApp {
         if path.extension().is_some_and(|e| matches!(e.to_string_lossy().to_lowercase().as_str(), "pptx" | "odp")) {
             path = crate::arquivos::fsdz_ao_lado(&path);
         }
-        match featherslide_io::documentos::salvar(self.sessao.apresentacao(), &path) {
+        match crate::arquivos::salvar_em_ordem(self.sessao.apresentacao(), &path) {
             Ok(_) => {
                 self.caminho_arquivo = Some(path.clone());
                 self.nome_arquivo = path.file_name().unwrap_or_default().to_string_lossy().to_string();

@@ -60,8 +60,9 @@ fn pptx_herda_posicao_cor_fonte_e_lista() {
     assert_eq!(s.layout, "titulo_conteudo");
     let titulo = s.elementos.iter().find(|e| e.papel == Papel::Titulo).expect("título");
     assert_eq!(titulo.texto, "Título herdado");
-    // 457200 EMU = 36 pt no slide de 720 pt; o FeatherSlide tem 960 pt: × 4/3.
-    assert!((titulo.x - 48.0).abs() < 0.1, "x herdado do layout: {}", titulo.x);
+    // 457200 EMU = 36 pt no slide de 720 pt; o FeatherSlide tem 960 pt: × 4/3. A margem interna
+    // padrão (7,2 pt) também cresce × 4/3, e a caixa anda 2,4 pt para o texto cair no mesmo lugar.
+    assert!((titulo.x - (48.0 + 2.4)).abs() < 0.1, "x herdado do layout: {}", titulo.x);
     assert!((titulo.estilo.tamanho - 44.0 * 4.0 / 3.0).abs() < 0.2, "tamanho do mestre: {}", titulo.estilo.tamanho);
     assert!(titulo.estilo.negrito);
     assert_eq!(titulo.estilo.fonte, "Georgia", "+mj-lt vira a fonte do tema");
@@ -92,6 +93,53 @@ fn pptx_16_10_mantem_o_tamanho_e_nao_estica() {
     assert!((elipse.largura / elipse.altura - 2.0).abs() < 1e-3, "proporção da forma: {} × {}", elipse.largura, elipse.altura);
     // 16:9 e 4:3 continuam no tamanho padrão.
     assert_eq!(pptx::ler(&pptx_minimo()).unwrap().dimensoes, [0.0; 2]);
+}
+
+#[test]
+fn pptx_margem_interna_zero_poe_o_texto_na_borda() {
+    // Issue #1: `lIns="0"` era ignorado e o texto andava 7,2 pt para dentro.
+    let bytes = pptx_minimo();
+    let mut z = zip::ZipArchive::new(Cursor::new(bytes)).unwrap();
+    let mut partes = Vec::new();
+    for i in 0..z.len() {
+        let mut f = z.by_index(i).unwrap();
+        let mut c = String::new();
+        std::io::Read::read_to_string(&mut f, &mut c).unwrap();
+        partes.push((f.name().to_string(), c.replace(r#"<p:txBody><a:bodyPr/><a:p><a:r><a:t>primeiro"#, r#"<p:txBody><a:bodyPr lIns="0" tIns="0"/><a:p><a:r><a:t>primeiro"#)));
+    }
+    let partes: Vec<(&str, &str)> = partes.iter().map(|(n, c)| (n.as_str(), c.as_str())).collect();
+    let ap = pptx::ler(&zip(&partes)).unwrap();
+    let corpo = ap.slides[0].elementos.iter().find(|e| e.papel == Papel::Corpo).unwrap();
+    let k = 4.0 / 3.0;
+    // O texto começa onde a caixa do arquivo começa: x da caixa + MARGEM_X do quadro.
+    assert!((corpo.x + 7.2 - 457_200.0 / 12_700.0 * k).abs() < 0.1, "x: {}", corpo.x);
+    assert!((corpo.y + 3.6 - 1_200_000.0 / 12_700.0 * k).abs() < 0.1, "y: {}", corpo.y);
+}
+
+#[test]
+fn pptx_grupo_girado_gira_os_filhos_em_volta_do_centro() {
+    // Grupo de 2 quadrados lado a lado, girado 90°: no PowerPoint eles ficam um em cima do outro.
+    let pres = format!(r#"<p:presentation {NS}><p:sldIdLst><p:sldId id="256" r:id="rId2"/></p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/></p:presentation>"#);
+    let quadrado = |id: u32, x: u32| format!(r#"<p:sp><p:nvSpPr><p:cNvPr id="{id}" name="q"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="{x}" y="0"/><a:ext cx="1270000" cy="1270000"/></a:xfrm><a:prstGeom prst="ellipse"/><a:solidFill><a:srgbClr val="00FF00"/></a:solidFill></p:spPr></p:sp>"#);
+    let slide = format!(
+        r#"<p:sld {NS}><p:cSld><p:spTree><p:grpSp><p:grpSpPr><a:xfrm rot="5400000"><a:off x="0" y="0"/><a:ext cx="2540000" cy="1270000"/><a:chOff x="0" y="0"/><a:chExt cx="2540000" cy="1270000"/></a:xfrm></p:grpSpPr>{}{}</p:grpSp></p:spTree></p:cSld></p:sld>"#,
+        quadrado(2, 0),
+        quadrado(3, 1_270_000)
+    );
+    let bytes = zip(&[
+        ("ppt/presentation.xml", &pres),
+        ("ppt/_rels/presentation.xml.rels", &rels(&[("rId2", "slides/slide1.xml")])),
+        ("ppt/slides/slide1.xml", &slide),
+    ]);
+    let ap = pptx::ler(&bytes).unwrap();
+    let e: Vec<_> = ap.slides[0].elementos.iter().filter(|e| e.tipo == Tipo::Elipse).collect();
+    assert_eq!(e.len(), 2);
+    // 1 270 000 EMU = 100 pt. Centro do grupo (100, 50); os centros vão para (100, 0) e (100, 100).
+    let centro = |i: usize| (e[i].x + e[i].largura / 2.0, e[i].y + e[i].altura / 2.0);
+    let perto = |a: (f32, f32), b: (f32, f32)| (a.0 - b.0).abs() < 0.01 && (a.1 - b.1).abs() < 0.01;
+    assert!(perto(centro(0), (100.0, 0.0)), "{:?}", centro(0));
+    assert!(perto(centro(1), (100.0, 100.0)), "{:?}", centro(1));
+    assert!((e[0].rotacao - 90.0).abs() < 0.01, "o giro do grupo passa aos filhos: {}", e[0].rotacao);
 }
 
 /// O que o Google Apresentações exporta: o desenho do tema mora no layout (setores, barras com
