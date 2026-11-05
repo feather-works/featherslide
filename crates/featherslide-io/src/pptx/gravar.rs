@@ -282,7 +282,7 @@ fn grafico_xml(e: &Elemento) -> String {
     let cats: Vec<&str> = g.grade.iter().skip(1).filter_map(|l| l.first().map(String::as_str)).collect();
     let nomes: Vec<&str> = g.grade.first().map_or(Vec::new(), |l| l.iter().skip(1).map(String::as_str).collect());
     let valor = |c: usize, s: usize| g.grade.get(c + 1).and_then(|l| l.get(s + 1)).and_then(|v| v.trim().replace(',', ".").parse::<f64>().ok()).unwrap_or(0.0);
-    let pizza = g.tipo == "pizza";
+    let pizza = g.tipo == "pizza" || g.tipo == "rosca";
     let mut series = String::new();
     for (s, nome) in nomes.iter().enumerate() {
         let cor = CORES_SERIES[s % CORES_SERIES.len()];
@@ -292,6 +292,8 @@ fn grafico_xml(e: &Elemento) -> String {
                 let cor = CORES_SERIES[c % CORES_SERIES.len()];
                 let _ = write!(series, r#"<c:dPt><c:idx val="{c}"/><c:bubble3D val="0"/><c:spPr><a:solidFill><a:srgbClr val="{cor}"/></a:solidFill></c:spPr></c:dPt>"#);
             }
+        } else if g.tipo == "area" {
+            let _ = write!(series, r#"<c:spPr><a:solidFill><a:srgbClr val="{cor}"><a:alpha val="60000"/></a:srgbClr></a:solidFill><a:ln w="19050"><a:solidFill><a:srgbClr val="{cor}"/></a:solidFill></a:ln></c:spPr>"#);
         } else if g.tipo == "linhas" {
             let _ = write!(series, r#"<c:spPr><a:ln w="28575"><a:solidFill><a:srgbClr val="{cor}"/></a:solidFill></a:ln></c:spPr><c:marker><c:symbol val="circle"/></c:marker>"#);
         } else {
@@ -317,6 +319,8 @@ fn grafico_xml(e: &Elemento) -> String {
     let eixos = r#"<c:axId val="1"/><c:axId val="2"/>"#;
     let corpo = match g.tipo.as_str() {
         "pizza" => format!(r#"<c:pieChart><c:varyColors val="1"/>{series}<c:firstSliceAng val="0"/></c:pieChart>"#),
+        "rosca" => format!(r#"<c:doughnutChart><c:varyColors val="1"/>{series}<c:firstSliceAng val="0"/><c:holeSize val="55"/></c:doughnutChart>"#),
+        "area" => format!(r#"<c:areaChart><c:grouping val="standard"/><c:varyColors val="0"/>{series}{eixos}</c:areaChart>"#),
         "linhas" => format!(r#"<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>{series}<c:marker val="1"/>{eixos}</c:lineChart>"#),
         tipo => format!(r#"<c:barChart><c:barDir val="{}"/><c:grouping val="clustered"/><c:varyColors val="0"/>{series}<c:gapWidth val="80"/>{eixos}</c:barChart>"#, if tipo == "barras" { "bar" } else { "col" }),
     };

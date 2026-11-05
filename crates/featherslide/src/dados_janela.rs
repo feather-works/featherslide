@@ -7,7 +7,7 @@ use pelicano::column;
 
 use crate::tema::*;
 
-const TIPOS: [&str; 4] = ["Colunas", "Barras", "Linhas", "Pizza"];
+const TIPOS: [&str; 6] = ["Colunas", "Barras", "Linhas", "Área", "Pizza", "Rosca"];
 
 #[derive(Clone, Debug)]
 pub enum Msg {
@@ -24,7 +24,9 @@ fn rotulo_do_tipo(tipo: &str) -> &'static str {
     match tipo {
         "barras" => "Barras",
         "linhas" => "Linhas",
+        "area" => "Área",
         "pizza" => "Pizza",
+        "rosca" => "Rosca",
         _ => "Colunas",
     }
 }
@@ -34,7 +36,7 @@ pub fn atualizar(sessao: &mut Sessao, id: u64, msg: Msg) {
         return;
     };
     match msg {
-        Msg::Tipo(t) => g.tipo = t.to_lowercase(),
+        Msg::Tipo(t) => g.tipo = if t == "Área" { "area".into() } else { t.to_lowercase() },
         Msg::Titulo(t) => g.titulo = t,
         Msg::Celula(r, c, valor) => {
             if let Some(cel) = g.grade.get_mut(r).and_then(|l| l.get_mut(c)) {

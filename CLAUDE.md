@@ -76,7 +76,12 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   em `apresentacao.arrow`), `core/src/rodape.rs` gera caixas `Papel::Fundo` na hora do quadro (ids no
   topo do u64; não ficam no slide), `Dicas::hoje` traz a data local; com número, a versão do quadro
   leva o índice (miniatura não fica velha). Vai para o PDF e para o `.pptx` como caixas comuns.
-  Falta: numeração inicial, por slide, e em anotações/folhetos. Conferido abrindo no LibreOffice (snap só lê arquivos na home).
+  Falta: numeração inicial, por slide, e em anotações/folhetos.
+- **Gráficos rosca e área:** `dados::primitivas_grafico` (rosca = pizza com furo de 55% na cor do fundo;
+  área = polígono claro + linha forte por série), galeria, janela de dados, adaptador comum (`area`) e
+  `.pptx` (`c:doughnutChart`, `c:areaChart`).
+- **Prévia do MCP** (`featherslide-mcp/src/renderizar.rs::pintar_primitivas`): agora desenha as peças de
+  tabela, gráfico e ícone (antes só vetores: a IA via tabelas e gráficos em branco). Conferido abrindo no LibreOffice (snap só lê arquivos na home).
 - Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
 
 ## Auditoria de 05/11/2026 (11 correções)

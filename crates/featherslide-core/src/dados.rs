@@ -118,10 +118,12 @@ pub fn grafico_exemplo(tipo: &str) -> Grafico {
     let titulo = match tipo {
         "barras" => "Gráfico de barras",
         "pizza" => "Gráfico de pizza",
+        "rosca" => "Gráfico de rosca",
+        "area" => "Gráfico de área",
         "linhas" => "Gráfico de linhas",
         _ => "Gráfico de colunas",
     };
-    let grade = if tipo == "pizza" {
+    let grade = if tipo == "pizza" || tipo == "rosca" {
         vec![s(&["", "Vendas"]), s(&["Produto A", "45"]), s(&["Produto B", "30"]), s(&["Produto C", "25"])]
     } else {
         vec![s(&["", "Série 1", "Série 2"]), s(&["Categoria 1", "40", "28"]), s(&["Categoria 2", "55", "42"]), s(&["Categoria 3", "35", "60"]), s(&["Categoria 4", "70", "50"])]
@@ -214,6 +216,13 @@ const CORES: [&str; 6] = ["#1a73e8", "#34a853", "#fbbc04", "#ea4335", "#8e24aa",
 const CINZA: &str = "#5f6368";
 const GRADE: &str = "#e0e3e7";
 
+/// `cor` clareada com branco (`t` = 0 é a cor, 1 é branco).
+fn mistura_branco(cor: &str, t: f32) -> String {
+    let c = |i: usize| u8::from_str_radix(cor.get(1 + 2 * i..3 + 2 * i).unwrap_or("00"), 16).unwrap_or(0) as f32;
+    let m = |i: usize| (c(i) + (255.0 - c(i)) * t).round() as u8;
+    format!("#{:02x}{:02x}{:02x}", m(0), m(1), m(2))
+}
+
 fn numero(s: &str) -> f32 {
     s.trim().replace(',', ".").parse::<f32>().unwrap_or(0.0).max(0.0)
 }
@@ -267,7 +276,8 @@ pub fn primitivas_grafico(e: &Elemento) -> Vec<Primitiva> {
     if !g.titulo.is_empty() {
         p.push(texto(x + w / 2.0, y + 20.0, 15.0, "#202124", true, "c", &caber(&g.titulo, 15.0, w - 20.0)));
     }
-    let com_legenda = g.tipo != "pizza" && series.len() > 1;
+    let pizza = g.tipo == "pizza" || g.tipo == "rosca";
+    let com_legenda = !pizza && series.len() > 1;
     let rodape = if com_legenda { 24.0 } else { 0.0 };
 
     let desenhar_legenda = |p: &mut Vec<Primitiva>, nomes: &[&str], x0: f32, y0: f32, vertical: bool, largura: f32| {
@@ -287,7 +297,8 @@ pub fn primitivas_grafico(e: &Elemento) -> Vec<Primitiva> {
     };
 
     match g.tipo.as_str() {
-        "pizza" => {
+        "pizza" | "rosca" => {
+            let rosca = g.tipo == "rosca";
             let legenda_w = 130.0_f32.min(w * 0.35);
             let area_x = x + 12.0;
             let area_w = w - 24.0 - legenda_w;
@@ -316,9 +327,14 @@ pub fn primitivas_grafico(e: &Elemento) -> Vec<Primitiva> {
                 }
                 if varre > 14.0 {
                     let meio = (inicio + varre / 2.0).to_radians();
-                    p.push(texto(cx + meio.cos() * r * 0.62, cy + meio.sin() * r * 0.62, 12.0, "#ffffff", true, "c", &format!("{:.0}%", 100.0 * v / total)));
+                    let raio = if rosca { 0.78 } else { 0.62 };
+                    p.push(texto(cx + meio.cos() * r * raio, cy + meio.sin() * r * raio, 12.0, "#ffffff", true, "c", &format!("{:.0}%", 100.0 * v / total)));
                 }
                 inicio += varre;
+            }
+            if rosca {
+                // O furo do meio, na cor do fundo do gráfico; os rótulos ficam no anel.
+                p.push(Primitiva::Setor { cx, cy, r: r * 0.55, de: 0.0, ate: 359.99, preenchimento: fundo.into(), contorno: String::new(), espessura: 0.0 });
             }
             desenhar_legenda(&mut p, &cats, x + w - legenda_w, y + h / 2.0 - (cats.len() as f32 - 1.0) * 10.0, true, legenda_w - 20.0);
         }
@@ -367,7 +383,21 @@ pub fn primitivas_grafico(e: &Elemento) -> Vec<Primitiva> {
             for (c, cat) in cats.iter().enumerate() {
                 p.push(texto(px + c as f32 * gw + gw / 2.0, py + ph + 14.0, 11.0, CINZA, false, "c", &caber(cat, 11.0, gw - 4.0)));
             }
-            if tipo == "linhas" {
+            if tipo == "area" {
+                // Área: cada série preenchida até o eixo, clara, com a linha forte por cima; a última
+                // série fica na frente (as de trás aparecem acima dela).
+                for s in 0..series.len() {
+                    let cor = CORES[s % CORES.len()];
+                    let pontos: Vec<[f32; 2]> = (0..cats.len()).map(|c| [px + c as f32 * gw + gw / 2.0, py + ph - ph * valor(c, s) / topo]).collect();
+                    let mut poligono = pontos.clone();
+                    if let (Some(primeiro), Some(ultimo)) = (pontos.first(), pontos.last()) {
+                        poligono.push([ultimo[0], py + ph]);
+                        poligono.push([primeiro[0], py + ph]);
+                    }
+                    p.push(Primitiva::Poligono { pontos: poligono, preenchimento: mistura_branco(cor, 0.45) });
+                    p.push(Primitiva::Poli { pontos, cor: cor.into(), espessura: 2.0 });
+                }
+            } else if tipo == "linhas" {
                 for s in 0..series.len() {
                     let cor = CORES[s % CORES.len()];
                     let pontos: Vec<[f32; 2]> = (0..cats.len()).map(|c| [px + c as f32 * gw + gw / 2.0, py + ph - ph * valor(c, s) / topo]).collect();
@@ -396,4 +426,25 @@ pub fn primitivas_grafico(e: &Elemento) -> Vec<Primitiva> {
         }
     }
     p
+}
+
+#[cfg(test)]
+mod testes_rosca_area {
+    use super::*;
+    use crate::modelo::Tipo;
+
+    fn grafico(tipo: &str) -> Elemento {
+        Elemento { tipo: Tipo::Grafico, x: 0.0, y: 0.0, largura: 400.0, altura: 300.0, dados: gravar_grafico(&grafico_exemplo(tipo)), ..Elemento::default() }
+    }
+
+    #[test]
+    fn rosca_tem_furo_e_area_tem_preenchimento() {
+        let p = primitivas_grafico(&grafico("rosca"));
+        let setores: Vec<f32> = p.iter().filter_map(|q| if let Primitiva::Setor { r, .. } = q { Some(*r) } else { None }).collect();
+        let maior = setores.iter().cloned().fold(0.0, f32::max);
+        assert!(setores.iter().any(|r| (r - maior * 0.55).abs() < 0.01), "furo de 55%: {setores:?}");
+        let a = primitivas_grafico(&grafico("area"));
+        assert_eq!(a.iter().filter(|q| matches!(q, Primitiva::Poligono { .. })).count(), 2, "uma área por série");
+        assert_eq!(grafico_exemplo("rosca").titulo, "Gráfico de rosca");
+    }
 }

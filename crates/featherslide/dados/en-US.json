@@ -493,7 +493,8 @@
         "corpo": [
           "Insert → Shapes puts a rectangle, ellipse, triangle, arrow or line in the middle of the slide.",
           "• Fill and Outline (Home → Drawing) pick the colors; Weight, the outline thickness.",
-          "• Insert → Image embeds the image in the presentation: the .fsdz carries it along."
+          "• Insert → Image embeds the image in the presentation: the .fsdz carries it along.",
+          "• Insert → Chart: column, bar, line, area, pie and doughnut. Double-click the chart to edit its data; the type can also be changed in the data window."
         ]
       },
       "apresentar": {

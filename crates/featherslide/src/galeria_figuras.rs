@@ -34,7 +34,9 @@ enum Desenho {
     Colunas,
     Barras,
     Linhas,
+    Area,
     Pizza,
+    Rosca,
     Diagrama(Categoria),
     Icone(&'static str),
 }
@@ -89,7 +91,9 @@ fn graficos() -> Vec<Opcao> {
         Opcao { rotulo: "Colunas", msg: FaixaMensagem::InserirGrafico("colunas".into()), desenho: Desenho::Colunas },
         Opcao { rotulo: "Barras", msg: FaixaMensagem::InserirGrafico("barras".into()), desenho: Desenho::Barras },
         Opcao { rotulo: "Linhas", msg: FaixaMensagem::InserirGrafico("linhas".into()), desenho: Desenho::Linhas },
+        Opcao { rotulo: "Área", msg: FaixaMensagem::InserirGrafico("area".into()), desenho: Desenho::Area },
         Opcao { rotulo: "Pizza", msg: FaixaMensagem::InserirGrafico("pizza".into()), desenho: Desenho::Pizza },
+        Opcao { rotulo: "Rosca", msg: FaixaMensagem::InserirGrafico("rosca".into()), desenho: Desenho::Rosca },
     ]
 }
 
@@ -209,7 +213,8 @@ impl Program<FaixaMensagem> for Figura {
                 }
                 tracar(f, &Path::line(Point::new(12.0, 8.0), Point::new(12.0, h - 8.0)), eixo, 1.0);
             }
-            Desenho::Linhas => {
+            Desenho::Linhas | Desenho::Area => {
+                let area = matches!(self.0, Desenho::Area);
                 let pontos = [(0.0, 0.7), (0.3, 0.4), (0.55, 0.6), (0.8, 0.2), (1.0, 0.3)];
                 let xy = |(u, v): (f32, f32)| Point::new(12.0 + (w - 24.0) * u, 10.0 + (h - 28.0) * v);
                 let caminho = Path::new(|b| {
@@ -218,8 +223,19 @@ impl Program<FaixaMensagem> for Figura {
                         b.line_to(xy(*p));
                     }
                 });
+                if area {
+                    let cheio = Path::new(|b| {
+                        b.move_to(Point::new(xy(pontos[0]).x, h - 12.0));
+                        for p in pontos {
+                            b.line_to(xy(p));
+                        }
+                        b.line_to(Point::new(xy(pontos[pontos.len() - 1]).x, h - 12.0));
+                        b.close();
+                    });
+                    if let Some(cheio) = cheio { encher(f, &cheio, suave); }
+                }
                 if let Some(caminho) = caminho { tracar(f, &caminho, acento, 2.5); }
-                for p in pontos {
+                for p in pontos.iter().filter(|_| !area).copied() {
                     if let Some(c) = Path::circle(xy(p), 3.2) { encher(f, &c, acento); }
                 }
                 tracar(f, &Path::line(Point::new(10.0, h - 12.0), Point::new(w - 8.0, h - 12.0)), eixo, 1.0);
@@ -231,7 +247,7 @@ impl Program<FaixaMensagem> for Figura {
                     pintar_primitiva(f, &p);
                 }
             }
-            Desenho::Pizza => {
+            Desenho::Pizza | Desenho::Rosca => {
                 let (c, r) = (Point::new(w / 2.0, h / 2.0), (w.min(h) / 2.0 - 8.0).max(8.0));
                 let fatias = [(0.0, 130.0, acento), (130.0, 250.0, suave), (250.0, 360.0, Color { a: 0.75, ..acento })];
                 for (de, ate, cor) in fatias {
@@ -247,6 +263,9 @@ impl Program<FaixaMensagem> for Figura {
                         encher(f, &caminho, cor);
                         tracar(f, &caminho, Color::WHITE, 1.5);
                     }
+                }
+                if matches!(self.0, Desenho::Rosca) {
+                    if let Some(furo) = Path::circle(c, r * 0.55) { encher(f, &furo, COR_PAINEL()); }
                 }
             }
         }

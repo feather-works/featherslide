@@ -230,6 +230,93 @@ fn pintar_vetores(pix: &mut Pixmap, elem: &ElementoDesenhado, escala: f32, tr: T
     }
 }
 
+/// As peças de tabela, gráfico e ícone (em pontos do slide), na escala da imagem.
+fn pintar_primitivas(pix: &mut Pixmap, fonte: &Fonte, primitivas: &[featherslide_core::dados::Primitiva], escala: f32) {
+    use featherslide_core::dados::Primitiva;
+    let tinta = |cor: &str| {
+        let mut t = Paint::default();
+        t.set_color(cor_hex(cor, [0, 0, 0, 255]).0);
+        t.anti_alias = true;
+        t
+    };
+    let encher_e_tracar = |pix: &mut Pixmap, caminho: &tiny_skia::Path, preenchimento: &str, contorno: &str, espessura: f32, regra: FillRule| {
+        if !preenchimento.is_empty() {
+            pix.fill_path(caminho, &tinta(preenchimento), regra, Transform::identity(), None);
+        }
+        if !contorno.is_empty() && espessura > 0.0 {
+            pix.stroke_path(caminho, &tinta(contorno), &Stroke { width: espessura * escala, ..Default::default() }, Transform::identity(), None);
+        }
+    };
+    let poligono = |pontos: &[[f32; 2]], fechar: bool| {
+        let mut b = PathBuilder::new();
+        for (i, q) in pontos.iter().enumerate() {
+            if i == 0 { b.move_to(q[0] * escala, q[1] * escala) } else { b.line_to(q[0] * escala, q[1] * escala) }
+        }
+        if fechar {
+            b.close();
+        }
+        b.finish()
+    };
+    for p in primitivas {
+        match p {
+            Primitiva::Ret { x, y, w, h, preenchimento, contorno, espessura } => {
+                if let Some(r) = Rect::from_xywh(x * escala, y * escala, w.max(0.01) * escala, h.max(0.01) * escala) {
+                    encher_e_tracar(pix, &PathBuilder::from_rect(r), preenchimento, contorno, *espessura, FillRule::Winding);
+                }
+            }
+            Primitiva::Linha { x1, y1, x2, y2, cor, espessura } => {
+                if let Some(c) = poligono(&[[*x1, *y1], [*x2, *y2]], false) {
+                    encher_e_tracar(pix, &c, "", cor, *espessura, FillRule::Winding);
+                }
+            }
+            Primitiva::Poli { pontos, cor, espessura } => {
+                if let Some(c) = poligono(pontos, false) {
+                    encher_e_tracar(pix, &c, "", cor, *espessura, FillRule::Winding);
+                }
+            }
+            Primitiva::Poligono { pontos, preenchimento } => {
+                if let Some(c) = poligono(pontos, true) {
+                    encher_e_tracar(pix, &c, preenchimento, "", 0.0, FillRule::Winding);
+                }
+            }
+            Primitiva::Caminho { contornos, preenchimento, contorno, espessura } => {
+                let mut b = PathBuilder::new();
+                for anel in contornos.iter().filter(|a| a.len() > 2) {
+                    for (i, q) in anel.iter().enumerate() {
+                        if i == 0 { b.move_to(q[0] * escala, q[1] * escala) } else { b.line_to(q[0] * escala, q[1] * escala) }
+                    }
+                    b.close();
+                }
+                if let Some(c) = b.finish() {
+                    encher_e_tracar(pix, &c, preenchimento, contorno, *espessura, FillRule::EvenOdd);
+                }
+            }
+            Primitiva::Setor { cx, cy, r, de, ate, preenchimento, contorno, espessura } => {
+                // Graus no sentido horário a partir das 3 horas; volta inteira = círculo.
+                let varre = (ate - de).rem_euclid(360.0);
+                let inteiro = varre > 359.0 || varre == 0.0;
+                let passos = ((if inteiro { 360.0 } else { varre }) / 4.0).ceil().max(2.0) as usize;
+                let mut pontos = Vec::with_capacity(passos + 2);
+                if !inteiro {
+                    pontos.push([*cx, *cy]);
+                }
+                for i in 0..=passos {
+                    let g = (de + (if inteiro { 360.0 } else { varre }) * i as f32 / passos as f32).to_radians();
+                    pontos.push([cx + r * g.cos(), cy + r * g.sin()]);
+                }
+                if let Some(c) = poligono(&pontos, true) {
+                    encher_e_tracar(pix, &c, preenchimento, contorno, *espessura, FillRule::Winding);
+                }
+            }
+            Primitiva::Texto { x, y, tamanho, cor, alinh, texto, .. } => {
+                let h = match *alinh { "c" => 1, "d" => 2, _ => 0 };
+                fonte::escrever(pix, fonte, texto, x * escala, y * escala, tamanho * escala, 0.0, cor_hex(cor, [0, 0, 0, 255]).1, fonte::Ancora { h, v: 2 }, false);
+            }
+            Primitiva::Vetor { .. } => {}
+        }
+    }
+}
+
 fn desenhar_rotulo(pix: &mut Pixmap, fonte: &Fonte, id: u64, x: f32, y: f32) {
     let texto_id = format!("#{id}");
     let larg_badge = (texto_id.len() as f32 * 7.0 + 8.0).max(18.0);
@@ -270,7 +357,12 @@ pub fn renderizar_png(quadro: &Quadro, largura_px: u32, rotulos: bool, fonte: &F
         let ex = elem.x * escala;
         let ey = elem.y * escala;
         let tr = Transform::from_translate(ex, ey);
-        pintar_forma(&mut pix, elem, escala, tr);
+        if elem.primitivas.iter().any(|p| !matches!(p, featherslide_core::dados::Primitiva::Vetor { .. })) {
+            // Tabela, gráfico e ícone: o quadro já traz as peças prontas; a caixa não se pinta.
+            pintar_primitivas(&mut pix, fonte, &elem.primitivas, escala);
+        } else {
+            pintar_forma(&mut pix, elem, escala, tr);
+        }
         desenhar_linhas(&mut pix, fonte, elem, escala);
         if rotulos && !elem.dica {
             desenhar_rotulo(&mut pix, fonte, elem.id, ex, ey);
@@ -278,4 +370,21 @@ pub fn renderizar_png(quadro: &Quadro, largura_px: u32, rotulos: bool, fonte: &F
     }
 
     pix.encode_png().map_err(|e| format!("Falha ao codificar PNG: {e}"))
+}
+
+#[cfg(test)]
+mod testes_primitivas {
+    use super::*;
+
+    #[test]
+    fn grafico_e_tabela_aparecem_na_previa() {
+        let mut s = featherslide_core::sessao::Sessao::default();
+        s.slide_novo("em_branco").unwrap();
+        s.grafico_inserir("rosca").unwrap();
+        let q = s.quadro(1, None, false).unwrap().unwrap();
+        let png = renderizar_png(&q, 640, false, crate::fonte::da_sessao()).unwrap();
+        let img = image::load_from_memory(&png).unwrap().to_rgb8();
+        // O azul da primeira fatia (#1a73e8) tem de aparecer em algum lugar.
+        assert!(img.pixels().any(|p| p.0[2] > 200 && p.0[0] < 60 && p.0[1] > 90 && p.0[1] < 140), "a rosca não foi desenhada");
+    }
 }

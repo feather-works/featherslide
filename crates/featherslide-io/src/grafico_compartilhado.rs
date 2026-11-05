@@ -170,6 +170,7 @@ fn tipo_comum(nome: &str) -> Result<Tipo, ErroAdaptacaoGrafico> {
         "barras" => Ok(Tipo::Barras),
         "linhas" => Ok(Tipo::Linhas),
         "pizza" => Ok(Tipo::Pizza),
+        "area" => Ok(Tipo::Area),
         _ => Err(ErroAdaptacaoGrafico::TipoNaoSuportado),
     }
 }

@@ -493,7 +493,8 @@
         "corpo": [
           "Inserir → Formas põe retângulo, elipse, triângulo, seta ou linha no meio do slide.",
           "• Preenchimento e Contorno (Página inicial → Desenho) escolhem as cores; Espessura, a grossura do contorno.",
-          "• Inserir → Imagem embute a imagem na apresentação: o .fsdz leva a imagem junto."
+          "• Inserir → Imagem embute a imagem na apresentação: o .fsdz leva a imagem junto.",
+          "• Inserir → Gráfico: colunas, barras, linhas, área, pizza e rosca. Clique duas vezes no gráfico para editar os dados; o tipo também se troca na janela de dados."
         ]
       },
       "apresentar": {
