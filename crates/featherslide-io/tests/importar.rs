@@ -383,3 +383,21 @@ fn pptx_gravado_le_de_volta_igual() {
     assert_eq!(elipse.preenchimento, "#34a853");
     assert!(lida.slides[1].elementos.iter().any(|e| e.tipo == Tipo::Imagem && (e.x - 400.0).abs() < 0.01));
 }
+
+#[test]
+fn pptx_gravado_leva_tabela_e_grafico_nativos() {
+    use featherslide_core::sessao::Sessao;
+    let mut s = Sessao::default();
+    s.tabela_inserir(3, 2).unwrap();
+    s.grafico_inserir("colunas").unwrap();
+    let g = pptx::gravar::gravar(s.apresentacao()).unwrap();
+    assert_eq!(g.de_fora, 0);
+    let mut z = zip::ZipArchive::new(Cursor::new(g.bytes)).unwrap();
+    let mut ler = |nome: &str| { let mut c = String::new(); std::io::Read::read_to_string(&mut z.by_name(nome).unwrap(), &mut c).unwrap(); c };
+    let slide = ler("ppt/slides/slide1.xml");
+    assert!(slide.contains("<a:tbl>") && slide.contains("<c:chart "), "{slide}");
+    let grafico = ler("ppt/charts/chart1.xml");
+    assert!(grafico.contains("<c:barChart>") && grafico.contains("<c:numLit>") && grafico.contains("<c:v>Série 1</c:v>"), "{grafico}");
+    assert!(ler("[Content_Types].xml").contains("/ppt/charts/chart1.xml"));
+    assert!(ler("ppt/slides/_rels/slide1.xml.rels").contains("../charts/chart1.xml"));
+}

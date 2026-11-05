@@ -2979,7 +2979,7 @@ impl FeatherSlideApp {
         let nome = destino.file_name().unwrap_or_default().to_string_lossy().to_string();
         match featherslide_io::pptx::gravar::salvar(self.sessao.apresentacao(), destino) {
             Ok(g) if g.de_fora == 0 => format!("PowerPoint exportado: {nome}"),
-            Ok(g) => format!("PowerPoint exportado: {nome}. {} elemento(s) sem equivalente ficaram de fora (tabelas, gráficos, ícones, WordArt, desenhos livres).", g.de_fora),
+            Ok(g) => format!("PowerPoint exportado: {nome}. {} elemento(s) sem equivalente ficaram de fora (ícones, WordArt, desenhos livres).", g.de_fora),
             Err(e) => format!("Não consegui exportar o PowerPoint: {e}"),
         }
     }
@@ -6626,7 +6626,12 @@ fn exportar_pptx_grava_e_avisa_o_que_ficou_de_fora() {
     let destino = pasta.join("a.pptx");
     assert!(app.exportar_pptx(&destino).starts_with("PowerPoint exportado"));
     assert!(featherslide_io::pptx::ler(&std::fs::read(&destino).unwrap()).is_ok());
-    app.sessao.elemento_inserir(featherslide_core::modelo::Tipo::Tabela, None, None).unwrap();
-    assert!(app.exportar_pptx(&destino).contains("1 elemento(s) sem equivalente"), "tabela ainda fica de fora");
+    app.sessao.tabela_inserir(3, 3).unwrap();
+    app.sessao.grafico_inserir("pizza").unwrap();
+    assert_eq!(app.exportar_pptx(&destino), "PowerPoint exportado: a.pptx", "tabela e gráfico vão junto");
+    let mut ap = app.sessao.apresentacao().clone();
+    ap.slides[0].elementos.push(featherslide_core::modelo::Elemento { id: 999, tipo: featherslide_core::modelo::Tipo::Caminho, ..Default::default() });
+    app.sessao = featherslide_core::sessao::Sessao::nova(ap);
+    assert!(app.exportar_pptx(&destino).contains("1 elemento(s) sem equivalente"), "o desenho livre ainda fica de fora");
     std::fs::remove_dir_all(pasta).unwrap();
 }

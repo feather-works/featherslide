@@ -3,9 +3,12 @@
 //! sublinhado, alinhamento, margem), formas prontas com cor e contorno, fotos, giro, fundo
 //! sólido e anotações do apresentador.
 //!
-//! shortcut: tabelas, gráficos, ícones, WordArt e caminhos vetoriais ainda não têm equivalente e
-//! ficam de fora (a função devolve quantos); animações e transições também. Gravar cada um quando
-//! a pessoa pedir — a leitura em `mod.rs` já mostra o XML de cada coisa.
+//! Tabelas viram `a:tbl` e gráficos viram gráficos nativos (`c:chartSpace` com os valores guardados
+//! no próprio XML), que o PowerPoint e o Impress desenham e deixam formatar.
+//!
+//! shortcut: ícones, WordArt e caminhos vetoriais ainda não têm equivalente e ficam de fora (a função
+//! devolve quantos); animações e transições também; o gráfico vai sem a planilha embutida (editar os
+//! dados no PowerPoint pede uma). Gravar cada um quando a pessoa pedir.
 
 use std::fmt::Write as _;
 use std::io::{Cursor, Write};
@@ -30,6 +33,7 @@ const R_TEMA: &str = "http://schemas.openxmlformats.org/officeDocument/2006/rela
 const R_IMAGEM: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
 const R_NOTAS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide";
 const R_MESTRE_NOTAS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster";
+const R_GRAFICO: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart";
 
 fn emu(pt: f32) -> i64 {
     (f64::from(pt) * EMU_POR_PT).round() as i64
@@ -215,6 +219,125 @@ fn foto(e: &Elemento, id: usize, rid: &str) -> String {
     )
 }
 
+/// O quadro que segura uma tabela ou um gráfico (`p:graphicFrame`).
+fn quadro_grafico(e: &Elemento, id: usize, nome: &str, uri: &str, dentro: &str) -> String {
+    let x = xfrm(e, "p");
+    format!(r#"<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="{id}" name="{nome} {id}"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>{x}<a:graphic><a:graphicData uri="{uri}">{dentro}</a:graphicData></a:graphic></p:graphicFrame>"#)
+}
+
+/// Uma tabela: a grade, com a 1ª linha em negrito no fundo do cabeçalho (como o slide desenha).
+fn tabela(e: &Elemento, id: usize) -> String {
+    let g = featherslide_core::dados::ler_tabela(e);
+    let (linhas, colunas) = (g.len().max(1), g.first().map_or(1, Vec::len).max(1));
+    let (larg, alt) = (emu(e.largura.abs()) / colunas as i64, emu(e.altura.abs()) / linhas as i64);
+    let est = &e.estilo;
+    let cabecalho = hex(&e.preenchimento).unwrap_or_else(|| "E8F0FE".into());
+    let borda = if e.espessura <= 0.0 { None } else { Some(hex(&e.contorno).unwrap_or_else(|| "BDC1C6".into())) };
+    let algn = match est.alinhamento {
+        Alinhamento::Centro => "ctr",
+        Alinhamento::Direita => "r",
+        _ => "l",
+    };
+    let cor = hex(&est.cor).map_or(String::new(), |c| format!(r#"<a:solidFill><a:srgbClr val="{c}"/></a:solidFill>"#));
+    let mut t = String::from(r#"<a:tbl><a:tblPr firstRow="1"/><a:tblGrid>"#);
+    for _ in 0..colunas {
+        let _ = write!(t, r#"<a:gridCol w="{larg}"/>"#);
+    }
+    t.push_str("</a:tblGrid>");
+    for (r, linha) in g.iter().enumerate() {
+        let _ = write!(t, r#"<a:tr h="{alt}">"#);
+        for celula in linha {
+            let negrito = if est.negrito || r == 0 { r#" b="1""# } else { "" };
+            let rpr = format!(r#" lang="pt-BR" sz="{}"{negrito}"#, (est.tamanho * 100.0).round().clamp(100.0, 400_000.0) as i64);
+            t.push_str("<a:tc><a:txBody><a:bodyPr/><a:lstStyle/>");
+            for p in celula.split('\n') {
+                let _ = write!(t, r#"<a:p><a:pPr algn="{algn}"/>"#);
+                if !p.is_empty() {
+                    let _ = write!(t, r#"<a:r><a:rPr{rpr}>{cor}</a:rPr><a:t>{}</a:t></a:r>"#, esc(p));
+                }
+                t.push_str("</a:p>");
+            }
+            t.push_str(r#"</a:txBody><a:tcPr anchor="ctr">"#);
+            let fundo = if r == 0 { cabecalho.clone() } else if r % 2 == 0 { "F8F9FA".into() } else { "FFFFFF".into() };
+            let linha_borda = |lado: &str| match &borda {
+                Some(c) => format!(r#"<a:{lado} w="{}"><a:solidFill><a:srgbClr val="{c}"/></a:solidFill></a:{lado}>"#, emu(e.espessura)),
+                None => format!(r#"<a:{lado}><a:noFill/></a:{lado}>"#),
+            };
+            for lado in ["lnL", "lnR", "lnT", "lnB"] {
+                t.push_str(&linha_borda(lado));
+            }
+            let _ = write!(t, r#"<a:solidFill><a:srgbClr val="{fundo}"/></a:solidFill></a:tcPr></a:tc>"#);
+        }
+        t.push_str("</a:tr>");
+    }
+    t.push_str("</a:tbl>");
+    quadro_grafico(e, id, "Tabela", "http://schemas.openxmlformats.org/drawingml/2006/table", &t)
+}
+
+const CORES_SERIES: [&str; 6] = ["1A73E8", "34A853", "FBBC04", "EA4335", "8E24AA", "00ACC1"];
+
+/// O XML do gráfico (`c:chartSpace`): tipo, título e as séries com os valores guardados.
+fn grafico_xml(e: &Elemento) -> String {
+    let g = featherslide_core::dados::ler_grafico(e);
+    let cats: Vec<&str> = g.grade.iter().skip(1).filter_map(|l| l.first().map(String::as_str)).collect();
+    let nomes: Vec<&str> = g.grade.first().map_or(Vec::new(), |l| l.iter().skip(1).map(String::as_str).collect());
+    let valor = |c: usize, s: usize| g.grade.get(c + 1).and_then(|l| l.get(s + 1)).and_then(|v| v.trim().replace(',', ".").parse::<f64>().ok()).unwrap_or(0.0);
+    let pizza = g.tipo == "pizza";
+    let mut series = String::new();
+    for (s, nome) in nomes.iter().enumerate() {
+        let cor = CORES_SERIES[s % CORES_SERIES.len()];
+        let _ = write!(series, r#"<c:ser><c:idx val="{s}"/><c:order val="{s}"/><c:tx><c:v>{}</c:v></c:tx>"#, esc(nome));
+        if pizza {
+            for (c, _) in cats.iter().enumerate() {
+                let cor = CORES_SERIES[c % CORES_SERIES.len()];
+                let _ = write!(series, r#"<c:dPt><c:idx val="{c}"/><c:bubble3D val="0"/><c:spPr><a:solidFill><a:srgbClr val="{cor}"/></a:solidFill></c:spPr></c:dPt>"#);
+            }
+        } else if g.tipo == "linhas" {
+            let _ = write!(series, r#"<c:spPr><a:ln w="28575"><a:solidFill><a:srgbClr val="{cor}"/></a:solidFill></a:ln></c:spPr><c:marker><c:symbol val="circle"/></c:marker>"#);
+        } else {
+            let _ = write!(series, r#"<c:spPr><a:solidFill><a:srgbClr val="{cor}"/></a:solidFill></c:spPr><c:invertIfNegative val="0"/>"#);
+        }
+        let _ = write!(series, r#"<c:cat><c:strLit><c:ptCount val="{}"/>"#, cats.len());
+        for (c, nome) in cats.iter().enumerate() {
+            let _ = write!(series, r#"<c:pt idx="{c}"><c:v>{}</c:v></c:pt>"#, esc(nome));
+        }
+        let _ = write!(series, r#"</c:strLit></c:cat><c:val><c:numLit><c:formatCode>General</c:formatCode><c:ptCount val="{}"/>"#, cats.len());
+        for c in 0..cats.len() {
+            let _ = write!(series, r#"<c:pt idx="{c}"><c:v>{}</c:v></c:pt>"#, valor(c, s));
+        }
+        series.push_str("</c:numLit></c:val>");
+        if g.tipo == "linhas" {
+            series.push_str(r#"<c:smooth val="0"/>"#);
+        }
+        series.push_str("</c:ser>");
+        if pizza {
+            break;
+        }
+    }
+    let eixos = r#"<c:axId val="1"/><c:axId val="2"/>"#;
+    let corpo = match g.tipo.as_str() {
+        "pizza" => format!(r#"<c:pieChart><c:varyColors val="1"/>{series}<c:firstSliceAng val="0"/></c:pieChart>"#),
+        "linhas" => format!(r#"<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>{series}<c:marker val="1"/>{eixos}</c:lineChart>"#),
+        tipo => format!(r#"<c:barChart><c:barDir val="{}"/><c:grouping val="clustered"/><c:varyColors val="0"/>{series}<c:gapWidth val="80"/>{eixos}</c:barChart>"#, if tipo == "barras" { "bar" } else { "col" }),
+    };
+    let eixos_xml = if pizza {
+        String::new()
+    } else {
+        let (pos_cat, pos_val) = if g.tipo == "barras" { ("l", "b") } else { ("b", "l") };
+        format!(r#"<c:catAx><c:axId val="1"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="{pos_cat}"/><c:numFmt formatCode="General" sourceLinked="0"/><c:tickLblPos val="nextTo"/><c:crossAx val="2"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/></c:catAx><c:valAx><c:axId val="2"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="{pos_val}"/><c:majorGridlines><c:spPr><a:ln w="6350"><a:solidFill><a:srgbClr val="E0E3E7"/></a:solidFill></a:ln></c:spPr></c:majorGridlines><c:numFmt formatCode="General" sourceLinked="0"/><c:tickLblPos val="nextTo"/><c:crossAx val="1"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>"#)
+    };
+    let titulo = if g.titulo.trim().is_empty() {
+        r#"<c:autoTitleDeleted val="1"/>"#.to_string()
+    } else {
+        format!(r#"<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="pt-BR" sz="1500" b="1"/><a:t>{}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title><c:autoTitleDeleted val="0"/>"#, esc(&g.titulo))
+    };
+    let legenda = if pizza || nomes.len() > 1 { r#"<c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend>"# } else { "" };
+    let fundo = hex(&e.preenchimento).unwrap_or_else(|| "FFFFFF".into());
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><c:roundedCorners val="0"/><c:chart>{titulo}<c:plotArea><c:layout/>{corpo}{eixos_xml}</c:plotArea>{legenda}<c:plotVisOnly val="1"/></c:chart><c:spPr><a:solidFill><a:srgbClr val="{fundo}"/></a:solidFill></c:spPr></c:chartSpace>"#
+    )
+}
+
 fn rels(itens: &[(String, &str, String)]) -> String {
     let mut s = String::from(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">"#);
     for (id, tipo, alvo) in itens {
@@ -227,8 +350,11 @@ fn rels(itens: &[(String, &str, String)]) -> String {
 /// A mídia de um slide: (nome no pacote, bytes).
 type Midia = Vec<(String, Vec<u8>)>;
 
+/// Os gráficos gravados: (número do gráfico no pacote, XML).
+type Graficos = Vec<(usize, String)>;
+
 /// O XML de um slide, as ligações dele e as fotos que ele leva.
-fn slide(sl: &Slide, n: usize, midia: &mut Midia, de_fora: &mut usize) -> (String, String) {
+fn slide(sl: &Slide, n: usize, midia: &mut Midia, graficos: &mut Graficos, de_fora: &mut usize) -> (String, String) {
     let mut ligacoes: Vec<(String, &str, String)> = vec![("rId1".into(), R_LAYOUT, "../slideLayouts/slideLayout1.xml".into())];
     let mut arvore = String::new();
     let mut id = 2;
@@ -255,9 +381,20 @@ fn slide(sl: &Slide, n: usize, midia: &mut Midia, de_fora: &mut usize) -> (Strin
             }
             continue;
         }
-        match geometria(e.tipo) {
-            Some(g) => arvore.push_str(&forma(e, id, g)),
-            None => *de_fora += 1,
+        match e.tipo {
+            Tipo::Tabela => arvore.push_str(&tabela(e, id)),
+            Tipo::Grafico => {
+                let k = graficos.len() + 1;
+                let rid = format!("rId{}", ligacoes.len() + 1);
+                ligacoes.push((rid.clone(), R_GRAFICO, format!("../charts/chart{k}.xml")));
+                graficos.push((k, grafico_xml(e)));
+                let dentro = format!(r#"<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="{rid}"/>"#);
+                arvore.push_str(&quadro_grafico(e, id, "Gráfico", "http://schemas.openxmlformats.org/drawingml/2006/chart", &dentro));
+            }
+            _ => match geometria(e.tipo) {
+                Some(g) => arvore.push_str(&forma(e, id, g)),
+                None => *de_fora += 1,
+            },
         }
     }
     let fundo = hex(&sl.fundo).map_or(String::new(), |c| format!(r#"<p:bg><p:bgPr><a:solidFill><a:srgbClr val="{c}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>"#));
@@ -291,13 +428,14 @@ pub fn gravar(ap: &Apresentacao) -> Result<Gravado, String> {
     let (w, h) = ap.tamanho();
     let mut partes: Vec<(String, Vec<u8>)> = Vec::new();
     let mut midia: Midia = Vec::new();
+    let mut graficos: Graficos = Vec::new();
     let mut de_fora = 0;
     let mut tipos = String::from(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="gif" ContentType="image/gif"/><Default Extension="bmp" ContentType="image/bmp"/><Default Extension="svg" ContentType="image/svg+xml"/><Default Extension="webp" ContentType="image/webp"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/ppt/theme/theme2.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/ppt/notesMasters/notesMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>"#);
     let mut lista_slides = String::new();
     let mut rels_pres: Vec<(String, &str, String)> = vec![("rId1".into(), R_MESTRE, "slideMasters/slideMaster1.xml".into()), ("rId2".into(), R_TEMA, "theme/theme1.xml".into()), ("rId3".into(), R_MESTRE_NOTAS, "notesMasters/notesMaster1.xml".into())];
     for (i, sl) in ap.slides.iter().enumerate() {
         let k = i + 1;
-        let (xml, r) = slide(sl, k, &mut midia, &mut de_fora);
+        let (xml, r) = slide(sl, k, &mut midia, &mut graficos, &mut de_fora);
         partes.push((format!("ppt/slides/slide{k}.xml"), xml.into_bytes()));
         partes.push((format!("ppt/slides/_rels/slide{k}.xml.rels"), r.into_bytes()));
         let _ = write!(tipos, r#"<Override PartName="/ppt/slides/slide{k}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>"#);
@@ -310,6 +448,9 @@ pub fn gravar(ap: &Apresentacao) -> Result<Gravado, String> {
         let rid = format!("rId{}", rels_pres.len() + 1);
         let _ = write!(lista_slides, r#"<p:sldId id="{}" r:id="{rid}"/>"#, 256 + i);
         rels_pres.push((rid, R_SLIDE, format!("slides/slide{k}.xml")));
+    }
+    for (k, _) in &graficos {
+        let _ = write!(tipos, r#"<Override PartName="/ppt/charts/chart{k}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>"#);
     }
     tipos.push_str("</Types>");
     let (cx, cy) = (emu(w), emu(h));
@@ -343,6 +484,7 @@ pub fn gravar(ap: &Apresentacao) -> Result<Gravado, String> {
     ];
     fixas.append(&mut partes);
     fixas.extend(midia.into_iter().map(|(nome, b)| (format!("ppt/media/{nome}"), b)));
+    fixas.extend(graficos.into_iter().map(|(k, xml)| (format!("ppt/charts/chart{k}.xml"), xml.into_bytes())));
     let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
     let opcoes = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
     for (nome, conteudo) in fixas {
