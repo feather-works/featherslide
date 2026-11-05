@@ -336,6 +336,7 @@ struct Colunas {
     texto: Vec<String>,
     indices_texto: Vec<String>,
     espacamento_letras: Vec<f32>,
+    margem: Vec<String>,
     fonte: Vec<String>,
     tamanho: Vec<f32>,
     cor: Vec<String>,
@@ -388,6 +389,7 @@ impl Colunas {
         self.texto.push(e.texto.clone());
         self.indices_texto.push(serde_json::to_string(&e.indices_texto).expect("índices válidos"));
         self.espacamento_letras.push(e.espacamento_letras);
+        self.margem.push(e.margem.map(|m| m.map(|v| v.to_string()).join(",")).unwrap_or_default());
         let est = &e.estilo;
         self.fonte.push(est.fonte.clone());
         self.tamanho.push(est.tamanho);
@@ -455,6 +457,7 @@ impl Colunas {
             ("texto", s(self.texto)),
             ("indices_texto", s(self.indices_texto)),
             ("espacamento_letras", f(self.espacamento_letras)),
+            ("margem", s(self.margem)),
             ("fonte", s(self.fonte)),
             ("tamanho", f(self.tamanho)),
             ("cor", s(self.cor)),
@@ -621,6 +624,18 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
     Ok(ap)
 }
 
+/// A margem interna gravada (`esq,cima,dir,baixo`, em pontos); vazio = a padrão.
+fn margem_ler(texto: &str) -> Result<Option<[f32; 4]>, String> {
+    if texto.is_empty() {
+        return Ok(None);
+    }
+    let v: Vec<f32> = texto.split(',').map(|n| n.trim().parse::<f32>()).collect::<Result<_, _>>().map_err(|_| format!("elementos.arrow: margem inválida \"{texto}\""))?;
+    match v[..] {
+        [a, b, c, d] if v.iter().all(|m| m.is_finite() && (0.0..=1000.0).contains(m)) => Ok(Some([a, b, c, d])),
+        _ => Err(format!("elementos.arrow: margem inválida \"{texto}\"")),
+    }
+}
+
 fn ler_slides(t: &Lida) -> Result<Vec<Slide>, String> {
     (0..t.linhas())
         .map(|i| Ok(Slide { id: t.u64("id", i)?, layout: t.texto("layout", i)?, fundo: t.texto("fundo", i)?, elementos: Vec::new(), notas: t.texto("notas", i)?, oculto: t.bool("oculto", i)?,
@@ -667,6 +682,7 @@ fn ler_elemento(t: &Lida, i: usize) -> Result<Elemento, String> {
         texto: t.texto("texto", i)?,
         indices_texto: serde_json::from_str(&t.ou("indices_texto", "[]".to_string(), |t| t.texto("indices_texto", i))?).map_err(|e|format!("Índices inválidos: {e}"))?,
         espacamento_letras: t.ou("espacamento_letras", 0.0, |t|t.f32("espacamento_letras", i))?,
+        margem: margem_ler(&t.ou("margem", String::new(), |t| t.texto("margem", i))?)?,
         estilo: EstiloDoTexto {
             fonte: t.texto("fonte", i)?,
             tamanho: t.f32("tamanho", i)?,

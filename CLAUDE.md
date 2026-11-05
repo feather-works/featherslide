@@ -43,6 +43,18 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 - Se o usuário ainda vir deslocamento num 16:9/4:3, a próxima suspeita é a medida
   aproximada do texto (item 4 da Fila), não a geometria.
 
+## Brainstorm de 05/11/2026 — entregas
+
+- **Margem por caixa:** `Elemento::margem: Option<[f32; 4]>` (esq, cima, dir, baixo; `None` = padrão
+  `MARGEM_X/Y`), `Elemento::margens()`; `quadro.rs` usa a da caixa. Coluna `margem` no `.fsdz`
+  (texto `a,b,c,d`, vazio = padrão; sem subir a versão). O `.pptx` grava `lIns`… nela, em qualquer
+  forma; a caixa não é mais movida. `.odp` (`fo:padding-*`) ainda não lê.
+- **Ensaiar intervalos** (Apresentação → Ensaio): `app.ensaio` soma o tempo por id de slide
+  (`ensaio_marcar` em `ir_na_apresentacao` e ao sair); ao sair, `Sessao::tempos_do_ensaio` grava
+  `Transicao::apos` numa edição. Durante o ensaio o avanço automático antigo fica desligado.
+- **Modo de leitura** (Exibir): `app.modo_leitura` apresenta sem tela cheia e sem plateia.
+- Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
+
 ## Auditoria de 05/11/2026 (11 correções)
 
 - **Links:** `Sessao::link_do_elemento` valida de novo (só http/https/mailto exatos); link vindo de

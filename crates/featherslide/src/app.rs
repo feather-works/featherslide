@@ -139,6 +139,10 @@ pub struct FeatherSlideApp {
     /// A janela da plateia (segundo monitor) e o início da apresentação, para o cronômetro.
     pub plateia: Option<WindowId>,
     pub cronometro: crate::cronometro::Cronometro,
+    /// O ensaio em curso: o tempo de cada slide (id, segundos) e quando o slide atual entrou.
+    pub ensaio: Option<(Vec<(u64, f32)>, std::time::Instant)>,
+    /// Modo de leitura: a apresentação na própria janela, sem tela cheia nem segunda tela.
+    pub modo_leitura: bool,
     pub modo_apresentador: bool,
     pub monitores_apresentacao: Vec<crate::monitores::Monitor>,
     /// "Janela" e os nomes dos monitores, para a lista da plateia (o `pick_list` empresta as opções).
@@ -462,6 +466,8 @@ impl Default for FeatherSlideApp {
             n_monitores: 0,
             plateia: None,
             cronometro: Default::default(),
+            ensaio: None,
+            modo_leitura: false,
             modo_apresentador: false,
             monitores_apresentacao: Vec::new(),
             opcoes_plateia: Vec::new(),
@@ -1693,7 +1699,8 @@ impl FeatherSlideApp {
                     self.repro.exibido_em = std::time::Instant::now();
                 }
                 let apos = self.sessao.slide().transicao.apos;
-                if apos > 0.0 && self.repro.transicao.is_none() && self.repro.exibido_em.elapsed().as_secs_f32() >= apos {
+                // No ensaio quem decide quando passar é a pessoa, não os tempos antigos.
+                if apos > 0.0 && self.ensaio.is_none() && self.repro.transicao.is_none() && self.repro.exibido_em.elapsed().as_secs_f32() >= apos {
                     return self.proximo_slide();
                 }
             }
@@ -2228,6 +2235,9 @@ impl FeatherSlideApp {
         self.editando_celula = None;
         self.monitores_apresentacao = crate::monitores::listar();
         self.opcoes_plateia = std::iter::once("Janela".to_string()).chain(self.monitores_apresentacao.iter().map(|m| m.nome.clone())).collect();
+        if self.modo_leitura {
+            return Task::none();
+        }
         let externo = if self.config.dois_monitores { crate::monitores::da_plateia(&self.monitores_apresentacao).cloned() } else { None };
         if self.modo_apresentador || externo.is_some() {
             self.modo_apresentador = true;
@@ -2275,12 +2285,37 @@ impl FeatherSlideApp {
         }
     }
 
+    /// Soma o tempo do slide atual no ensaio e recomeça a contar (ao trocar de slide e ao sair).
+    fn ensaio_marcar(&mut self) {
+        let id = self.sessao.slide().id;
+        if let Some((tempos, desde)) = &mut self.ensaio {
+            let seg = desde.elapsed().as_secs_f32();
+            match tempos.iter_mut().find(|(i, _)| *i == id) {
+                Some((_, t)) => *t += seg,
+                None => tempos.push((id, seg)),
+            }
+            *desde = std::time::Instant::now();
+        }
+    }
+
     fn sair_da_apresentacao(&mut self) -> Task<Mensagem> {
+        if self.ensaio.is_some() {
+            self.ensaio_marcar();
+            let tempos = self.ensaio.take().map(|(t, _)| t).unwrap_or_default();
+            let total: f32 = tempos.iter().map(|(_, t)| t).sum();
+            self.status = match self.sessao.tempos_do_ensaio(&tempos) {
+                Ok(_) => format!("Ensaio: {} slides em {}:{:02}. Os tempos viraram o avanço automático (Ctrl+Z desfaz).", tempos.len(), total as u32 / 60, total as u32 % 60),
+                Err(e) => e,
+            };
+        }
         self.roteiro_personalizado = None;
         self.em_apresentacao = false;
         self.repro = Reproducao::default();
         self.cronometro = Default::default();
         self.modo_apresentador = false;
+        if std::mem::take(&mut self.modo_leitura) {
+            return Task::none();
+        }
         if let Some(id) = self.plateia.take() {
             self.janelas.retirar(id);
             return Task::window_of(id, WindowCmd::Close);
@@ -2293,6 +2328,9 @@ impl FeatherSlideApp {
 
     /// Vai para o slide `i` da apresentação, com a transição dele se `com_transicao`.
     fn ir_na_apresentacao(&mut self, i: usize, com_transicao: bool) {
+        if i != self.sessao.atual() {
+            self.ensaio_marcar();
+        }
         let antigo = self.sessao.quadro(self.sessao.atual(), None, false).ok().flatten();
         if self.sessao.slide_ir(i).is_err() {
             return;
@@ -4225,6 +4263,16 @@ impl FeatherSlideApp {
             FaixaMensagem::ApresentarDoAtual => {
                 self.roteiro_personalizado = None;
                 return self.comecar_apresentacao(false);
+            }
+            FaixaMensagem::ModoLeitura => {
+                self.roteiro_personalizado = None;
+                self.modo_leitura = true;
+                return self.comecar_apresentacao(false);
+            }
+            FaixaMensagem::Ensaiar => {
+                self.roteiro_personalizado = None;
+                self.ensaio = Some((Vec::new(), std::time::Instant::now()));
+                return self.comecar_apresentacao(true);
             }
             FaixaMensagem::ApresentarComNotas => {
                 self.roteiro_personalizado = None;
@@ -6448,4 +6496,33 @@ fn forma_lateral_atualiza_ao_vivo_e_cancelar_restaura(){
     let _=app.update(Mensagem::Palco(PalcoMensagem::GradientePonto{indice:0,posicao:25.0}));assert_eq!(app.sessao.slide().elementos.last().unwrap().gradiente.as_ref().unwrap().pontos[0].posicao,0.25);
     let _=app.update(Mensagem::Palco(PalcoMensagem::GradienteAngulo(60.0)));assert_eq!(app.sessao.slide().elementos.last().unwrap().gradiente.as_ref().unwrap().angulo,60.0);
     let _=app.update(Mensagem::FormatoForma(crate::formato_forma::Msg::Fechar));assert_eq!(*app.sessao.apresentacao(),antes);
+}
+
+#[cfg(test)]
+#[test]
+fn ensaio_mede_cada_slide_e_grava_o_avanco_automatico() {
+    use std::time::{Duration, Instant};
+    let mut app = FeatherSlideApp::default();
+    app.sessao.slide_novo("em_branco").unwrap();
+    let _ = app.update(Mensagem::Faixa(FaixaMensagem::Ensaiar));
+    assert!(app.em_apresentacao && app.ensaio.is_some());
+    assert_eq!(app.sessao.atual(), 0);
+    app.ensaio.as_mut().unwrap().1 = Instant::now() - Duration::from_secs(5);
+    let _ = app.proximo_slide();
+    app.ensaio.as_mut().unwrap().1 = Instant::now() - Duration::from_secs(8);
+    let _ = app.sair_da_apresentacao();
+    assert!(!app.em_apresentacao && app.ensaio.is_none());
+    let apos: Vec<f32> = app.sessao.apresentacao().slides.iter().map(|s| s.transicao.apos.round()).collect();
+    assert_eq!(apos, vec![5.0, 8.0]);
+    assert!(app.status.contains("0:13"), "{}", app.status);
+}
+
+#[cfg(test)]
+#[test]
+fn modo_de_leitura_apresenta_sem_tela_cheia_e_sai_limpo() {
+    let mut app = FeatherSlideApp::default();
+    let _ = app.update(Mensagem::Faixa(FaixaMensagem::ModoLeitura));
+    assert!(app.em_apresentacao && app.modo_leitura && app.plateia.is_none());
+    let _ = app.sair_da_apresentacao();
+    assert!(!app.em_apresentacao && !app.modo_leitura);
 }

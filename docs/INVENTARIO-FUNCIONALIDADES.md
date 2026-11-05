@@ -211,7 +211,7 @@ representam funcionalidades do PowerPoint nem exigem instalar todas as bibliotec
 - [x] **FTS-0140** — Classificador de slides. **Feito**.
 - [ ] **FTS-0141** — Estrutura de tópicos. **A verificar**.
 - [ ] **FTS-0142** — Página de anotações. **A verificar**.
-- [ ] **FTS-0143** — Modo de leitura. **Pendente**.
+- [x] **FTS-0143** — Modo de leitura. **Feito**.
 - [x] **FTS-0144** — Apresentação em tela cheia. **Feito**.
 - [/] **FTS-0145** — Exibição do apresentador. **Parcial**.
 - [ ] **FTS-0146** — Slide Mestre. **A verificar**.
@@ -1173,7 +1173,7 @@ Inserir → SVG; Formato da Forma → Vetores libera as peças e exporta a sele�
 
 ## 16. Gravação, ensaio e exportação de apresentações
 
-- [ ] **FTS-0892** — Testar intervalos. **Pendente**.
+- [x] **FTS-0892** — Testar intervalos. **Feito**.
 - [ ] **FTS-0893** — Registrar tempo por slide. **Pendente**.
 - [ ] **FTS-0894** — Gravar apresentação. **Pendente**.
 - [ ] **FTS-0895** — Gravar áudio. **Pendente**.

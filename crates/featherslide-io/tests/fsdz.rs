@@ -501,3 +501,13 @@ fn traco_duplo_persiste() {
     let est = &ap.slides[s.atual()].elementos.last().unwrap().estilo;
     assert!(est.sublinhado && est.sublinhado_duplo && est.tachado && est.tachado_duplo);
 }
+
+#[test]
+fn margem_interna_da_caixa_persiste() {
+    let mut s = Sessao::default();
+    let mut ap = s.apresentacao().clone();
+    ap.slides[0].elementos[0].margem = Some([0.0, 1.5, 9.6, 4.8]);
+    s = Sessao::nova(ap);
+    let lida = fsdz::ler(&fsdz::gravar(s.apresentacao()).unwrap()).unwrap();
+    assert_eq!(lida.slides[0].elementos[0].margem, Some([0.0, 1.5, 9.6, 4.8]));
+}

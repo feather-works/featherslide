@@ -61,8 +61,9 @@ fn pptx_herda_posicao_cor_fonte_e_lista() {
     let titulo = s.elementos.iter().find(|e| e.papel == Papel::Titulo).expect("título");
     assert_eq!(titulo.texto, "Título herdado");
     // 457200 EMU = 36 pt no slide de 720 pt; o FeatherSlide tem 960 pt: × 4/3. A margem interna
-    // padrão (7,2 pt) também cresce × 4/3, e a caixa anda 2,4 pt para o texto cair no mesmo lugar.
-    assert!((titulo.x - (48.0 + 2.4)).abs() < 0.1, "x herdado do layout: {}", titulo.x);
+    // padrão (7,2 pt) também cresce × 4/3 e fica guardada na caixa.
+    assert!((titulo.x - 48.0).abs() < 0.1, "x herdado do layout: {}", titulo.x);
+    assert!((titulo.margens()[0] - 9.6).abs() < 0.01, "margem: {:?}", titulo.margem);
     assert!((titulo.estilo.tamanho - 44.0 * 4.0 / 3.0).abs() < 0.2, "tamanho do mestre: {}", titulo.estilo.tamanho);
     assert!(titulo.estilo.negrito);
     assert_eq!(titulo.estilo.fonte, "Georgia", "+mj-lt vira a fonte do tema");
@@ -111,9 +112,14 @@ fn pptx_margem_interna_zero_poe_o_texto_na_borda() {
     let ap = pptx::ler(&zip(&partes)).unwrap();
     let corpo = ap.slides[0].elementos.iter().find(|e| e.papel == Papel::Corpo).unwrap();
     let k = 4.0 / 3.0;
-    // O texto começa onde a caixa do arquivo começa: x da caixa + MARGEM_X do quadro.
-    assert!((corpo.x + 7.2 - 457_200.0 / 12_700.0 * k).abs() < 0.1, "x: {}", corpo.x);
-    assert!((corpo.y + 3.6 - 1_200_000.0 / 12_700.0 * k).abs() < 0.1, "y: {}", corpo.y);
+    // A caixa fica onde estava; o texto começa na borda dela.
+    assert!((corpo.x - 457_200.0 / 12_700.0 * k).abs() < 0.1, "x: {}", corpo.x);
+    let [esq, cima, dir, _] = corpo.margens();
+    assert_eq!((esq, cima), (0.0, 0.0));
+    assert!((dir - 9.6).abs() < 0.01);
+    let q = featherslide_core::quadro::quadro(&ap.slides[0], (960.0, 540.0), 1, &Default::default(), false);
+    let linha = q.elementos.iter().find(|e| e.id == corpo.id).and_then(|e| e.linhas.first()).expect("linha do corpo");
+    assert!((linha.x - corpo.x).abs() < 0.01, "o texto começa na borda: {} × {}", linha.x, corpo.x);
 }
 
 #[test]

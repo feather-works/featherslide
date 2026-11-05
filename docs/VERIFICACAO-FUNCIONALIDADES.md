@@ -284,7 +284,7 @@ inicial; não há certificação visual ou auditoria completa dos 1.684 registro
 | FTS-0137 | Feito | core/src/configuracao_slide.rs; gui/src/configuracao_slide.rs; gui/src/faixa_abas.rs; io/src/fsdz.rs; testes core/IO/GUI | Presets e operações existentes preservados; aplicar a todos copia também a aparência completa do fundo. Histórico e persistência cobertos; validação visual no desktop pendente. |
 | FTS-0138 | Feito | core/src/configuracao_slide.rs; gui/src/configuracao_slide.rs; gui/src/faixa_abas.rs; io/src/fsdz.rs; testes core/IO/GUI | Oculta as formas com Papel::Fundo, sem apagar o mestre/layout. Histórico e persistência cobertos; validação visual no desktop pendente. |
 | FTS-0140 | Feito | app.rs: view_editor/view_classificacao/comecar_apresentacao | Validação visual não realizada neste levantamento. |
-| FTS-0143 | Pendente | faixa_abas.rs: exibir | Botão explicitamente Em breve. |
+| FTS-0143 | Feito | faixa_abas.rs: exibir; app.rs: modo_leitura, comecar_apresentacao | A apresentação na própria janela, sem tela cheia nem segunda tela; teste `modo_de_leitura_apresenta_sem_tela_cheia_e_sai_limpo`. |
 | FTS-0144 | Feito | app.rs: view_editor/view_classificacao/comecar_apresentacao | Validação visual não realizada neste levantamento. |
 | FTS-0145 | Parcial | app.rs: view_apresentador/abrir_plateia/escolher_monitor_plateia; cronometro.rs; faixa_abas.rs | Acesso pela faixa, janela da plateia, notas, próximo slide, cronômetro e seleção de monitor implementados; validação visual com dois monitores pendente. |
 | FTS-0149 | Feito | app.rs: view_editor/view_painel_selecao; faixa.rs; painel_animacao.rs; configuracao.rs; palco.rs | Validação visual não realizada neste levantamento. |
@@ -839,7 +839,7 @@ inicial; não há certificação visual ou auditoria completa dos 1.684 registro
 | FTS-0883 | Feito | links.rs; elementos.rs: gatilho_inserir; apresentacao.rs: Acao::Ir/Link | Validação visual não realizada neste levantamento. |
 | FTS-0890 | Pendente | modelo.rs: Animacao/Elemento::destino | destino é navegação para slide; não gatilho de efeito em objeto específico. |
 | FTS-0891 | Feito | links.rs; elementos.rs: gatilho_inserir; apresentacao.rs: Acao::Ir/Link | Validação visual não realizada neste levantamento. |
-| FTS-0892 | Pendente | faixa_abas.rs: apresentacao; modelo.rs | Ensaio e gravação desabilitados; não há pipeline de vídeo/câmera. |
+| FTS-0892 | Feito | faixa_abas.rs: apresentacao (Ensaiar intervalos); app.rs: ensaio, ensaio_marcar; core efeitos.rs: tempos_do_ensaio | Apresenta do começo, soma o tempo de cada slide e grava em `Transicao::apos` numa edição só; testes no core e no app. |
 | FTS-0893 | Pendente | faixa_abas.rs: apresentacao; modelo.rs | Ensaio e gravação desabilitados; não há pipeline de vídeo/câmera. |
 | FTS-0894 | Pendente | faixa_abas.rs: apresentacao; modelo.rs | Ensaio e gravação desabilitados; não há pipeline de vídeo/câmera. |
 | FTS-0895 | Pendente | faixa_abas.rs: apresentacao; modelo.rs | Ensaio e gravação desabilitados; não há pipeline de vídeo/câmera. |

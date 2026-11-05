@@ -250,6 +250,10 @@ pub enum FaixaMensagem {
     Apresentar,
     ApresentarDoAtual,
     ApresentarComNotas,
+    /// Apresenta do começo medindo o tempo de cada slide; ao sair, os tempos viram o avanço automático.
+    Ensaiar,
+    /// A apresentação numa janela comum (sem tela cheia), para mostrar numa reunião por vídeo.
+    ModoLeitura,
     PersonalizadasAbrir,
     // Exibição
     ZoomMais,

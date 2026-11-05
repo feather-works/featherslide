@@ -15,6 +15,7 @@ format and runs entirely on your machine.
 | Area | Highlights |
 |---|---|
 | **Slides** | slide and element editing with undo, layouts with drawn backgrounds, formatted text |
+| **Presenting** | full screen, presenter view on a second screen, reading mode in a window, rehearse timings |
 | **Shapes** | shape catalog, icons, SmartArt and WordArt through the shared [`feather-shapes`](https://github.com/feather-works/feather-shapes) engine |
 | **Charts and tables** | charts through [`feather-charts`](https://github.com/feather-works/feather-charts), tables with editable structure, chart export as SVG |
 | **Files** | opens `.pptx` and `.odp` at their own slide size; saves `.fsdz`; exports PDF and image. Autosave and recovery points are written off the window thread |
@@ -26,9 +27,9 @@ verification evidence: [`docs/VERIFICACAO-FUNCIONALIDADES.md`](docs/VERIFICACAO-
 
 ## The `.fsdz` format
 
-A compressed container with **Git history embedded** (built with
-[`gix`](https://github.com/Byron/gitoxide), pure Rust): the presentation's
-versions live inside the file, with no server.
+A ZIP container with the presentation as Arrow tables (`data/*.arrow`) and the images
+and fonts under `assets/`. No JSON inside. Each save keeps the previous version in
+`.<name>.versoes/` next to the file (the 20 most recent).
 
 ## Layout
 

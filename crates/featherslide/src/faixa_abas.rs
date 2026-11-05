@@ -182,10 +182,6 @@ fn pequeno<'a>(icone: pelicano::SvgView, rotulo: &str, msg: Option<Msg>, ativo: 
 }
 
 /// Um comando que ainda não existe: aparece apagado, com a dica do que fará.
-fn em_breve_grande<'a>(icone: pelicano::SvgView, rotulo: &str, o_que: &str) -> Element<'a, Msg> {
-    dica(grande(icone, rotulo, None, false), &format!("Em breve: {o_que}"))
-}
-
 fn em_breve_pequeno<'a>(icone: pelicano::SvgView, rotulo: &str, o_que: &str) -> Element<'a, Msg> {
     dica(pequeno(icone, rotulo, None, false), &format!("Em breve: {o_que}"))
 }
@@ -1307,7 +1303,7 @@ pub fn apresentacao<'a>(c: &Contexto) -> Element<'a, Msg> {
     );
     let ensaio = grupo(
         column![
-            em_breve_pequeno(icone_relogio(13.0, "#5f6368"), "Ensaiar intervalos", "medir o tempo de cada slide e gravar na transição"),
+            dica(pequeno(icone_relogio(13.0, "#5f6368"), "Ensaiar intervalos", Some(Msg::Ensaiar), false), "Apresenta do começo e mede quanto tempo cada slide fica na tela; ao sair (Esc), os tempos viram o avanço automático (Ctrl+Z desfaz)."),
             em_breve_pequeno(icone_gravar(13.0, "#5f6368"), "Gravar apresentação", "gravar tela, voz e ponteiro"),
         ]
         .spacing(2)
@@ -1365,7 +1361,7 @@ pub fn exibir<'a>(c: &Contexto) -> Element<'a, Msg> {
         row![
             grande(icone_normal(22.0, "#1a73e8"), "Normal", Some(Msg::ExibirNormal), !c.classificacao),
             grande(icone_classificacao(22.0, "#1a73e8"), "Classificação", Some(Msg::Classificacao), c.classificacao),
-            em_breve_grande(icone_apresentar(22.0, "#5f6368"), "Modo de leitura", "ler a apresentação numa janela, sem tela cheia"),
+            dica(grande(icone_apresentar(22.0, "#5f6368"), "Modo de leitura", Some(Msg::ModoLeitura), false), "Apresenta na própria janela, sem tela cheia: bom para mostrar numa reunião por vídeo. Esc sai."),
         ]
         .spacing(4)
         .into(),

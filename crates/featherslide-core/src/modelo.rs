@@ -368,6 +368,10 @@ pub struct Elemento {
     pub indices_texto: Vec<crate::texto_formato::Indice>,
     #[serde(default)]
     pub espacamento_letras: f32,
+    /// Margem interna do texto (esquerda, cima, direita, baixo), em pontos. `None` = a padrão
+    /// do PowerPoint ([`crate::quadro::MARGEM_X`] dos lados, [`crate::quadro::MARGEM_Y`] em cima e embaixo).
+    #[serde(default)]
+    pub margem: Option<[f32; 4]>,
     pub estilo: EstiloDoTexto,
     /// O endereço da imagem (`data:image/...;base64,...`), só no tipo `Imagem`.
     pub imagem: Imagem,
@@ -447,6 +451,14 @@ fn sem_recorte() -> Tipo {
     Tipo::Retangulo
 }
 
+impl Elemento {
+    /// A margem interna do texto (esquerda, cima, direita, baixo), em pontos.
+    pub fn margens(&self) -> [f32; 4] {
+        use crate::quadro::{MARGEM_X, MARGEM_Y};
+        self.margem.unwrap_or([MARGEM_X, MARGEM_Y, MARGEM_X, MARGEM_Y])
+    }
+}
+
 impl Default for Elemento {
     /// Uma caixa de texto vazia em (0, 0), sem tamanho: o ponto de partida dos construtores.
     fn default() -> Self {
@@ -466,6 +478,7 @@ impl Default for Elemento {
             texto: String::new(),
             indices_texto: Vec::new(),
             espacamento_letras: 0.0,
+            margem: None,
             estilo: EstiloDoTexto::default(),
             imagem: Imagem::default(),
             visual_imagem: crate::imagem::VisualImagem::default(),

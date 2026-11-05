@@ -8,7 +8,8 @@ use crate::dados::{self, Primitiva};
 use crate::medida;
 use crate::modelo::{Alinhamento, Elemento, Papel, Slide, Sombra, Tipo, Vertical};
 
-/// Margem interna da caixa de texto, em pontos (a do PowerPoint: 0,1" dos lados, 0,05" em cima e embaixo).
+/// Margem interna padrão da caixa de texto, em pontos (a do PowerPoint: 0,1" dos lados, 0,05" em cima e
+/// embaixo); cada elemento pode ter a sua ([`Elemento::margem`]). `MARGEM_X` também separa as colunas.
 pub const MARGEM_X: f32 = 7.2;
 pub const MARGEM_Y: f32 = 3.6;
 /// Altura da linha, em múltiplos do tamanho da letra.
@@ -131,7 +132,8 @@ fn linhas_de(e: &Elemento, texto: &str) -> Vec<LinhaDeTexto> {
     }
     let est = &e.estilo;
     let entrelinha = if est.entrelinha > 0.0 { est.entrelinha } else { ENTRELINHA };
-    let util = (e.largura - 2.0 * MARGEM_X).max(est.tamanho);
+    let [m_esq, m_cima, m_dir, m_baixo] = e.margens();
+    let util = (e.largura - m_esq - m_dir).max(est.tamanho);
     let duas_colunas = est.colunas == 2;
     let larg_col = if duas_colunas { ((util - MARGEM_X) / 2.0).max(est.tamanho) } else { util };
     let personalizado = !e.indices_texto.is_empty() || e.espacamento_letras != 0.0;
@@ -141,9 +143,9 @@ fn linhas_de(e: &Elemento, texto: &str) -> Vec<LinhaDeTexto> {
     let passo = est.tamanho * entrelinha;
     let altura_texto = passo * corte as f32;
     let topo = match est.vertical {
-        Vertical::Topo => e.y + MARGEM_Y,
-        Vertical::Meio => e.y + (e.altura - altura_texto) / 2.0,
-        Vertical::Base => e.y + e.altura - MARGEM_Y - altura_texto,
+        Vertical::Topo => e.y + m_cima,
+        Vertical::Meio => e.y + m_cima + (e.altura - m_cima - m_baixo - altura_texto) / 2.0,
+        Vertical::Base => e.y + e.altura - m_baixo - altura_texto,
     };
     let mut byte = 0;
     quebradas
@@ -156,7 +158,7 @@ fn linhas_de(e: &Elemento, texto: &str) -> Vec<LinhaDeTexto> {
                 (0, i)
             };
             let offset_x = if col_idx == 1 { larg_col + MARGEM_X } else { 0.0 };
-            let base_x = e.x + MARGEM_X + offset_x;
+            let base_x = e.x + m_esq + offset_x;
             let inicio = e.texto.get(byte..).and_then(|s|s.find(&texto)).map_or(byte,|p|byte+p);
             byte = inicio + texto.len();
             let largura = if personalizado { texto.char_indices().map(|(i,c)|crate::texto_formato::avancar(e,inicio+i,c)).sum::<f32>() - if texto.is_empty(){0.0}else{e.espacamento_letras} } else { medida::largura(&texto, est.tamanho, est.negrito) };

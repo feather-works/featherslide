@@ -45,6 +45,25 @@ impl Sessao {
         })
     }
 
+    /// Os tempos de um ensaio (id do slide, segundos na tela) viram o "avançar depois de" de
+    /// cada slide, numa edição só (um Ctrl+Z desfaz). Slides fora do ensaio não mudam.
+    pub fn tempos_do_ensaio(&mut self, tempos: &[(u64, f32)]) -> Result<Mudanca, String> {
+        if tempos.is_empty() {
+            return Err("O ensaio não passou por nenhum slide.".into());
+        }
+        self.editar(|s| {
+            let mut mudados = Vec::new();
+            for (i, slide) in s.ap.slides.iter_mut().enumerate() {
+                if let Some(&(_, seg)) = tempos.iter().find(|(id, _)| *id == slide.id) {
+                    // 0 quer dizer "ao clicar": um slide passado rápido fica com 0,1 s.
+                    slide.transicao.apos = ((seg * 10.0).round() / 10.0).clamp(0.1, 3600.0);
+                    mudados.push(i);
+                }
+            }
+            Ok((mudados, false))
+        })
+    }
+
     /// A animação dos elementos selecionados.
     pub fn animacao_definir(&mut self, a: Animacao) -> Result<Mudanca, String> {
         self.exigir_selecao()?;
@@ -101,5 +120,24 @@ impl Sessao {
             passo.duracao = passo.duracao.max(fim_do_anterior);
         }
         passos
+    }
+}
+
+#[cfg(test)]
+mod testes {
+    use crate::sessao::Sessao;
+
+    #[test]
+    fn tempos_do_ensaio_viram_avanco_automatico_com_um_desfazer() {
+        let mut s = Sessao::default();
+        s.slide_novo("em_branco").unwrap();
+        s.slide_novo("em_branco").unwrap();
+        let ids: Vec<u64> = s.apresentacao().slides.iter().map(|sl| sl.id).collect();
+        s.tempos_do_ensaio(&[(ids[0], 12.34), (ids[2], 0.0)]).unwrap();
+        let apos: Vec<f32> = s.apresentacao().slides.iter().map(|sl| sl.transicao.apos).collect();
+        assert_eq!(apos, vec![12.3, 0.0, 0.1], "o slide 2 ficou fora do ensaio; o 3 passou rápido");
+        s.desfazer().unwrap();
+        assert!(s.apresentacao().slides.iter().all(|sl| sl.transicao.apos == 0.0));
+        assert!(s.tempos_do_ensaio(&[]).is_err());
     }
 }

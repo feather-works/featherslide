@@ -447,17 +447,10 @@ impl Leitor<'_> {
             return None;
         }
         // A margem interna do arquivo (`lIns`… em EMU; o padrão é 0,1" × 0,05"), na escala do slide.
-        // shortcut: o quadro só tem a margem fixa (MARGEM_X/Y); a caixa de texto (sem fundo nem contorno)
-        // absorve a diferença na própria caixa, e a forma desenhada fica com a fixa — margem por elemento
-        // no .fsdz quando aparecer forma desenhada com o texto deslocado.
-        if tipo == Tipo::Texto {
-            let margem = |nome: &str, padrao: f64| (heranca.corpos().iter().find_map(|b| b.num(nome)).unwrap_or(padrao) / EMU_POR_PT) as f32 * self.escala;
-            let (esq, cima, dir, baixo) = (margem("lIns", 91_440.0), margem("tIns", 45_720.0), margem("rIns", 91_440.0), margem("bIns", 45_720.0));
-            x += esq - MARGEM_X;
-            y += cima - MARGEM_Y;
-            w = (w - (esq + dir - 2.0 * MARGEM_X)).max(1.0);
-            h = (h - (cima + baixo - 2.0 * MARGEM_Y)).max(1.0);
-        }
+        let margem_de = |nome: &str, padrao: f64| (heranca.corpos().iter().find_map(|b| b.num(nome)).unwrap_or(padrao) / EMU_POR_PT) as f32 * self.escala;
+        let margem = [margem_de("lIns", 91_440.0), margem_de("tIns", 45_720.0), margem_de("rIns", 91_440.0), margem_de("bIns", 45_720.0)];
+        let padrao = [MARGEM_X, MARGEM_Y, MARGEM_X, MARGEM_Y];
+        let margem = margem.iter().zip(padrao).any(|(m, p)| (m - p).abs() > 0.01).then_some(margem);
         Some(Elemento {
             id: self.novo_id(),
             tipo,
@@ -471,6 +464,7 @@ impl Leitor<'_> {
             contorno,
             espessura,
             texto,
+            margem,
             estilo: texto::estilo(corpo, &heranca, tema, self.escala),
             ajustes: ajustes_da_forma(prst, geom, xfrm),
             sombra: self.sombra(sp_pr, tema),

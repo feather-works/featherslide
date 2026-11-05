@@ -498,6 +498,8 @@
         "titulo": "Apresentar",
         "corpo": [
           "F5 começa do primeiro slide; Shift+F5, do slide atual.",
+          "Apresentação → Ensaiar intervalos: apresenta do começo e mede o tempo de cada slide; ao sair (Esc), os tempos viram o avanço automático de cada slide. Ctrl+Z desfaz.",
+          "Exibir → Modo de leitura: apresenta na própria janela, sem tela cheia, para mostrar numa reunião por vídeo.",
           "• Avance com →, Espaço, Enter ou clique; volte com ← ou Backspace. Home e End vão ao primeiro e ao último.",
           "• Esc sai da apresentação."
         ]
@@ -507,6 +509,7 @@
         "corpo": [
           "A apresentação é gravada como .fsdz: um contêiner com os slides em colunas Arrow e as imagens como arquivos.",
           "• Abrir também lê .pptx (PowerPoint e Google Apresentações) e .odp (LibreOffice Impress): slides, caixas, formas, imagens, fundo e anotações, no tamanho de slide do arquivo (16:10, A4 e outros não são esticados). Ao salvar, a apresentação vira .fsdz (o original não é tocado).",
+          "• A margem interna de cada caixa de texto vem do arquivo .pptx (inclusive margem zero), e fica guardada no .fsdz.",
           "• Cada vez que a apresentação é salva (também pelo salvamento automático), a versão anterior fica no Histórico de versões, em Arquivos; ficam as 20 mais recentes.",
           "• Ctrl+S salva no mesmo arquivo; Ctrl+Shift+S pergunta onde.",
           "• No navegador (modo de desenvolvimento), Salvar baixa o arquivo."
