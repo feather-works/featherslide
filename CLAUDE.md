@@ -579,6 +579,9 @@ do aplicativo continuam sendo conteúdo textual e identidade do produto.
 - Rascunhos periódicos a cada 30 s, mesmo sem automático ligado, e antes de
   fechar/reverter. São oferecidos em Recuperação ao iniciar; abrem como cópia
   editável sem sobrescrever o original. Confirmar fechamento conserva rascunhos.
+  A lista mostra os 6 mais recentes (botão Mostrar todos); recuperar continua
+  gravando no mesmo rascunho (não duplica) e Descartar apaga um ou todos, com
+  confirmação. `FEATHERSLIDE_CAPTURAR_TELA=arquivos` captura esse painel.
 - Histórico de versões salva o conteúdo anterior em `.<arquivo>.versoes/`
   ao lado do .fsdz antes da substituição atômica. O painel abre versões como cópias;
   renomear leva o histórico junto. Git dentro do .fsdz continua sendo outro item.

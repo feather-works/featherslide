@@ -1100,6 +1100,11 @@ impl FeatherSlideApp {
                         self.passo_captura = 1;
                         return Task::none();
                     }
+                    // `FEATHERSLIDE_CAPTURAR_TELA=arquivos`: o painel Arquivos (com Recuperação).
+                    if std::env::var("FEATHERSLIDE_CAPTURAR_TELA").as_deref() == Ok("arquivos") {
+                        self.passo_captura = 1;
+                        return self.tratar_arquivos(crate::arquivos::Acao::Painel);
+                    }
                     // Uma caixa de texto selecionada, para a faixa aparecer ligada.
                     self.em_tela_inicio = false;
                     if let Ok(a) = std::env::var("FEATHERSLIDE_CAPTURAR_ABA") {

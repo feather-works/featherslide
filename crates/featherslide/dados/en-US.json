@@ -519,6 +519,7 @@
           "• To send to someone on PowerPoint or Google Slides: the Export as PowerPoint (.pptx) button on the top bar. Slides, text boxes, shapes, photos, tables, charts, background and notes go along; icons, WordArt and freehand drawings are still left out (the status bar says how many).",
           "• Each text box keeps the inner margin from the .pptx file (zero margin included), and it is stored in the .fsdz.",
           "• Each time the presentation is saved (autosave included), the previous version goes to Version history, under Files; the 20 most recent are kept.",
+          "• Recovery keeps the drafts that were never saved (and a copy of any deleted file), newest first. Click one to pick up where you left off; Discard removes a draft (or all of them) after you confirm.",
           "• Ctrl+S saves to the same file; Ctrl+Shift+S asks where.",
           "• In the browser (development mode), Save downloads the file."
         ]

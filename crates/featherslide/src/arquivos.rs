@@ -134,6 +134,9 @@ pub enum Acao {
     Favorito,
     Local(PathBuf),
     Recuperar(PathBuf),
+    /// Apaga um rascunho de Recuperação (None: todos).
+    Descartar(Option<PathBuf>),
+    RecuperacoesTodas,
     Versao(PathBuf),
     Importar,
     ImportarEscolhido(Option<PathBuf>),
@@ -148,6 +151,7 @@ pub struct Estado {
     pub pasta: PathBuf,
     pub lista: Vec<PathBuf>,
     pub recuperacoes: Vec<PathBuf>,
+    recuperacoes_todas: bool,
     nomes_recuperacoes: std::collections::HashMap<PathBuf, String>,
     pub versoes: Vec<PathBuf>,
     pub pendente: Option<Acao>,
@@ -165,6 +169,7 @@ impl Default for Estado {
                 .unwrap_or_else(|| PathBuf::from(".")),
             lista: Vec::new(),
             recuperacoes: Vec::new(),
+            recuperacoes_todas: false,
             nomes_recuperacoes: Default::default(),
             versoes: Vec::new(),
             pendente: None,
@@ -435,6 +440,10 @@ impl FeatherSlideApp {
             .into_iter()
             .filter(|p| !ativos.contains(&p))
             .collect();
+        // Mais recente primeiro: o rascunho que a pessoa procura costuma ser o último.
+        self.arquivos.recuperacoes.sort_by_key(|p| {
+            std::cmp::Reverse(std::fs::metadata(p).and_then(|m| m.modified()).ok())
+        });
         self.arquivos.nomes_recuperacoes = self
             .arquivos
             .recuperacoes
@@ -493,6 +502,7 @@ impl FeatherSlideApp {
                     || self.arquivos.abertos.iter().any(|d| d.sessao.estado().sujo)
             }
             Excluir => self.caminho_arquivo.is_some(),
+            Descartar(_) => true,
             _ => false,
         };
         if precisa_confirmar {
@@ -504,6 +514,7 @@ impl FeatherSlideApp {
     }
     fn executar_arquivo(&mut self, acao: Acao) -> Task<Mensagem> {
         use Acao::*;
+        let recuperar = matches!(acao, Recuperar(_));
         let resultado: Result<(), String> = match acao {
             Painel => {
                 self.atualizar_arquivos();
@@ -666,9 +677,24 @@ impl FeatherSlideApp {
                 self.config.gravar();
                 Ok(())
             }
+            Descartar(alvo) => {
+                for p in alvo.map_or_else(|| self.arquivos.recuperacoes.clone(), |p| vec![p]) {
+                    let _ = std::fs::remove_file(&p);
+                }
+                self.atualizar_arquivos();
+                Ok(())
+            }
+            RecuperacoesTodas => {
+                self.arquivos.recuperacoes_todas = true;
+                Ok(())
+            }
             Recuperar(p) | Versao(p) => match ler(&p) {
                 Ok(ap) => {
                     self.trocar_sessao(Sessao::nova(ap));
+                    // Continua no mesmo rascunho: recuperar não deixa uma cópia a mais na lista.
+                    if recuperar {
+                        self.rascunho = p.clone();
+                    }
                     self.caminho_arquivo = None;
                     self.nome_arquivo = "Apresentação recuperada".into();
                     self.sessao.marcar_alterado();
@@ -841,6 +867,10 @@ impl FeatherSlideApp {
         if let Some(pendente) = &self.arquivos.pendente {
             let aviso = if matches!(pendente, Acao::Excluir) {
                 "Excluir o arquivo? Uma cópia será mantida em Recuperação."
+            } else if matches!(pendente, Acao::Descartar(Some(_))) {
+                "Descartar este rascunho? Ele não poderá ser recuperado."
+            } else if matches!(pendente, Acao::Descartar(None)) {
+                "Descartar todos os rascunhos de Recuperação? Eles não poderão ser recuperados."
             } else {
                 "Há alterações não salvas. Ao continuar, elas serão preservadas em Recuperação."
             };
@@ -1126,24 +1156,63 @@ impl FeatherSlideApp {
         );
         if !self.arquivos.recuperacoes.is_empty() {
             let mut recuperacao = column![
-                row![icone_relogio(22.0, cinza), text("Recuperação").size(18)]
-                    .spacing(10)
-                    .align(Align::Center),
+                row![
+                    icone_relogio(22.0, cinza),
+                    text("Recuperação").size(18),
+                    Space::new(Length::FILL, Length::Shrink),
+                    acao("Descartar todos", Acao::Descartar(None))
+                        .style(estilo_botao_pequeno(false)),
+                ]
+                .spacing(10)
+                .align(Align::Center),
                 text("Retome um rascunho ou abra uma cópia de um arquivo excluído.")
                     .size(13)
                     .color(COR_TEXTO_MUTED()),
             ]
             .spacing(12);
-            for path in &self.arquivos.recuperacoes {
+            const VISIVEIS: usize = 6;
+            let total = self.arquivos.recuperacoes.len();
+            let mostrar = if self.arquivos.recuperacoes_todas { total } else { VISIVEIS };
+            for path in self.arquivos.recuperacoes.iter().take(mostrar) {
                 let nome = self
                     .arquivos
                     .nomes_recuperacoes
                     .get(path)
                     .map(String::as_str)
                     .unwrap_or("Rascunho recuperável");
-                recuperacao = recuperacao.push(
-                    acao(&rotulo_versao(path, nome), Acao::Recuperar(path.clone()))
+                recuperacao = recuperacao.push(horizontal_rule(1.0)).push(
+                    row![
+                        button(
+                            row![
+                                container(icone_apresentar(22.0, cinza))
+                                    .padding(10)
+                                    .style(estilo_selo_arquivos),
+                                column![
+                                    text(nome.to_owned()).size(14),
+                                    text(rotulo_versao(path, "Rascunho"))
+                                        .size(12)
+                                        .color(COR_TEXTO_MUTED()),
+                                ]
+                                .spacing(2)
+                                .width(Length::FILL),
+                            ]
+                            .spacing(14)
+                            .align(Align::Center),
+                        )
+                        .on_press(Mensagem::Arquivos(Acao::Recuperar(path.clone())))
+                        .padding([8, 4])
                         .width(Length::FILL)
+                        .style(estilo_botao_pequeno(false)),
+                        acao("Descartar", Acao::Descartar(Some(path.clone())))
+                            .style(estilo_botao_pequeno(false)),
+                    ]
+                    .spacing(8)
+                    .align(Align::Center),
+                );
+            }
+            if total > mostrar {
+                recuperacao = recuperacao.push(horizontal_rule(1.0)).push(
+                    acao(&format!("Mostrar todos ({total})"), Acao::RecuperacoesTodas)
                         .style(estilo_botao_pequeno(false)),
                 );
             }
@@ -1375,6 +1444,13 @@ mod testes {
         assert_eq!(app.sessao.apresentacao(), &primeira);
         assert!(app.sessao.estado().sujo);
         assert!(app.caminho_arquivo.is_none());
+        // Recuperar continua no mesmo rascunho (não duplica); Descartar apaga depois de confirmar.
+        assert_eq!(app.rascunho, pasta.arquivo("primeira.fsdz"));
+        let segunda = pasta.arquivo("segunda.fsdz");
+        let _ = app.tratar_arquivos(Acao::Descartar(Some(segunda.clone())));
+        assert!(segunda.exists());
+        let _ = app.tratar_arquivos(Acao::Confirmar);
+        assert!(!segunda.exists());
     }
     #[test]
     fn renomear_move_historico_e_excluir_mantem_recuperacao() {
