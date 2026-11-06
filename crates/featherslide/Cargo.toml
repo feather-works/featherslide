@@ -1,6 +1,6 @@
 [package]
 name = "featherslide"
-version = "0.1.1"
+version = "0.2.0"
 description = "FeatherSlide: apresentações em Rust (interface no pelicano)"
 authors = ["FeatherSlide"]
 edition = "2021"
