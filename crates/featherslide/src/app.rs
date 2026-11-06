@@ -216,6 +216,8 @@ pub struct FeatherSlideApp {
     pub renomeando_secao: Option<(usize, String)>,
     /// O tamanho da janela principal (para o menu não abrir para fora).
     pub tamanho_janela: Size,
+    /// A janela principal está maximizada (sem cantos arredondados nem borda de redimensionar).
+    pub maximizada: bool,
     /// O título que a janela principal mostra agora (o pelicano só troca com `WindowCmd::Title`).
     pub titulo_janela: String,
     /// Repetir a apresentação até Esc; grade e guias no palco; e a exibição em classificação de slides.
@@ -389,6 +391,9 @@ pub enum Mensagem {
     FecharMenu,
     ClassificacaoClique(usize),
     JanelaRedimensionada(WindowId, Size),
+    Maximizada(bool),
+    /// Puxou a borda da janela com barra própria: redimensiona pelo sistema.
+    Puxar(pelicano::ResizeDirection),
     ApresentacaoProximo,
     ApresentacaoAnterior,
     ApresentacaoSair,
@@ -526,6 +531,7 @@ impl Default for FeatherSlideApp {
             modificadores: Modifiers::default(),
             renomeando_secao: None,
             tamanho_janela: Size::new(1280.0, 800.0),
+            maximizada: false,
             repetir: false,
             grade: false,
             guias: false,
@@ -545,6 +551,8 @@ impl FeatherSlideApp {
             title: "FeatherSlide".into(),
             size: Size::new(1280.0, 800.0),
             decorations: !config.barra_propria,
+            // Com a barra própria, a janela tem alfa para os cantos arredondados (no Windows quem arredonda é o DWM).
+            transparent: config.barra_propria && !cfg!(windows),
             close_on_request: false,
             ..Default::default()
         }));
@@ -1725,6 +1733,12 @@ impl FeatherSlideApp {
             }
             Mensagem::ClassificacaoClique(i) => {
                 if self.sessao.slide_ir(i).is_ok() { self.classificacao = false; }
+            }
+            Mensagem::Maximizada(m) => self.maximizada = m,
+            Mensagem::Puxar(d) => {
+                if let Some(id) = self.janelas.principal {
+                    return Task::window_of(id, WindowCmd::DragResize(d));
+                }
             }
             Mensagem::JanelaRedimensionada(id, tamanho) => {
                 if Some(id) == self.janelas.principal {
@@ -4428,6 +4442,9 @@ impl FeatherSlideApp {
         {
             return self.view_conteudo(janela);
         }
+        if self.config.barra_propria && Some(janela) == self.janelas.principal {
+            return feather_ui::cromo::moldura_redimensionavel_com(self.view_conteudo(janela), self.maximizada, Mensagem::Puxar);
+        }
         feather_ui::cromo::moldura_janela(self.view_conteudo(janela))
     }
 
@@ -5688,6 +5705,7 @@ impl App for FeatherSlideApp {
             Event::FileDropped(p) => Some(Mensagem::ArquivoEscolhidoParaAbrir(Some(p.clone()))),
             Event::CloseRequested => Some(Mensagem::FecharJanela(id)),
             Event::Resized(tam) => Some(Mensagem::JanelaRedimensionada(id, *tam)),
+            Event::Maximized(m) if Some(id) == self.janelas.principal => Some(Mensagem::Maximizada(*m)),
             Event::ModifiersChanged(_) => Some(Mensagem::TecladoJanela(ev.clone(), id)),
             _ => None,
         }

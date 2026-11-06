@@ -19,6 +19,9 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 - Dependências: pelicano v0.1.23 e o feather-ui pela revisão `daeb89b` (ramo
   `featherpdf-v0.3.11`, o mesmo do FeatherPDF: ícones de alinhar e o F12 com gráficos).
   **Trocar pela tag do feather-ui antes de lançar.**
+- Janela com barra própria: `transparent` (fora do Windows) e `cromo::moldura_redimensionavel_com`
+  — cantos de 14 px, borda de redimensionar (`Mensagem::Puxar` → `DragResize`), reta maximizada
+  (`Event::Maximized` → `app.maximizada`). Igual ao FeatherDB.
 - F12: o Monitor comum (`feather_ui::monitor`); `registro.rs` só guarda as linhas até o tique
   entregá-las ao Console. Aba Organizar: grupo Alinhar como no FeatherPDF ("Ao slide" /
   "À seleção", `alinhar_ao_slide`). Abas de documento com X (`Acao::FecharAba`).
