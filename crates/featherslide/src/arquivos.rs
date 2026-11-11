@@ -789,7 +789,7 @@ impl FeatherSlideApp {
             .ok_or("Pasta de recuperação inválida")?;
         std::fs::create_dir_all(pasta).map_err(|e| e.to_string())?;
         // Os bytes do original, com a extensão dele: um `.pptx` convertido para `.fsdz` perdia o que não importamos.
-        let extensao = origem.extension().unwrap_or_default().to_string_lossy().to_lowercase();
+        let extensao = origem.extension().map(|e| e.to_string_lossy().to_lowercase()).filter(|e| e == "pptx" || e == "odp").unwrap_or_else(|| "fsdz".into());
         let recuperacao = pasta.join(format!("excluida-{}.{extensao}", id()));
         std::fs::copy(&origem, &recuperacao).map_err(|e| e.to_string())?;
         checkpoint(&self.sessao, &self.rascunho)?;

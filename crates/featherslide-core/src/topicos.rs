@@ -63,10 +63,14 @@ impl Sessao {
                 }
                 let slide = &mut s.ap.slides[k];
                 if titulo != "(sem título)" {
-                    // A estrutura mostra só a 1ª linha do título: igual a ela, o título (e as linhas de baixo) fica.
+                    // A estrutura mostra só a 1ª linha do título: troca só ela; as de baixo ficam.
                     if let Some(e) = slide.elementos.iter_mut().find(|e| e.papel == Papel::Titulo && e.texto.lines().next().unwrap_or("") != titulo) {
-                        crate::texto_formato::atualizar_indices(e, titulo);
-                        e.texto.clone_from(titulo);
+                        let novo = match e.texto.split_once('\n') {
+                            Some((_, resto)) => format!("{titulo}\n{resto}"),
+                            None => titulo.clone(),
+                        };
+                        crate::texto_formato::atualizar_indices(e, &novo);
+                        e.texto = novo;
                     }
                 }
                 if let Some(e) = slide.elementos.iter_mut().find(|e| matches!(e.papel, Papel::Corpo | Papel::Subtitulo)) {
@@ -107,6 +111,8 @@ mod testes {
         s.texto_definir(id, "Resultados\n2026").unwrap();
         s.topicos_aplicar(&s.topicos()).unwrap();
         assert_eq!(s.slide().elementos.iter().find(|e| e.id == id).unwrap().texto, "Resultados\n2026");
+        s.topicos_aplicar("Balanço").unwrap();
+        assert_eq!(s.slide().elementos.iter().find(|e| e.id == id).unwrap().texto, "Balanço\n2026", "a 2ª linha fica");
         // Sobrescrito no fim e título trocado por um mais curto: o trecho não pode passar do texto.
         s.texto_definir(id, "Ab2").unwrap();
         s.texto_indice(id, 2, 3, 1).unwrap();

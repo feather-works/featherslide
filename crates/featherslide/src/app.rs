@@ -87,8 +87,8 @@ pub struct FeatherSlideApp {
     pub cache_quadros: std::cell::RefCell<std::collections::HashMap<u64, Quadro>>,
     /// Os algarismos digitados durante a apresentação, à espera do Enter que leva ao slide.
     numero_digitado: String,
-    /// Zoom de slide já desenhado: (documento, elemento) → resumo do quadro do destino que virou a foto.
-    gatilhos_desenhados: std::collections::HashMap<(String, u64), u64>,
+    /// Zoom de slide já desenhado: (documento, elemento) → resumo do quadro do destino e da foto que ele deu.
+    gatilhos_desenhados: std::collections::HashMap<(String, u64), (u64, u64)>,
     /// Os ondulados do slide atual por (slide, versão, gramática): o `view` roda a cada quadro, e
     /// refazer o quadro e o corretor ali era o que mais pesava ao arrastar.
     /// O quadro do palco (com dicas) por (slide, versão): refazer o texto de todos os elementos a cada quadro pesava.
@@ -2317,6 +2317,8 @@ impl FeatherSlideApp {
     }
 
     fn comecar_apresentacao(&mut self, do_inicio: bool) -> Task<Mensagem> {
+        // Algarismo que sobrou da apresentação anterior (saiu com clique, não com tecla) não vale aqui.
+        self.numero_digitado.clear();
         if do_inicio {
             let primeiro = self.primeiro_visivel();
             let _ = self.sessao.slide_ir(primeiro);
@@ -4982,13 +4984,14 @@ impl FeatherSlideApp {
                         // Cada gravação redesenhava todos os zooms na thread da janela: só o destino que mudou.
                         let chave = (doc.clone(), el.id);
                         // Resumo do conteúdo, não a versão: ela recomeça a cada sessão (reverter, reabrir).
-                        let visto = serde_json::to_string(&q).map(|j| { use std::hash::{Hash, Hasher}; let mut h = std::collections::hash_map::DefaultHasher::new(); j.hash(&mut h); h.finish() }).unwrap_or(0);
-                        if el.tipo == Tipo::Imagem && self.gatilhos_desenhados.get(&chave) == Some(&visto) {
+                        // A foto entra no resumo: documentos sem identificador (ou outra aba) dividem a chave.
+                        let visto = serde_json::to_string(&q).map_or(0, |j| resumo(&j));
+                        if el.tipo == Tipo::Imagem && self.gatilhos_desenhados.get(&chave) == Some(&(visto, resumo(&el.imagem))) {
                             continue;
                         }
                         if let Ok(bytes) = featherslide_mcp::renderizar::renderizar_png(&q, 480, false, &fonte) {
                             let url = featherslide_io::base64::para_data_url("image/png", &bytes);
-                            vistos.push((chave, visto));
+                            vistos.push((chave, (visto, resumo(&url))));
                             if *el.imagem != *url {
                                 mudancas.push((s_idx, el.id, url));
                             }
@@ -5762,6 +5765,14 @@ impl App for FeatherSlideApp {
     fn on_unhandled_event(&self, id: WindowId, ev: &Event) -> Option<Mensagem> {
         matches!(ev, Event::Key { .. }).then(|| Mensagem::TecladoJanela(ev.clone(), id))
     }
+}
+
+/// Um resumo (hash) de um texto, para saber se mudou sem guardá-lo.
+fn resumo(texto: &str) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    texto.hash(&mut h);
+    h.finish()
 }
 
 /// A data e a hora de agora, no fuso do sistema (`dd/mm/aaaa HH:MM`).
@@ -6685,6 +6696,26 @@ fn numero_e_enter_vao_ao_slide_e_end_pula_o_oculto() {
     tecla(&mut app, Key::Named(NamedKey::Home), None);
     tecla(&mut app, Key::Named(NamedKey::End), None);
     assert_eq!(app.sessao.atual(), 2, "o 4º está oculto");
+}
+
+#[cfg(test)]
+#[test]
+fn zoom_de_slide_so_redesenha_quando_o_destino_muda() {
+    let mut app = FeatherSlideApp::default();
+    app.sessao.slide_novo("em_branco").unwrap();
+    app.sessao.slide_ir(0).unwrap();
+    app.sessao.gatilho_inserir(1, None, None).unwrap();
+    let foto = |app: &FeatherSlideApp| app.sessao.apresentacao().slides[0].elementos.last().unwrap().imagem.to_string();
+    app.atualizar_imagens_de_gatilhos();
+    let primeira = foto(&app);
+    assert!(primeira.starts_with("data:image/png"));
+    assert_eq!(app.gatilhos_desenhados.len(), 1);
+    app.atualizar_imagens_de_gatilhos();
+    assert_eq!(foto(&app), primeira);
+    app.sessao.slide_ir(1).unwrap();
+    app.sessao.elemento_inserir(Tipo::Retangulo, Some([0.0, 0.0, 900.0, 500.0]), None).unwrap();
+    app.atualizar_imagens_de_gatilhos();
+    assert_ne!(foto(&app), primeira, "o destino mudou: a foto também");
 }
 
 #[cfg(test)]

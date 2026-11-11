@@ -67,6 +67,10 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
 - **Rodapé → Começar em** (FTS-0974): `Rodape::numero_inicial` (padrão 1, 0 a 9999), 6ª coluna do
   texto `rodape` em `apresentacao.arrow` (arquivo antigo lê 1).
 - **`.odp` margem interna:** `fo:padding-*` / `fo:padding` do estilo vira `Elemento::margem`.
+- 2ª auditoria: Tópicos troca só a 1ª linha do título (as de baixo ficam); a cópia de Excluir de um
+  arquivo sem extensão conhecida vira `.fsdz` (senão sumia da Recuperação); o resumo do zoom inclui a
+  foto (documentos sem identificador dividiam a chave); algarismo digitado sobrando de uma apresentação
+  não vale na seguinte.
 - Ficou para depois: data local no Windows (`date` não existe lá: rodapé cai no UTC e os recentes
   ficam sem data); ponteiro laser/caneta e grade de slides durante a apresentação; espanhol (es-ES).
 
