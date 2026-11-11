@@ -98,7 +98,7 @@ pub fn pptx(pac: &mut Pacote<'_>) -> (String, String, Metadados) {
         let idioma = filho_texto(&core, "dc:language");
         if !idioma.is_empty() { dados.idioma = idioma; }
         let estado = filho_texto(&core, "cp:contentStatus");
-        if !estado.is_empty() { dados.estendidos.insert("Estado original".into(), estado); }
+        if !estado.is_empty() && estado.len() <= 16_384 { dados.estendidos.insert("Estado original".into(), estado); }
     }
     if let Ok(app) = pac.xml("docProps/app.xml") {
         dados.empresa = filho_texto(&app, "Company");
@@ -109,7 +109,8 @@ pub fn pptx(pac: &mut Pacote<'_>) -> (String, String, Metadados) {
             ("Template", "Modelo de origem"), ("PresentationFormat", "Formato original"),
         ] {
             let valor = filho_texto(&app, origem);
-            if !valor.is_empty() { dados.estendidos.insert(campo.into(), valor); }
+            // Acima de 16 kB o leitor do .fsdz recusa o mapa: o arquivo salvo não abriria mais.
+            if !valor.is_empty() && valor.len() <= 16_384 { dados.estendidos.insert(campo.into(), valor); }
         }
     }
     if let Ok(custom) = pac.xml("docProps/custom.xml") {
@@ -154,7 +155,7 @@ pub fn odp(pac: &mut Pacote<'_>) -> (String, String, Metadados) {
                 }
             }
             let gerador = filho_texto(meta, "meta:generator");
-            if !gerador.is_empty() { dados.estendidos.insert("Aplicativo de origem".into(), gerador); }
+            if !gerador.is_empty() && gerador.len() <= 16_384 { dados.estendidos.insert("Aplicativo de origem".into(), gerador); }
         }
     }
     if dados.ultimo_autor.is_empty() { dados.ultimo_autor.clone_from(&autor); }

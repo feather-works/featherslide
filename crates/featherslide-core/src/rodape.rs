@@ -6,6 +6,9 @@
 use crate::modelo::{Alinhamento, Apresentacao, Elemento, Papel, Rodape, Tipo, Vertical};
 use crate::sessao::{Mudanca, Sessao};
 
+/// O maior número que o primeiro slide pode receber.
+pub const NUMERO_INICIAL_MAXIMO: u32 = 9999;
+
 /// Ids das caixas geradas: no topo do espaço de ids, longe dos elementos de verdade.
 const PRIMEIRO_ID: u64 = u64::MAX - 8;
 
@@ -44,7 +47,7 @@ pub fn elementos(ap: &Apresentacao, indice: usize, hoje: &str) -> Vec<Elemento> 
         v.push(caixa(1, 0.33 * w, 0.34 * w, r.texto.clone(), Alinhamento::Centro));
     }
     if r.numero {
-        v.push(caixa(2, 0.70 * w, 0.25 * w, (indice + 1).to_string(), Alinhamento::Direita));
+        v.push(caixa(2, 0.70 * w, 0.25 * w, (indice as u64 + u64::from(r.numero_inicial)).to_string(), Alinhamento::Direita));
     }
     v
 }
@@ -59,6 +62,9 @@ impl Sessao {
     pub fn rodape_definir(&mut self, r: Rodape) -> Result<Mudanca, String> {
         if r.texto.chars().count() > 500 || r.data_fixa.chars().count() > 100 {
             return Err("O texto do rodapé é longo demais.".into());
+        }
+        if r.numero_inicial > NUMERO_INICIAL_MAXIMO {
+            return Err(format!("O primeiro número vai de 0 a {NUMERO_INICIAL_MAXIMO}."));
         }
         self.editar(|s| {
             s.ap.rodape = r;
@@ -75,7 +81,7 @@ mod testes {
     fn numero_segue_a_posicao_e_titulo_pode_ficar_sem() {
         let mut s = Sessao::default();
         s.slide_novo("titulo_conteudo").unwrap();
-        s.rodape_definir(Rodape { numero: true, texto: "Empresa".into(), sem_no_titulo: true, data: true, data_fixa: "01/02/2026".into() }).unwrap();
+        s.rodape_definir(Rodape { numero: true, texto: "Empresa".into(), sem_no_titulo: true, data: true, data_fixa: "01/02/2026".into(), ..Rodape::default() }).unwrap();
         assert!(elementos(s.apresentacao(), 0, "").is_empty(), "o slide 1 é de título");
         let e = elementos(s.apresentacao(), 1, "");
         let textos: Vec<&str> = e.iter().map(|e| e.texto.as_str()).collect();
@@ -86,6 +92,17 @@ mod testes {
         assert!(q.elementos.iter().any(|d| d.linhas.iter().any(|l| l.texto == "2")));
         s.desfazer().unwrap();
         assert!(elementos(s.apresentacao(), 1, "").is_empty());
+    }
+
+    #[test]
+    fn numeracao_comeca_onde_a_pessoa_pediu() {
+        let mut s = Sessao::default();
+        s.slide_novo("em_branco").unwrap();
+        s.rodape_definir(Rodape { numero: true, numero_inicial: 0, ..Rodape::default() }).unwrap();
+        assert_eq!(elementos(s.apresentacao(), 1, "")[0].texto, "1", "capa = 0, o segundo slide é o 1");
+        s.rodape_definir(Rodape { numero: true, numero_inicial: 12, ..Rodape::default() }).unwrap();
+        assert_eq!(elementos(s.apresentacao(), 1, "")[0].texto, "13");
+        assert!(s.rodape_definir(Rodape { numero: true, numero_inicial: 10_000, ..Rodape::default() }).is_err());
     }
 
     #[test]

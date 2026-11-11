@@ -5,10 +5,8 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use featherslide_core::modelo::Apresentacao;
 use featherslide_core::quadro::{Dicas, Quadro};
 use featherslide_core::sessao::Sessao;
-use featherslide_io::{fsdz, odp, pptx};
 
 use crate::configuracao::{pasta_das_apresentacoes, Configuracao};
 
@@ -53,16 +51,6 @@ pub fn caminhos(config: &Configuracao) -> Vec<PathBuf> {
     lista
 }
 
-/// Lê o arquivo (`.fsdz`, `.pptx` ou `.odp`).
-pub fn ler_arquivo(p: &Path) -> Result<Apresentacao, String> {
-    let bytes = std::fs::read(p).map_err(|e| e.to_string())?;
-    match p.extension().and_then(|e| e.to_str()).map(str::to_lowercase).as_deref() {
-        Some("pptx") => pptx::ler(&bytes),
-        Some("odp") => odp::ler(&bytes),
-        _ => fsdz::ler(&bytes),
-    }
-}
-
 fn data_local(segundos: u64, formato: &str) -> Option<String> {
     let saida = Command::new("date").arg("-d").arg(format!("@{segundos}")).arg(format!("+{formato}")).output().ok()?;
     saida.status.success().then(|| String::from_utf8_lossy(&saida.stdout).trim().to_string())
@@ -86,7 +74,7 @@ pub fn carregar(caminhos: Vec<PathBuf>) -> Vec<Recente> {
     caminhos
         .into_iter()
         .map(|caminho| {
-            let quadro = ler_arquivo(&caminho).ok().and_then(|ap| {
+            let quadro = featherslide_io::documentos::ler(&caminho).ok().and_then(|ap| {
                 let mut s = Sessao::nova(ap);
                 s.definir_dicas(Dicas::default());
                 s.quadro(0, None, false).ok().flatten()

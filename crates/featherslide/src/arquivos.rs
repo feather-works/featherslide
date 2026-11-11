@@ -44,6 +44,9 @@ pub(crate) fn destino_automatico(caminho: Option<&Path>, rascunho: &Path) -> (Pa
     }
 }
 
+/// Quantos rascunhos a Recuperação mostra antes do "Mostrar todos".
+const RECUPERACOES_VISIVEIS: usize = 6;
+
 /// A senha de um pedido de gravação, tirada na thread da janela: senha maior = conteúdo mais novo.
 static SENHAS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 /// A maior senha já gravada em cada caminho. O cadeado também põe as gravações em fila.
@@ -444,10 +447,13 @@ impl FeatherSlideApp {
         self.arquivos.recuperacoes.sort_by_key(|p| {
             std::cmp::Reverse(std::fs::metadata(p).and_then(|m| m.modified()).ok())
         });
+        // Ler um rascunho é abrir a apresentação inteira (fotos e tudo): só os que aparecem na lista.
+        let visiveis = if self.arquivos.recuperacoes_todas { usize::MAX } else { RECUPERACOES_VISIVEIS };
         self.arquivos.nomes_recuperacoes = self
             .arquivos
             .recuperacoes
             .iter()
+            .take(visiveis)
             .map(|path| {
                 let nome = ler(path)
                     .map(|ap| {
@@ -686,13 +692,15 @@ impl FeatherSlideApp {
             }
             RecuperacoesTodas => {
                 self.arquivos.recuperacoes_todas = true;
+                self.atualizar_arquivos();
                 Ok(())
             }
             Recuperar(p) | Versao(p) => match ler(&p) {
                 Ok(ap) => {
                     self.trocar_sessao(Sessao::nova(ap));
                     // Continua no mesmo rascunho: recuperar não deixa uma cópia a mais na lista.
-                    if recuperar {
+                    // Só um `.fsdz`: o ponto de recuperação grava `.fsdz` e não pode cair num `.pptx` guardado.
+                    if recuperar && p.extension().is_some_and(|e| e.eq_ignore_ascii_case("fsdz")) {
                         self.rascunho = p.clone();
                     }
                     self.caminho_arquivo = None;
@@ -780,8 +788,10 @@ impl FeatherSlideApp {
             .parent()
             .ok_or("Pasta de recuperação inválida")?;
         std::fs::create_dir_all(pasta).map_err(|e| e.to_string())?;
-        let recuperacao = pasta.join(format!("excluida-{}.fsdz", id()));
-        fsdz::salvar(&ler(&origem)?, &recuperacao)?;
+        // Os bytes do original, com a extensão dele: um `.pptx` convertido para `.fsdz` perdia o que não importamos.
+        let extensao = origem.extension().unwrap_or_default().to_string_lossy().to_lowercase();
+        let recuperacao = pasta.join(format!("excluida-{}.{extensao}", id()));
+        std::fs::copy(&origem, &recuperacao).map_err(|e| e.to_string())?;
         checkpoint(&self.sessao, &self.rascunho)?;
         std::fs::remove_file(&origem).map_err(|e| e.to_string())?;
         self.config.recentes.retain(|p| Path::new(p) != origem);
@@ -1170,9 +1180,8 @@ impl FeatherSlideApp {
                     .color(COR_TEXTO_MUTED()),
             ]
             .spacing(12);
-            const VISIVEIS: usize = 6;
             let total = self.arquivos.recuperacoes.len();
-            let mostrar = if self.arquivos.recuperacoes_todas { total } else { VISIVEIS };
+            let mostrar = if self.arquivos.recuperacoes_todas { total } else { RECUPERACOES_VISIVEIS };
             for path in self.arquivos.recuperacoes.iter().take(mostrar) {
                 let nome = self
                     .arquivos
@@ -1474,6 +1483,22 @@ mod testes {
         assert!(!novo.exists());
         assert!(app.caminho_arquivo.is_none());
         assert_eq!(listar(&pasta.arquivo("recuperacao")).len(), 1);
+    }
+    #[test]
+    fn excluir_pptx_guarda_os_bytes_originais() {
+        let pasta = Pasta::nova();
+        let mut app = app();
+        app.rascunho = pasta.arquivo("recuperacao/rascunho.fsdz");
+        let original = pasta.arquivo("deck.pptx");
+        std::fs::write(&original, b"bytes do powerpoint").unwrap();
+        app.caminho_arquivo = Some(original.clone());
+        let _ = app.tratar_arquivos(Acao::Excluir);
+        let _ = app.tratar_arquivos(Acao::Confirmar);
+        assert!(!original.exists());
+        let guardados = listar(&pasta.arquivo("recuperacao"));
+        assert_eq!(guardados.len(), 1);
+        assert!(guardados[0].extension().is_some_and(|e| e == "pptx"));
+        assert_eq!(std::fs::read(&guardados[0]).unwrap(), b"bytes do powerpoint");
     }
     #[test]
     fn duplicar_separa_documentos_e_auto_salva_sessao_em_segundo_plano() {

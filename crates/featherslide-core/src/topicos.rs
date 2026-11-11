@@ -63,7 +63,9 @@ impl Sessao {
                 }
                 let slide = &mut s.ap.slides[k];
                 if titulo != "(sem título)" {
-                    if let Some(e) = slide.elementos.iter_mut().find(|e| e.papel == Papel::Titulo) {
+                    // A estrutura mostra só a 1ª linha do título: igual a ela, o título (e as linhas de baixo) fica.
+                    if let Some(e) = slide.elementos.iter_mut().find(|e| e.papel == Papel::Titulo && e.texto.lines().next().unwrap_or("") != titulo) {
+                        crate::texto_formato::atualizar_indices(e, titulo);
                         e.texto.clone_from(titulo);
                     }
                 }
@@ -96,6 +98,22 @@ mod testes {
         s.desfazer().unwrap();
         assert_eq!(s.apresentacao().slides.len(), 1);
         assert!(s.topicos_aplicar("  \n").is_err());
+    }
+
+    #[test]
+    fn titulo_de_duas_linhas_nao_encolhe_e_indices_seguem_o_texto() {
+        let mut s = Sessao::default();
+        let id = s.slide().elementos.iter().find(|e| e.papel == Papel::Titulo).unwrap().id;
+        s.texto_definir(id, "Resultados\n2026").unwrap();
+        s.topicos_aplicar(&s.topicos()).unwrap();
+        assert_eq!(s.slide().elementos.iter().find(|e| e.id == id).unwrap().texto, "Resultados\n2026");
+        // Sobrescrito no fim e título trocado por um mais curto: o trecho não pode passar do texto.
+        s.texto_definir(id, "Ab2").unwrap();
+        s.texto_indice(id, 2, 3, 1).unwrap();
+        s.topicos_aplicar("X").unwrap();
+        let e = s.slide().elementos.iter().find(|e| e.id == id).unwrap();
+        assert_eq!(e.texto, "X");
+        assert!(crate::texto_formato::validar(e).is_ok());
     }
 
     #[test]

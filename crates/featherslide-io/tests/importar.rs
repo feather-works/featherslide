@@ -221,7 +221,7 @@ fn odp_minimo() -> Vec<u8> {
     let conteudo = format!(
         r##"<office:document-content {ns}><office:automatic-styles>
 <style:style style:name="pr1" style:family="presentation" style:parent-style-name="Padrao-titulo"><style:paragraph-properties fo:text-align="center"/></style:style>
-<style:style style:name="gr1" style:family="graphic"><style:graphic-properties draw:fill="solid" draw:fill-color="#3366ff" draw:stroke="none"/></style:style>
+<style:style style:name="gr1" style:family="graphic"><style:graphic-properties draw:fill="solid" draw:fill-color="#3366ff" draw:stroke="none" fo:padding-left="0cm" fo:padding-top="1in"/></style:style>
 <style:style style:name="T1" style:family="text"><style:text-properties fo:font-weight="bold"/></style:style>
 </office:automatic-styles><office:body><office:presentation>
 <draw:page draw:name="p1" draw:master-page-name="Padrao">
@@ -252,6 +252,12 @@ fn odp_le_caixas_listas_formas_fundo_e_notas() {
     let elipse = s.elementos.iter().find(|e| e.tipo == Tipo::Elipse).unwrap();
     assert_eq!(elipse.preenchimento, "#3366ff");
     assert!(elipse.contorno.is_empty());
+    // A margem interna do estilo; os lados que ele não diz ficam com o padrão. O slide de 28 cm vira 960 pt.
+    let m = elipse.margem.expect("margem do estilo");
+    assert_eq!((m[0], m[2], m[3]), (0.0, featherslide_core::quadro::MARGEM_X, featherslide_core::quadro::MARGEM_Y));
+    assert!((m[1] - 72.0 * 540.0 / (15.75 / 2.54 * 72.0)).abs() < 0.1, "{m:?}");
+    let titulo = s.elementos.iter().find(|e| e.papel == Papel::Titulo).unwrap();
+    assert_eq!(titulo.margem, None, "sem padding no estilo: margem padrão");
     assert!(s.elementos.iter().any(|e| e.tipo == Tipo::Linha));
 }
 

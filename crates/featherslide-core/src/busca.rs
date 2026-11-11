@@ -185,7 +185,9 @@ impl Sessao {
         let mudanca = self.editar(|s| {
             let slide = s.ap.slides.get_mut(slide_idx).ok_or("Slide não encontrado.")?;
             let elem = slide.elementos.iter_mut().find(|e| e.id == elem_id).ok_or("Elemento não encontrado.")?;
-            elem.texto = substituir_texto(&elem.texto, achado.inicio, achado.fim, por);
+            let novo = substituir_texto(&elem.texto, achado.inicio, achado.fim, por);
+            crate::texto_formato::atualizar_indices(elem, &novo);
+            elem.texto = novo;
             Ok((vec![slide_idx], false))
         })?;
         let res = self.busca_definir(&consulta, opcoes);

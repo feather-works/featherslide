@@ -119,7 +119,8 @@ fn texto_do_paragrafo(p: &No) -> String {
         match f.nome.as_str() {
             xml::TEXTO => s.push_str(&f.texto),
             "text:span" | "text:a" => s.push_str(&texto_do_paragrafo(f)),
-            "text:s" => s.push_str(&" ".repeat(f.num("text:c").map_or(1, |n| n as usize))),
+            // Teto: `text:c="1e12"` num arquivo de poucos kB pedia memória sem fim.
+            "text:s" => s.push_str(&" ".repeat(f.num("text:c").map_or(1, |n| n.clamp(0.0, 1000.0) as usize))),
             "text:tab" => s.push('\t'),
             "text:line-break" => s.push('\n'),
             _ => {}
@@ -269,6 +270,24 @@ impl Leitor<'_> {
         (preenchimento, contorno, espessura)
     }
 
+    /// A margem interna do estilo (`fo:padding-*`, ou `fo:padding` para os quatro lados), na escala
+    /// do slide; `None` se o estilo não diz nada (fica a margem padrão).
+    fn margem_da_forma(&self, estilos: &[Option<&str>]) -> Option<[f32; 4]> {
+        use featherslide_core::quadro::{MARGEM_X, MARGEM_Y};
+        let e = &self.estilos;
+        let todos = e.primeiro(estilos, "style:graphic-properties", "fo:padding").and_then(|v| medida(&v));
+        let lado = |nome: &str, escala: f64| {
+            let v = e.primeiro(estilos, "style:graphic-properties", nome).and_then(|v| medida(&v)).or(todos)?;
+            // O .fsdz aceita de 0 a 1000 pt.
+            Some(((v * escala) as f32).clamp(0.0, 1000.0))
+        };
+        let lados = [lado("fo:padding-left", self.sx), lado("fo:padding-top", self.sy), lado("fo:padding-right", self.sx), lado("fo:padding-bottom", self.sy)];
+        lados.iter().any(Option::is_some).then(|| {
+            let [a, b, c, d] = lados;
+            [a.unwrap_or(MARGEM_X), b.unwrap_or(MARGEM_Y), c.unwrap_or(MARGEM_X), d.unwrap_or(MARGEM_Y)]
+        })
+    }
+
     /// Uma `draw:frame`: caixa de texto (de layout ou não) ou imagem.
     fn quadro(&mut self, f: &No) -> Result<Option<Elemento>, String> {
         let Some([x, y, w, h]) = self.retangulo(f) else { return Ok(None) };
@@ -296,6 +315,7 @@ impl Leitor<'_> {
         e.texto = texto;
         e.estilo = self.estilo(caixa, &estilos);
         (e.preenchimento, e.contorno, e.espessura) = self.cores_da_forma(&estilos);
+        e.margem = self.margem_da_forma(&estilos);
         if !e.preenchimento.is_empty() || !e.contorno.is_empty() {
             e.tipo = Tipo::Retangulo;
         }
@@ -322,6 +342,7 @@ impl Leitor<'_> {
         }
         e.texto = texto_da_caixa(f);
         e.estilo = self.estilo(Some(f), &estilos);
+        e.margem = self.margem_da_forma(&estilos);
         Some(e)
     }
 
@@ -342,6 +363,12 @@ impl Leitor<'_> {
 #[cfg(test)]
 mod testes {
     use super::medida;
+
+    #[test]
+    fn espaco_repetido_tem_teto() {
+        let p = crate::xml::ler(br#"<text:p>a<text:s text:c="1e12"/>b<text:s/></text:p>"#, "t").unwrap();
+        assert_eq!(super::texto_do_paragrafo(&p).len(), 1003);
+    }
 
     #[test]
     fn medidas_do_odf_em_pontos() {

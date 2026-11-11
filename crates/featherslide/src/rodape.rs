@@ -15,6 +15,8 @@ pub enum Campo {
     Numero(bool),
     Texto(String),
     SemNoTitulo(bool),
+    /// O número do primeiro slide ("Começar em").
+    Inicio(u32),
 }
 
 pub fn mudar(r: &mut Rodape, c: Campo) {
@@ -24,6 +26,7 @@ pub fn mudar(r: &mut Rodape, c: Campo) {
         Campo::Numero(v) => r.numero = v,
         Campo::Texto(v) => r.texto = v,
         Campo::SemNoTitulo(v) => r.sem_no_titulo = v,
+        Campo::Inicio(v) => r.numero_inicial = v.min(featherslide_core::rodape::NUMERO_INICIAL_MAXIMO),
     }
 }
 
@@ -39,7 +42,16 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, r: &'a Rodape, largura_janela: 
         text("Aparecem embaixo de todos os slides e se atualizam sozinhos.").size(11.5).color(COR_TEXTO_MUTED()),
         checkbox("Data (à esquerda)", r.data).on_toggle(|v| Mensagem::RodapeMudar(Campo::Data(v))),
         text_input("Vazio = a data de hoje, atualizada ao abrir", &r.data_fixa).on_input(campo(Campo::DataFixa)).padding([6, 8]).size(12),
-        checkbox("Número do slide (à direita)", r.numero).on_toggle(|v| Mensagem::RodapeMudar(Campo::Numero(v))),
+        row![
+            checkbox("Número do slide (à direita)", r.numero).on_toggle(|v| Mensagem::RodapeMudar(Campo::Numero(v))),
+            Space::new(Length::FILL, Length::Fixed(1.0)),
+            text("Começar em").size(12),
+            button(text("−").size(12)).style(estilo_botao_secundario).on_press(Mensagem::RodapeMudar(Campo::Inicio(r.numero_inicial.saturating_sub(1)))),
+            text(r.numero_inicial.to_string()).size(12),
+            button(text("+").size(12)).style(estilo_botao_secundario).on_press(Mensagem::RodapeMudar(Campo::Inicio(r.numero_inicial + 1))),
+        ]
+        .spacing(8)
+        .align(Align::Center),
         text("Rodapé (no meio)").size(12),
         text_input("Por exemplo: nome da empresa · evento", &r.texto).on_input(campo(Campo::Texto)).padding([6, 8]).size(12),
         checkbox("Não mostrar no slide de título", r.sem_no_titulo).on_toggle(|v| Mensagem::RodapeMudar(Campo::SemNoTitulo(v))),
@@ -61,4 +73,19 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, r: &'a Rodape, largura_janela: 
     let x = ((largura_janela - 460.0) / 2.0).max(8.0);
     let pop = container(painel).padding(Padding { top: 90.0, left: x, right: 0.0, bottom: 0.0 });
     stack![base, fundo, pop].into()
+}
+
+#[cfg(test)]
+mod testes {
+    use super::*;
+
+    #[test]
+    fn campo_comecar_em_fica_no_limite() {
+        let mut r = Rodape::default();
+        assert_eq!(r.numero_inicial, 1);
+        mudar(&mut r, Campo::Inicio(0));
+        assert_eq!(r.numero_inicial, 0);
+        mudar(&mut r, Campo::Inicio(123_456));
+        assert_eq!(r.numero_inicial, featherslide_core::rodape::NUMERO_INICIAL_MAXIMO);
+    }
 }

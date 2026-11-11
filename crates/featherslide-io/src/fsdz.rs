@@ -632,17 +632,19 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
 /// A margem interna gravada (`esq,cima,dir,baixo`, em pontos); vazio = a padrão.
 /// O rodapé numa célula de texto: `data\tdata_fixa\tnumero\ttexto\tsem_no_titulo` (o escape é o das grades).
 fn rodape_gravar(r: &featherslide_core::modelo::Rodape) -> String {
-    if !r.ativo() && r.data_fixa.is_empty() {
+    if !r.ativo() && r.data_fixa.is_empty() && r.numero_inicial == 1 {
         return String::new();
     }
     let b = |v: bool| if v { "1" } else { "0" }.to_string();
-    featherslide_core::dados::codificar(&vec![vec![b(r.data), r.data_fixa.clone(), b(r.numero), r.texto.clone(), b(r.sem_no_titulo)]])
+    featherslide_core::dados::codificar(&vec![vec![b(r.data), r.data_fixa.clone(), b(r.numero), r.texto.clone(), b(r.sem_no_titulo), r.numero_inicial.to_string()]])
 }
 
 fn rodape_ler(texto: &str) -> featherslide_core::modelo::Rodape {
     let g = featherslide_core::dados::decodificar(texto);
     let c = |i: usize| g.first().and_then(|l| l.get(i)).cloned().unwrap_or_default();
-    featherslide_core::modelo::Rodape { data: c(0) == "1", data_fixa: c(1), numero: c(2) == "1", texto: c(3), sem_no_titulo: c(4) == "1" }
+    // A 6ª coluna (número inicial) veio depois: arquivo antigo começa em 1.
+    let numero_inicial = c(5).parse().ok().filter(|n| *n <= featherslide_core::rodape::NUMERO_INICIAL_MAXIMO).unwrap_or(1);
+    featherslide_core::modelo::Rodape { data: c(0) == "1", data_fixa: c(1), numero: c(2) == "1", texto: c(3), sem_no_titulo: c(4) == "1", numero_inicial }
 }
 
 fn margem_ler(texto: &str) -> Result<Option<[f32; 4]>, String> {
@@ -764,7 +766,11 @@ fn distribuir_elementos(ap: &mut Apresentacao, t: &Lida, parte: &mut dyn FnMut(&
         let slide = t.u64("slide", i)?;
         let &onde = posicao.get(&slide).ok_or_else(|| format!("elementos.arrow: o elemento da linha {} aponta um slide que não existe.", i + 1))?;
         let mut e = ler_elemento(t, i)?;
-        featherslide_core::texto_formato::validar(&e)?;
+        if featherslide_core::texto_formato::validar(&e).is_err() {
+            // Trecho de sobrescrito torto (versão antiga que não o acompanhava) só perde o realce; o arquivo abre.
+            e.indices_texto.clear();
+            featherslide_core::texto_formato::validar(&e)?;
+        }
         if e.imagem.starts_with("assets/") {
             let bytes = parte(&e.imagem)?;
             e.imagem = base64::para_data_url(tipo_da_imagem(&e.imagem), &bytes).into();

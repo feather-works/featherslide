@@ -1129,9 +1129,9 @@ Inserir → SVG; Formato da Forma → Vetores libera as peças e exporta a sele�
 
 - [x] **FTS-0855** — Próximo slide. **Feito**.
 - [x] **FTS-0856** — Slide anterior. **Feito**.
-- [ ] **FTS-0857** — Ir ao primeiro slide. **A verificar**.
-- [ ] **FTS-0858** — Ir ao último slide. **A verificar**.
-- [ ] **FTS-0859** — Ir ao slide por número. **A verificar**.
+- [x] **FTS-0857** — Ir ao primeiro slide. **Feito** (Home).
+- [x] **FTS-0858** — Ir ao último slide. **Feito** (End; pula ocultos).
+- [x] **FTS-0859** — Ir ao slide por número. **Feito** (número + Enter).
 - [ ] **FTS-0860** — Abrir grade de slides. **A verificar**.
 - [x] **FTS-0861** — Navegar por hiperlinks. **Feito**.
 - [x] **FTS-0862** — Navegar por botões de ação. **Feito**.
@@ -1276,7 +1276,7 @@ Inserir → SVG; Formato da Forma → Vetores libera as peças e exporta a sele�
 
 - [x] **FTS-0972** — Inserir número do slide. **Feito**.
 - [x] **FTS-0973** — Ocultar número no slide de título. **Feito**.
-- [ ] **FTS-0974** — Definir numeração inicial. **A verificar**.
+- [x] **FTS-0974** — Definir numeração inicial. **Feito** (Cabeçalho e rodapé → Começar em).
 - [x] **FTS-0975** — Inserir data fixa. **Feito**.
 - [x] **FTS-0976** — Inserir data automática. **Feito**.
 - [x] **FTS-0977** — Inserir rodapé. **Feito**.

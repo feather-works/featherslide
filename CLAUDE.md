@@ -16,7 +16,7 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   chamava `featherslide-pelicano` e convivia com o `featherslide-gui` (Iced), apagado nessa data
   junto com o `featherslide-ponte` (sem uso); os dois ficam no histórico do git. Menções ao
   Iced abaixo são registro histórico.
-- Dependências: pelicano v0.1.23 e o feather-ui pela revisão `daeb89b` (ramo
+- Dependências: pelicano v0.1.27 (git) e o feather-ui pela revisão `9ae4c34` (ramo
   `featherpdf-v0.3.11`, o mesmo do FeatherPDF: ícones de alinhar e o F12 com gráficos).
   **Trocar pela tag do feather-ui antes de lançar.**
 - Janela com barra própria: `transparent` (fora do Windows) e `cromo::moldura_redimensionavel_com`
@@ -45,6 +45,30 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   `io/tests/importar.rs::pptx_16_10_mantem_o_tamanho_e_nao_estica`.
 - Se o usuário ainda vir deslocamento num 16:9/4:3, a próxima suspeita é a medida
   aproximada do texto (item 4 da Fila), não a geometria.
+
+## Auditoria e brainstorm de 11/11/2026
+
+- **Sobrescrito/subscrito (`indices_texto`):** "Substituir" (um por vez) e Aplicar dos Tópicos
+  trocavam o texto sem `atualizar_indices`; o trecho passava do fim e o `.fsdz` salvo **não abria
+  mais** (`texto_formato::validar` recusava o arquivo inteiro). Os dois acompanham o texto agora e
+  o leitor do `.fsdz` só descarta o trecho torto (o arquivo abre).
+- **Tópicos:** título de duas linhas não encolhe mais para a primeira ao aplicar sem mexer.
+- **`.odp`:** `text:s text:c` tem teto de 1000 espaços (um arquivo de kB pedia GB de memória).
+- **Metadados de `.pptx`/`.odp`:** valores estendidos acima de 16 kB ficam de fora (o leitor do
+  `.fsdz` recusava o mapa e o arquivo salvo não abria).
+- **Excluir** guarda os bytes do original com a extensão dele (`excluida-….pptx`); antes um
+  `.pptx` virava `.fsdz` e perdia o que não importamos. Recuperar só reaproveita como rascunho um `.fsdz`.
+- **Recuperação:** só lê (para o título) os rascunhos que aparecem na lista (`RECUPERACOES_VISIVEIS`).
+- **Zoom de slide:** `atualizar_imagens_de_gatilhos` só redesenha o PNG quando o quadro do destino
+  mudou (resumo do JSON do quadro em `gatilhos_desenhados`) e tira do `cache_quadros` o slide que mudou.
+- `recentes::ler_arquivo` saiu (era cópia de `documentos::ler`).
+- **Apresentando:** número + Enter vai ao slide (`numero_digitado`); End vai ao último slide
+  **visível** (pula ocultos, respeita o roteiro personalizado: `ultimo_visivel`).
+- **Rodapé → Começar em** (FTS-0974): `Rodape::numero_inicial` (padrão 1, 0 a 9999), 6ª coluna do
+  texto `rodape` em `apresentacao.arrow` (arquivo antigo lê 1).
+- **`.odp` margem interna:** `fo:padding-*` / `fo:padding` do estilo vira `Elemento::margem`.
+- Ficou para depois: data local no Windows (`date` não existe lá: rodapé cai no UTC e os recentes
+  ficam sem data); ponteiro laser/caneta e grade de slides durante a apresentação; espanhol (es-ES).
 
 ## Brainstorm de 05/11/2026 — entregas
 

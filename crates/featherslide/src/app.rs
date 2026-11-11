@@ -85,6 +85,10 @@ pub struct FeatherSlideApp {
     pub menu: Option<MenuCtx>,
     /// O quadro mais recente de cada slide (pelo id), para as miniaturas não refazerem o layout a cada tela.
     pub cache_quadros: std::cell::RefCell<std::collections::HashMap<u64, Quadro>>,
+    /// Os algarismos digitados durante a apresentação, à espera do Enter que leva ao slide.
+    numero_digitado: String,
+    /// Zoom de slide já desenhado: (documento, elemento) → resumo do quadro do destino que virou a foto.
+    gatilhos_desenhados: std::collections::HashMap<(String, u64), u64>,
     /// Os ondulados do slide atual por (slide, versão, gramática): o `view` roda a cada quadro, e
     /// refazer o quadro e o corretor ali era o que mais pesava ao arrastar.
     /// O quadro do palco (com dicas) por (slide, versão): refazer o texto de todos os elementos a cada quadro pesava.
@@ -453,6 +457,8 @@ impl Default for FeatherSlideApp {
             recentes: Vec::new(),
             menu: None,
             cache_quadros: Default::default(),
+            gatilhos_desenhados: Default::default(),
+            numero_digitado: String::new(),
             cache_ondulados: Default::default(),
             cache_palco: Default::default(),
             secoes_recolhidas: Default::default(),
@@ -2110,13 +2116,24 @@ impl FeatherSlideApp {
                 }
                 if self.em_apresentacao {
                     use pelicano::NamedKey as Named;
+                    // Número + Enter vai ao slide (como no PowerPoint); outra tecla esquece o número.
+                    let digitado = std::mem::take(&mut self.numero_digitado);
                     match &key {
                         Key::Named(Named::Escape) => return self.sair_da_apresentacao(),
+                        Key::Named(Named::Enter) if !digitado.is_empty() => {
+                            let n = digitado.parse::<usize>().unwrap_or(0);
+                            if (1..=self.sessao.apresentacao().slides.len()).contains(&n) {
+                                self.ir_na_apresentacao(n - 1, true);
+                            }
+                        }
+                        Key::Character(c) if digitado.len() < 4 && !c.is_empty() && c.chars().all(|d| d.is_ascii_digit()) => {
+                            self.numero_digitado = digitado + c.as_str();
+                        }
                         Key::Named(Named::ArrowRight | Named::ArrowDown | Named::Space | Named::PageDown | Named::Enter) => return self.avancar(),
                         Key::Named(Named::ArrowLeft | Named::ArrowUp | Named::PageUp | Named::Backspace) => self.voltar(),
                         Key::Named(Named::Home) => self.ir_na_apresentacao(self.primeiro_visivel(), false),
                         Key::Named(Named::End) => {
-                            let ultimo = self.sessao.apresentacao().slides.len().saturating_sub(1);
+                            let ultimo = self.ultimo_visivel();
                             self.ir_na_apresentacao(ultimo, false);
                         }
                         Key::Character(c) => match c.to_lowercase().as_str() {
@@ -2263,6 +2280,15 @@ impl FeatherSlideApp {
             return roteiro.iter().find_map(|id| slides.iter().position(|s| s.id == *id)).unwrap_or(0);
         }
         slides.iter().position(|s| !s.oculto).unwrap_or(0)
+    }
+
+    /// O último slide da apresentação em curso: pula os ocultos e respeita o roteiro personalizado.
+    fn ultimo_visivel(&self) -> usize {
+        let slides = &self.sessao.apresentacao().slides;
+        if let Some(roteiro) = &self.roteiro_personalizado {
+            return roteiro.iter().rev().find_map(|id| slides.iter().position(|s| s.id == *id)).unwrap_or(self.sessao.atual());
+        }
+        slides.iter().rposition(|s| !s.oculto).unwrap_or(self.sessao.atual())
     }
 
     /// O próximo slide não oculto depois de `de` (`passo` = 1) ou o anterior (`passo` = -1).
@@ -4944,6 +4970,8 @@ impl FeatherSlideApp {
         let total_slides = self.sessao.apresentacao().slides.len();
         let mut mudancas = Vec::new();
         let fonte = featherslide_mcp::fonte::da_sessao();
+        let doc = self.sessao.apresentacao().metadados.identificador.clone();
+        let mut vistos = Vec::new();
 
         for (s_idx, s) in self.sessao.apresentacao().slides.iter().enumerate() {
             for el in &s.elementos {
@@ -4951,16 +4979,30 @@ impl FeatherSlideApp {
                 if el.destino > 0 && (el.destino as usize) <= total_slides && matches!(el.tipo, Tipo::Imagem | Tipo::Retangulo) {
                     let dest_idx = el.destino as usize - 1;
                     if let Some(q) = self.quadro_em_cache(dest_idx).or_else(|| self.sessao.quadro(dest_idx, None, false).ok().flatten()) {
+                        // Cada gravação redesenhava todos os zooms na thread da janela: só o destino que mudou.
+                        let chave = (doc.clone(), el.id);
+                        // Resumo do conteúdo, não a versão: ela recomeça a cada sessão (reverter, reabrir).
+                        let visto = serde_json::to_string(&q).map(|j| { use std::hash::{Hash, Hasher}; let mut h = std::collections::hash_map::DefaultHasher::new(); j.hash(&mut h); h.finish() }).unwrap_or(0);
+                        if el.tipo == Tipo::Imagem && self.gatilhos_desenhados.get(&chave) == Some(&visto) {
+                            continue;
+                        }
                         if let Ok(bytes) = featherslide_mcp::renderizar::renderizar_png(&q, 480, false, &fonte) {
                             let url = featherslide_io::base64::para_data_url("image/png", &bytes);
-                            mudancas.push((s_idx, el.id, url));
+                            vistos.push((chave, visto));
+                            if *el.imagem != *url {
+                                mudancas.push((s_idx, el.id, url));
+                            }
                         }
                     }
                 }
             }
         }
 
+        self.gatilhos_desenhados.extend(vistos);
         for (s_idx, el_id, url) in mudancas {
+            // Muda fora do desfazer (não sobe a versão): a miniatura guardada deste slide sai para ser refeita.
+            let slide_id = self.sessao.apresentacao().slides[s_idx].id;
+            self.cache_quadros.borrow_mut().remove(&slide_id);
             if let Some(s) = self.sessao.apresentacao_mut().slides.get_mut(s_idx) {
                 if let Some(e) = s.elementos.iter_mut().find(|e| e.id == el_id) {
                     e.imagem = url.into();
@@ -6618,6 +6660,31 @@ fn ensaio_mede_cada_slide_e_grava_o_avanco_automatico() {
     let apos: Vec<f32> = app.sessao.apresentacao().slides.iter().map(|s| s.transicao.apos.round()).collect();
     assert_eq!(apos, vec![5.0, 8.0]);
     assert!(app.status.contains("0:13"), "{}", app.status);
+}
+
+#[cfg(test)]
+#[test]
+fn numero_e_enter_vao_ao_slide_e_end_pula_o_oculto() {
+    use pelicano::NamedKey;
+    let mut app = FeatherSlideApp::default();
+    for _ in 0..3 {
+        app.sessao.slide_novo("em_branco").unwrap();
+    }
+    app.sessao.slide_ir(3).unwrap();
+    app.sessao.slide_ocultar().unwrap();
+    let _ = app.update(Mensagem::Faixa(FaixaMensagem::Apresentar));
+    let tecla = |app: &mut FeatherSlideApp, key: Key, texto: Option<&str>| {
+        let _ = app.update(Mensagem::Teclado(Event::Key { key, text: texto.map(Into::into), modifiers: Modifiers::default(), pressed: true }));
+    };
+    tecla(&mut app, Key::Character("3".into()), Some("3"));
+    tecla(&mut app, Key::Named(NamedKey::Enter), None);
+    assert_eq!(app.sessao.atual(), 2);
+    tecla(&mut app, Key::Character("9".into()), Some("9"));
+    tecla(&mut app, Key::Named(NamedKey::Enter), None);
+    assert_eq!(app.sessao.atual(), 2, "slide que não existe: fica onde está");
+    tecla(&mut app, Key::Named(NamedKey::Home), None);
+    tecla(&mut app, Key::Named(NamedKey::End), None);
+    assert_eq!(app.sessao.atual(), 2, "o 4º está oculto");
 }
 
 #[cfg(test)]

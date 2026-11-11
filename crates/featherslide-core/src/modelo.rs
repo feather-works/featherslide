@@ -845,7 +845,7 @@ pub struct Apresentacao {
 }
 
 /// O "Cabeçalho e rodapé" da apresentação inteira: o que aparece embaixo de cada slide.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Rodape {
     /// Mostra a data (à esquerda).
     pub data: bool,
@@ -857,6 +857,19 @@ pub struct Rodape {
     pub texto: String,
     /// Não mostra nada no slide de título (layout `titulo`).
     pub sem_no_titulo: bool,
+    /// O número que o primeiro slide recebe (FTS-0974): 1, ou 0 para a capa não contar, ou 5 na parte 2.
+    #[serde(default = "um")]
+    pub numero_inicial: u32,
+}
+
+fn um() -> u32 {
+    1
+}
+
+impl Default for Rodape {
+    fn default() -> Self {
+        Self { data: false, data_fixa: String::new(), numero: false, texto: String::new(), sem_no_titulo: false, numero_inicial: 1 }
+    }
 }
 
 impl Rodape {

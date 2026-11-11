@@ -279,6 +279,21 @@ fn localizar_e_substituir() {
 }
 
 #[test]
+fn substituir_leva_o_sobrescrito_junto() {
+    use featherslide_core::OpcoesDeBusca;
+    let mut s = sessao();
+    let id = s.apresentacao().slides[0].elementos[0].id;
+    s.texto_definir(id, "area m2").unwrap();
+    s.texto_indice(id, 6, 7, 1).unwrap();
+    s.busca_definir("m2", OpcoesDeBusca::default());
+    s.busca_substituir("m").unwrap();
+    // Sem acompanhar a troca, o trecho apontava para além do texto e o .fsdz salvo não abria mais.
+    let e = &s.apresentacao().slides[0].elementos[0];
+    assert_eq!(e.texto, "area m");
+    assert!(featherslide_core::texto_formato::validar(e).is_ok());
+}
+
+#[test]
 fn inserir_tabela_e_grafico() {
     use featherslide_core::modelo::Tipo;
     let mut s = sessao();

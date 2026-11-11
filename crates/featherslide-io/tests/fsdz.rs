@@ -515,9 +515,26 @@ fn margem_interna_da_caixa_persiste() {
 #[test]
 fn rodape_persiste() {
     let mut s = Sessao::default();
-    s.rodape_definir(featherslide_core::modelo::Rodape { data: true, data_fixa: "a\tb".into(), numero: true, texto: "Empresa\nlinha".into(), sem_no_titulo: true }).unwrap();
+    s.rodape_definir(featherslide_core::modelo::Rodape { data: true, data_fixa: "a\tb".into(), numero: true, texto: "Empresa\nlinha".into(), sem_no_titulo: true, numero_inicial: 0 }).unwrap();
     let lida = fsdz::ler(&fsdz::gravar(s.apresentacao()).unwrap()).unwrap();
     assert_eq!(lida.rodape, s.apresentacao().rodape);
     let vazia = fsdz::ler(&fsdz::gravar(Sessao::default().apresentacao()).unwrap()).unwrap();
     assert!(!vazia.rodape.ativo());
+}
+
+#[test]
+fn trecho_de_sobrescrito_torto_nao_impede_de_abrir() {
+    let mut s = Sessao::default();
+    s.elemento_inserir(Tipo::Texto, None, None).unwrap();
+    let id = s.slide().elementos.last().unwrap().id;
+    s.texto_definir(id, "m2").unwrap();
+    s.texto_indice(id, 1, 2, 1).unwrap();
+    let mut ap = s.apresentacao().clone();
+    // Como gravavam versões que não acompanhavam a troca do texto: o trecho passa do fim.
+    let e = ap.slides[0].elementos.iter_mut().find(|e| e.id == id).unwrap();
+    e.texto = "m".into();
+    let lida = fsdz::ler(&fsdz::gravar(&ap).unwrap()).unwrap();
+    let e = lida.slides[0].elementos.iter().find(|e| e.id == id).unwrap();
+    assert_eq!(e.texto, "m");
+    assert!(e.indices_texto.is_empty());
 }
