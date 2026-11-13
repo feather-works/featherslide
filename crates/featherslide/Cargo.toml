@@ -1,6 +1,6 @@
 [package]
 name = "featherslide"
-version = "0.2.0"
+version = "0.2.1"
 description = "FeatherSlide: apresentações em Rust (interface no pelicano)"
 authors = ["FeatherSlide"]
 edition = "2021"
@@ -11,9 +11,8 @@ name = "featherslide"
 path = "src/main.rs"
 
 [dependencies]
-# Ramo `featherpdf-v0.3.11` do feather-ui (o mesmo do FeatherPDF, já com o pelicano v0.1.27): ícones de alinhar e o F12 novo; trocar pela tag quando sair.
-feather-ui = { git = "https://github.com/feather-works/feather-ui.git", rev = "9ae4c34" }
-pelicano = { git = "https://github.com/feather-works/pelicano.git", tag = "v0.1.27" }
+feather-ui = { git = "https://github.com/feather-works/feather-ui.git", tag = "v0.3.16" }
+pelicano = "0.1.34"
 feather-draw = { git = "https://github.com/feather-works/feather-draw", tag = "v0.1.1" }
 feather-image = { git = "https://github.com/feather-works/feather-io", tag = "v0.1.3" }
 featherslide-tabelas = { path = "../featherslide-tabelas" }

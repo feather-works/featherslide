@@ -16,9 +16,14 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   chamava `featherslide-pelicano` e convivia com o `featherslide-gui` (Iced), apagado nessa data
   junto com o `featherslide-ponte` (sem uso); os dois ficam no histórico do git. Menções ao
   Iced abaixo são registro histórico.
-- Dependências: pelicano v0.1.27 (git) e o feather-ui pela revisão `9ae4c34` (ramo
-  `featherpdf-v0.3.11`, o mesmo do FeatherPDF: ícones de alinhar e o F12 com gráficos).
-  **Trocar pela tag do feather-ui antes de lançar.**
+- Dependências: pelicano 0.1.34 (crates.io) e feather-ui pela tag v0.3.16.
+- **v0.2.1 (12/11/2026):** pelicano 0.1.27 → 0.1.34. Em placa de vídeo sem Vulkan/OpenGL
+  utilizável (Intel HD 4000) a janela abre desenhada pela CPU em vez de o app fechar. Leva
+  também o que estava em `main` desde a 0.2.0: Recuperação em lista com Descartar, ir ao slide
+  pelo número ao apresentar, rodapé "Começar em", margem do `.odp` e as duas auditorias.
+  Release: `pacote/gerar.sh` → `.deb`, `.tar.gz`, `.exe` e `SHA256SUMS` com nomes sem versão,
+  tag criada pelo `gh release create`. Não há tela de novidades no app: as novidades vão nas
+  notas da release.
 - Janela com barra própria: `transparent` (fora do Windows) e `cromo::moldura_redimensionavel_com`
   — cantos de 14 px, borda de redimensionar (`Mensagem::Puxar` → `DragResize`), reta maximizada
   (`Event::Maximized` → `app.maximizada`). Igual ao FeatherDB.
