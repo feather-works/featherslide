@@ -4470,6 +4470,7 @@ impl FeatherSlideApp {
     }
 
     pub fn view(&self, janela: WindowId) -> Element<'_, Mensagem> {
+        crate::desenho::registrar_fontes(&self.sessao.apresentacao().fontes);
         if self.tipo_de(janela) == Some(Janela::Plateia)
             || (self.tipo_de(janela).is_none() && self.em_apresentacao)
         {

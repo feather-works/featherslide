@@ -5,12 +5,13 @@ edition = "2021"
 rust-version = "1.77.2"
 description = "O motor do FeatherSlide: a apresentação (slides e elementos), a edição com desfazer e o quadro de cada slide."
 
-# Só `serde` e o `feather-shapes` (formas, ícones e diagramas comuns da suíte, Rust puro, sem
-# interface): o motor compila em segundos e roda no app, no teste e em WebAssembly. Ler e
+# Só `serde`, o `feather-shapes` (formas, ícones e diagramas comuns da suíte, Rust puro, sem
+# interface) e o `ttf-parser` (larguras das fontes embutidas, Rust puro, já vinha pelo pelicano): o motor compila em segundos e roda no app, no teste e em WebAssembly. Ler e
 # gravar arquivo (.fsdz) é do `featherslide-io`.
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 feather-shapes = { git = "https://github.com/feather-works/feather-shapes", tag = "v0.1.2" }
+ttf-parser = "0.25"
 
 [lib]
 name = "featherslide_core"

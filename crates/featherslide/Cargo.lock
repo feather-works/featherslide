@@ -1521,6 +1521,7 @@ version = "0.1.0"
 dependencies = [
  "feather-shapes",
  "serde",
+ "ttf-parser 0.25.1",
 ]
 
 [[package]]

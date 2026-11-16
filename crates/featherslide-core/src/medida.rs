@@ -4,6 +4,55 @@
 //! copiadas pela regra 3 da suíte). shortcut: outra família (Calibri vinda de um .pptx) é medida
 //! como a mais parecida das duas; acento usa a largura da letra-base; fora do Latin-1, 556.
 //! Medir com a fonte exata da tela pede o medidor do pelicano no motor — trocar só este arquivo.
+//! Fonte embutida no documento (o `.pptx` traz Barlow Condensed, por exemplo) é medida pelas
+//! larguras do próprio arquivo ([`registrar_embutidas`]): medida como Sans, a letra estreita
+//! quebrava a linha antes e o texto descia sobre o de baixo (issue #1).
+
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
+
+use crate::modelo::FonteEmbutida;
+
+/// (família em minúsculas, negrito, itálico) → largura de cada caractere, em milésimos de em.
+type Larguras = HashMap<(String, bool, bool), HashMap<char, u16>>;
+
+fn embutidas() -> &'static Mutex<Larguras> {
+    static M: OnceLock<Mutex<Larguras>> = OnceLock::new();
+    M.get_or_init(Default::default)
+}
+
+/// Lê as larguras das fontes embutidas (uma vez por família e variante).
+/// shortcut: a chave é o nome; duas fontes diferentes com o mesmo nome dividem a primeira lida.
+pub fn registrar_embutidas(fontes: &[FonteEmbutida]) {
+    if fontes.is_empty() {
+        return;
+    }
+    let mut m = embutidas().lock().unwrap_or_else(|e| e.into_inner());
+    for f in fontes {
+        for (bytes, negrito, italico) in [(&f.regular, false, false), (&f.negrito, true, false), (&f.italico, false, true), (&f.negrito_italico, true, true)] {
+            let chave = (f.nome.to_lowercase(), negrito, italico);
+            if m.contains_key(&chave) {
+                continue;
+            }
+            let Some(face) = bytes.as_deref().and_then(|b| ttf_parser::Face::parse(b, 0).ok()) else { continue };
+            let em = f32::from(face.units_per_em().max(1));
+            let tabela = (' '..='\u{24f}').chain('\u{2000}'..='\u{206f}')
+                .filter_map(|c| Some((c, (f32::from(face.glyph_hor_advance(face.glyph_index(c)?)?) * 1000.0 / em).round() as u16)))
+                .collect();
+            m.insert(chave, tabela);
+        }
+    }
+}
+
+/// A largura pela fonte embutida, se a família e a variante estão registradas.
+fn largura_embutida(texto: &str, negrito: bool, italico: bool, fonte: &str, fam: Familia) -> Option<f32> {
+    let m = embutidas().lock().unwrap_or_else(|e| e.into_inner());
+    if m.is_empty() {
+        return None;
+    }
+    let t = m.get(&(fonte.to_lowercase(), negrito, italico))?;
+    Some(texto.chars().map(|c| t.get(&c).map_or_else(|| largura_do_caractere(c, negrito, italico, fam), |&l| f32::from(l))).sum())
+}
 
 /// De `' '` (32) a `'~'` (126), em milésimos de em.
 const REGULAR: [u16; 95] = [
@@ -140,6 +189,9 @@ pub fn largura(texto: &str, tamanho: f32, negrito: bool) -> f32 {
 /// A largura de `texto` em pontos, na fonte `fonte` (o nome da família), negrito e itálico.
 pub fn largura_na_fonte(texto: &str, tamanho: f32, negrito: bool, italico: bool, fonte: &str) -> f32 {
     let fam = familia(fonte);
+    if let Some(l) = largura_embutida(texto, negrito, italico, fonte, fam) {
+        return l * tamanho / 1000.0;
+    }
     texto.chars().map(|c| largura_do_caractere(c, negrito, italico, fam)).sum::<f32>() * tamanho / 1000.0
 }
 
@@ -208,6 +260,15 @@ mod testes {
         assert_eq!(familia("Liberation Sans"), Familia::Sans);
         assert_eq!(familia("PT Serif"), Familia::Serifa);
         assert_eq!(familia("Noto Sans Serif"), Familia::Sans, "\"sans\" vence");
+    }
+
+    #[test]
+    fn fonte_embutida_mede_pelas_proprias_larguras() {
+        let mono = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/fontes/LiberationMono-Regular.ttf")).unwrap();
+        assert!((largura_na_fonte("iiii", 10.0, false, false, "Estreita Teste") - 8.88).abs() < 0.01, "antes: como Sans");
+        registrar_embutidas(&[FonteEmbutida { nome: "Estreita Teste".into(), regular: Some(mono), negrito: None, italico: None, negrito_italico: None }]);
+        assert!((largura_na_fonte("iiii", 10.0, false, false, "estreita teste") - 24.0).abs() < 0.01, "depois: larguras do arquivo");
+        assert!((largura_na_fonte("iiii", 10.0, true, false, "Estreita Teste") - 11.12).abs() < 0.01, "variante sem arquivo segue a tabela");
     }
 
     #[test]

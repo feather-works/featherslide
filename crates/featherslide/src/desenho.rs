@@ -13,6 +13,39 @@ use pelicano::{Border, Color, FillRule, Font, Image as Handle, LineCap, LineJoin
 
 use crate::palco::{cor_hex, OPACIDADE};
 
+/// Entrega ao pelicano as fontes embutidas no documento (uma vez cada família), para o palco
+/// desenhar com a mesma letra que o motor usou para quebrar as linhas (issue #1).
+pub fn registrar_fontes(fontes: &[featherslide_core::modelo::FonteEmbutida]) {
+    thread_local! { static FEITAS: RefCell<std::collections::HashSet<String>> = RefCell::default(); }
+    FEITAS.with(|feitas| {
+        for f in fontes {
+            if feitas.borrow_mut().insert(f.nome.clone()) {
+                for bytes in [&f.regular, &f.negrito, &f.italico, &f.negrito_italico].into_iter().flatten() {
+                    pelicano::load_font(largura_normal(bytes.clone()));
+                }
+            }
+        }
+    });
+}
+
+/// shortcut: o pelicano (cosmic-text 0.12) só escolhe fonte de largura normal; a condensada
+/// embutida (Barlow Condensed) vai marcada como normal no `OS/2` (o nome já a distingue).
+/// Tirar quando o `Font` do pelicano tiver largura (stretch).
+fn largura_normal(mut b: Vec<u8>) -> Vec<u8> {
+    let u32_em = |b: &[u8], i: usize| b.get(i..i + 4).map_or(0, |v| u32::from_be_bytes([v[0], v[1], v[2], v[3]]) as usize);
+    let tabelas = b.get(4..6).map_or(0, |v| usize::from(u16::from_be_bytes([v[0], v[1]])));
+    for i in 0..tabelas {
+        let r = 12 + 16 * i;
+        if b.get(r..r + 4) == Some(b"OS/2") {
+            let os2 = u32_em(&b, r + 8);
+            if let Some(w) = b.get_mut(os2 + 6..os2 + 8) {
+                w.copy_from_slice(&5u16.to_be_bytes());
+            }
+        }
+    }
+    b
+}
+
 const LADO_MAXIMO_IMAGEM: u32 = 1024;
 const SEGMENTOS: usize = 240;
 
@@ -1989,5 +2022,21 @@ mod testes_animacoes_entrada {
             let areas: f32 = regioes.iter().map(|(r, _)| r.width*r.height).sum();
             assert!(areas > 0.0 && areas <= 180.0*120.0 + 0.1);
         }
+    }
+}
+
+#[cfg(test)]
+mod testes_fonte {
+    #[test]
+    fn condensada_vai_marcada_como_largura_normal() {
+        // Cabeçalho com uma tabela, `OS/2` em 28; usWidthClass (3 = condensada) em 28 + 6.
+        let mut f = vec![0u8; 40];
+        f[4..6].copy_from_slice(&1u16.to_be_bytes());
+        f[12..16].copy_from_slice(b"OS/2");
+        f[20..24].copy_from_slice(&28u32.to_be_bytes());
+        f[34..36].copy_from_slice(&3u16.to_be_bytes());
+        let g = super::largura_normal(f.clone());
+        assert_eq!(&g[34..36], &5u16.to_be_bytes());
+        assert_eq!(super::largura_normal(vec![1, 2, 3]), vec![1, 2, 3], "arquivo curto não quebra");
     }
 }

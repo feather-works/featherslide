@@ -206,6 +206,7 @@ impl Sessao {
     /// O quadro do slide `indice`, ou `None` se a interface já tem esta versão (`conhecida`).
     pub fn quadro(&self, indice: usize, conhecida: Option<u64>, editor: bool) -> Result<Option<Quadro>, String> {
         let slide = self.ap.slides.get(indice).ok_or_else(|| format!("O slide {} não existe.", indice + 1))?;
+        crate::medida::registrar_embutidas(&self.ap.fontes);
         let versao = self.versao_do_slide(slide.id) + 1;
         // Com o número no rodapé, o lugar do slide também muda o desenho (a miniatura não fica velha).
         let versao = if self.ap.rodape.numero { versao + ((indice as u64 + 1) << 40) } else { versao };

@@ -50,6 +50,11 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   `io/tests/importar.rs::pptx_16_10_mantem_o_tamanho_e_nao_estica`.
 - Se o usuário ainda vir deslocamento num 16:9/4:3, a próxima suspeita é a medida
   aproximada do texto (item 4 da Fila), não a geometria.
+- 16/11/2026: era a fonte embutida. O `.pptx` traz a fonte (`ap.fontes`), mas o palco não a
+  registrava no pelicano e o motor media como Sans: letra estreita (Barlow Condensed) quebrava
+  antes e o título descia sobre o texto de baixo. Agora `medida::registrar_embutidas` (chamado
+  em `Sessao::quadro`) mede pelas larguras do próprio TTF (`ttf-parser`) e
+  `desenho::registrar_fontes` (no `view`) passa os bytes ao `pelicano::load_font`.
 
 ## Auditoria e brainstorm de 11/11/2026
 
