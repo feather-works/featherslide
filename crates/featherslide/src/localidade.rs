@@ -1,10 +1,10 @@
 //! Textos da interface em pt-BR, en-US e es-ES.
 //!
 //! O português é a fonte. [`tr`] recebe o texto em português ("Nova apresentação"); em inglês ou
-//! espanhol procura esse português em `dados/en-US.json` / `dados/es-ES.json` (um mapa
+//! espanhol procura esse português no topo de `dados/en-US.json` / `dados/es-ES.json` (um mapa
 //! português → tradução) e, se faltar, mostra o português. Os textos com chave (`ferramentas_texto`,
-//! a Ajuda F1) ficam em `dados/pt-BR.json` e passam pelo mesmo `tr`. O idioma é global e a tela troca
-//! na hora: as `view` chamam `tr` a cada quadro.
+//! a Ajuda F1, as dicas) ficam nas seções de mesmo nome dos três arquivos, lidos por [`no_caminho`].
+//! O idioma é global e a tela troca na hora: as `view` chamam `tr` a cada quadro.
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -78,19 +78,36 @@ fn pt_br() -> &'static Value {
     PT.get_or_init(|| serde_json::from_str(include_str!("../dados/pt-BR.json")).expect("Localidade pt-BR inválida"))
 }
 
-/// Português → idioma `l` (1 = inglês, 2 = espanhol).
+/// O arquivo inteiro do idioma `l` (0 = pt-BR, 1 = inglês, 2 = espanhol).
+fn raiz(l: u8) -> &'static Value {
+    static EN: OnceLock<Value> = OnceLock::new();
+    static ES: OnceLock<Value> = OnceLock::new();
+    match l {
+        0 => pt_br(),
+        1 => EN.get_or_init(|| serde_json::from_str(include_str!("../dados/en-US.json")).expect("Localidade en-US inválida")),
+        _ => ES.get_or_init(|| serde_json::from_str(include_str!("../dados/es-ES.json")).expect("Localidade es-ES inválida")),
+    }
+}
+
+/// Português → idioma `l` (1 = inglês, 2 = espanhol): os textos soltos no topo do arquivo.
 fn dicionario(l: u8) -> &'static HashMap<String, String> {
     static EN: OnceLock<HashMap<String, String>> = OnceLock::new();
     static ES: OnceLock<HashMap<String, String>> = OnceLock::new();
-    let ler = |json: &str| -> HashMap<String, String> {
-        let mapa: HashMap<String, String> = serde_json::from_str(json).expect("Localidade inválida");
-        mapa.into_iter().filter(|(k, _)| !k.starts_with("//")).collect()
+    let ler = |l: u8| -> HashMap<String, String> {
+        let mapa = raiz(l).as_object().expect("Localidade inválida");
+        mapa.iter().filter(|(k, _)| !k.starts_with("//")).filter_map(|(k, v)| Some((k.clone(), v.as_str()?.to_string()))).collect()
     };
-    if l == 1 {
-        EN.get_or_init(|| ler(include_str!("../dados/en-US.json")))
-    } else {
-        ES.get_or_init(|| ler(include_str!("../dados/es-ES.json")))
-    }
+    if l == 1 { EN.get_or_init(|| ler(1)) } else { ES.get_or_init(|| ler(2)) }
+}
+
+fn caminho_em(v: &'static Value, caminho: &str) -> Option<&'static Value> {
+    caminho.split('.').try_fold(v, |v, parte| v.get(parte))
+}
+
+/// O valor com chave em `caminho` (`ajuda.rotulos.titulo`) no idioma da interface; sem tradução,
+/// o português.
+pub fn no_caminho(caminho: &str) -> Option<&'static Value> {
+    caminho_em(raiz(lingua()), caminho).or_else(|| caminho_em(pt_br(), caminho))
 }
 
 fn ja_traduzido(l: u8, texto: &str) -> bool {
@@ -164,18 +181,9 @@ pub fn de_volta(pt: &'static [&'static str], mostrada: &str) -> &'static str {
     pt.iter().copied().find(|o| tr(o) == mostrada).unwrap_or(pt[0])
 }
 
-/// O texto em português no `caminho` de `pt-BR.json` (`ajuda.rotulos.titulo`), ou `None`.
-pub fn pt_em(caminho: &str) -> Option<&'static str> {
-    let mut v = pt_br();
-    for parte in caminho.split('.') {
-        v = v.get(parte)?;
-    }
-    v.as_str()
-}
-
 /// Texto de `ferramentas_texto` no idioma da interface.
 pub fn texto(chave: &str) -> &'static str {
-    tr(pt_em(&format!("ferramentas_texto.{chave}")).unwrap_or("Texto indisponível"))
+    no_caminho(&format!("ferramentas_texto.{chave}")).and_then(Value::as_str).unwrap_or("Texto indisponível")
 }
 
 /// Textos pedidos sem tradução (só nos testes: o teste de guarda desenha as telas e confere).
@@ -202,13 +210,33 @@ pub fn tirar_faltas() -> Vec<String> {
 mod tests {
     use super::*;
 
-    fn textos_do_pt(v: &Value, saida: &mut Vec<String>) {
-        match v {
-            Value::String(s) => saida.push(s.clone()),
-            Value::Object(m) => m.values().for_each(|x| textos_do_pt(x, saida)),
-            Value::Array(a) => a.iter().for_each(|x| textos_do_pt(x, saida)),
-            _ => {}
+    /// Cada texto com chave de `pt-BR.json` existe no mesmo lugar em inglês e espanhol
+    /// (listas com o mesmo tamanho), e nenhum ficou igual ao português por esquecimento de seção.
+    #[test]
+    fn textos_com_chave_existem_nos_tres_idiomas() {
+        fn comparar(pt: &Value, outro: &Value, caminho: &str, faltam: &mut Vec<String>) {
+            match (pt, outro) {
+                (Value::Object(a), Value::Object(b)) => a.iter().for_each(|(k, v)| match b.get(k) {
+                    Some(w) => comparar(v, w, &format!("{caminho}.{k}"), faltam),
+                    None => faltam.push(format!("{caminho}.{k}")),
+                }),
+                (Value::Array(a), Value::Array(b)) if a.len() == b.len() => {
+                    a.iter().zip(b).enumerate().for_each(|(i, (v, w))| comparar(v, w, &format!("{caminho}[{i}]"), faltam))
+                }
+                (Value::String(a), Value::String(b)) if a.matches("{}").count() == b.matches("{}").count() => {}
+                _ => faltam.push(caminho.to_string()),
+            }
         }
+        let mut faltam = Vec::new();
+        for (nome, l) in [("en-US", 1), ("es-ES", 2)] {
+            for (secao, v) in pt_br().as_object().unwrap() {
+                match raiz(l).get(secao) {
+                    Some(w) => comparar(v, w, &format!("{nome}:{secao}"), &mut faltam),
+                    None => faltam.push(format!("{nome}:{secao}")),
+                }
+            }
+        }
+        assert!(faltam.is_empty(), "{faltam:?}");
     }
 
     /// Todo literal passado a `tr("…")`/`trf("…", …)` no código e todo texto de `pt-BR.json` existe
@@ -216,7 +244,6 @@ mod tests {
     #[test]
     fn todo_texto_tem_traducao_em_ingles_e_espanhol() {
         let mut pts = Vec::new();
-        textos_do_pt(pt_br(), &mut pts);
         let literal = regex_lite();
         for (_, fonte) in fontes() {
             fonte.lines().filter(|l| !l.trim_start().starts_with("//")).for_each(|linha| pts.extend(literal(linha)));

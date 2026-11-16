@@ -31,9 +31,10 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   aqui e pediam a glibc 2.43, sem abrir no Ubuntu 24.04/22.04 nem no Debian 12. Em 16/11/2026 o
   `.deb` e o `.tar.gz` da v0.2.2 foram trocados na release pelos do contêiner (glibc ≤ 2.36).
 - **Idiomas (16/11/2026, no `main`, sem versão):** interface em pt-BR, en-US e es-ES. O português é a
-  chave: `localidade::tr("texto")` / `trf("… {} …", &[&x])`; `dados/en-US.json` e `es-ES.json` são mapas
-  português → tradução; `pt-BR.json` só guarda o que tem chave (`ferramentas_texto`, Ajuda F1 e dicas), que
-  passa pelo mesmo `tr`. Listas suspensas: opções em português no código, `localidade::lista` para mostrar e
+  chave: `localidade::tr("texto")` / `trf("… {} …", &[&x])`; no topo de `dados/en-US.json` e `es-ES.json` fica o
+  mapa português → tradução; os textos com chave (`ferramentas_texto`, `ajuda`, `dicas`) ficam em seções
+  com a mesma forma nos três arquivos, lidas por `localidade::no_caminho` (teste
+  `textos_com_chave_existem_nos_tres_idiomas`). Listas suspensas: opções em português no código, `localidade::lista` para mostrar e
   `de_volta` para voltar ao valor. Os ajudantes da faixa e das Configurações traduzem o rótulo com
   `tr_se_houver` (aceita texto já traduzido). Configurações ▸ Aparência ▸ Idioma da interface
   (`config.idioma`, vazio = `LANG`). Guardas: `localidade::tests` (todo `tr("…")` literal tem en e es) e

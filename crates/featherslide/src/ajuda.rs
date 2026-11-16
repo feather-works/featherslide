@@ -1,5 +1,5 @@
 //! A Ajuda (F1): "Como usar" e "Atalhos", com busca e navegação anterior/próximo. Os textos
-//! vêm de `dados/pt-BR.json` e passam pelo tradutor da interface (`localidade::tr`).
+//! vêm da seção `ajuda` do arquivo do idioma da interface (`dados/<idioma>.json`).
 
 use std::sync::OnceLock;
 use crate::localidade::{self, tr};
@@ -9,14 +9,9 @@ use feather_ui::ajuda::{Catalogo, Linha, Secao, Topico};
 use pelicano::Element;
 use serde_json::Value;
 
-fn raiz() -> &'static Value {
-    static PT: OnceLock<Value> = OnceLock::new();
-    PT.get_or_init(|| serde_json::from_str(include_str!("../dados/pt-BR.json")).unwrap_or(Value::Null))
-}
-
 /// O texto em `caminho` (`ajuda.rotulos.titulo`) no idioma da interface, ou o próprio caminho.
 pub fn t(caminho: &str) -> String {
-    localidade::pt_em(caminho).map_or(caminho, tr).to_string()
+    localidade::no_caminho(caminho).and_then(Value::as_str).unwrap_or(caminho).to_string()
 }
 
 const TOPICOS: [&str; 8] = [
@@ -83,13 +78,9 @@ const GRUPOS: [(&str, &[(&str, &str)]); 5] = [
 ];
 
 fn corpo_do_topico(id: &str) -> Vec<String> {
-    raiz()["ajuda"]["comoUsar"][id]["corpo"]
-        .as_array()
-        .map(|a| {
-            a.iter()
-                .filter_map(|x| x.as_str().map(|l| tr(l).to_string()))
-                .collect()
-        })
+    localidade::no_caminho(&format!("ajuda.comoUsar.{id}.corpo"))
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
         .unwrap_or_default()
 }
 
