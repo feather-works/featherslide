@@ -2,6 +2,7 @@
 //! apresentação atual ali; importar = trazer um `.fsdz` (ou `.pptx`/`.odp`, convertido) de fora;
 //! exportar = copiar para onde a pessoa quiser. Tudo local, sem conta nem nuvem.
 
+use crate::localidade::tr;
 use std::path::{Path, PathBuf};
 
 use featherslide_core::modelo::Apresentacao;
@@ -29,13 +30,13 @@ pub fn pasta() -> Option<PathBuf> {
 fn nome_de_arquivo(nome: &str) -> String {
     let limpo: String = nome.trim().chars().map(|c| if c.is_alphanumeric() || matches!(c, ' ' | '-' | '_') { c } else { '_' }).collect();
     let limpo = limpo.trim().chars().take(60).collect::<String>();
-    if limpo.is_empty() { "Modelo".into() } else { limpo }
+    if limpo.is_empty() { tr("Modelo").into() } else { limpo }
 }
 
 /// Um caminho livre na pasta: `Nome.fsdz`, `Nome 2.fsdz`…
 fn caminho_livre(nome: &str) -> Result<PathBuf, String> {
-    let pasta = pasta().ok_or("Não achei a pasta de dados do usuário.")?;
-    std::fs::create_dir_all(&pasta).map_err(|e| format!("Não consegui criar a pasta de modelos: {e}"))?;
+    let pasta = pasta().ok_or(tr("Não achei a pasta de dados do usuário."))?;
+    std::fs::create_dir_all(&pasta).map_err(|e| crate::localidade::trf("Não consegui criar a pasta de modelos: {}", &[&e]))?;
     let base = nome_de_arquivo(nome);
     let mut n = 1;
     loop {
@@ -48,7 +49,7 @@ fn caminho_livre(nome: &str) -> Result<PathBuf, String> {
 }
 
 pub fn abrir(caminho: &Path) -> Result<Apresentacao, String> {
-    let bytes = std::fs::read(caminho).map_err(|e| format!("Não consegui ler o modelo: {e}"))?;
+    let bytes = std::fs::read(caminho).map_err(|e| crate::localidade::trf("Não consegui ler o modelo: {}", &[&e]))?;
     fsdz::ler(&bytes)
 }
 
@@ -73,13 +74,13 @@ pub fn listar() -> Vec<MeuModelo> {
 pub fn criar(nome: &str, ap: &Apresentacao) -> Result<PathBuf, String> {
     let caminho = caminho_livre(nome)?;
     let bytes = fsdz::gravar(ap)?;
-    std::fs::write(&caminho, bytes).map_err(|e| format!("Não consegui gravar o modelo: {e}"))?;
+    std::fs::write(&caminho, bytes).map_err(|e| crate::localidade::trf("Não consegui gravar o modelo: {}", &[&e]))?;
     Ok(caminho)
 }
 
 /// Traz um arquivo de fora para a pasta de modelos (`.pptx`/`.odp` viram `.fsdz`).
 pub fn importar(origem: &Path) -> Result<PathBuf, String> {
-    let bytes = std::fs::read(origem).map_err(|e| format!("Não consegui ler o arquivo: {e}"))?;
+    let bytes = std::fs::read(origem).map_err(|e| crate::localidade::trf("Não consegui ler o arquivo: {}", &[&e]))?;
     let ext = origem.extension().unwrap_or_default().to_string_lossy().to_lowercase();
     let ap = match ext.as_str() {
         "pptx" => pptx::ler(&bytes).or_else(|e| fsdz::ler(&bytes).map_err(|_| e))?,
@@ -95,9 +96,9 @@ pub fn exportar(modelo: &Path, destino: &Path) -> Result<(), String> {
     if destino.extension().map_or(true, |e| !e.eq_ignore_ascii_case("fsdz")) {
         destino.set_extension("fsdz");
     }
-    std::fs::copy(modelo, &destino).map(|_| ()).map_err(|e| format!("Não consegui exportar o modelo: {e}"))
+    std::fs::copy(modelo, &destino).map(|_| ()).map_err(|e| crate::localidade::trf("Não consegui exportar o modelo: {}", &[&e]))
 }
 
 pub fn remover(modelo: &Path) -> Result<(), String> {
-    std::fs::remove_file(modelo).map_err(|e| format!("Não consegui remover o modelo: {e}"))
+    std::fs::remove_file(modelo).map_err(|e| crate::localidade::trf("Não consegui remover o modelo: {}", &[&e]))
 }

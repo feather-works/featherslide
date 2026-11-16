@@ -32,7 +32,7 @@ pub fn sobrepor<'a>(base: Element<'a, crate::app::Mensagem>, largura_janela: f32
 fn paleta<'a>() -> Element<'a, FaixaMensagem> {
     let mut corpo = column![].spacing(10).padding(12);
     for (nome, simbolos) in CATEGORIAS {
-        corpo = corpo.push(text(nome).size(11).color(COR_TEXTO_MUTED()));
+        corpo = corpo.push(text(crate::localidade::tr(nome)).size(11).color(COR_TEXTO_MUTED()));
         for linha in simbolos.chunks(POR_LINHA) {
             let mut r = row![].spacing(3);
             for s in linha {

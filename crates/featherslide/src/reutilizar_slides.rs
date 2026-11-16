@@ -1,6 +1,7 @@
 //! FTS-0103: escolher quais slides reutilizar de um arquivo já salvo.
 //! Abre .fsdz, .pptx ou .odp sem alterar o documento até o usuário confirmar.
 
+use crate::localidade::tr;
 use std::collections::BTreeSet;
 use featherslide_core::modelo::{Apresentacao, Papel};
 use featherslide_core::EstiloColagem;
@@ -27,7 +28,7 @@ impl Estado {
             s.elementos.iter().find(|e| e.papel == Papel::Titulo && !e.texto.trim().is_empty())
                 .or_else(|| s.elementos.iter().find(|e| !e.texto.trim().is_empty()))
                 .map(|e| e.texto.lines().next().unwrap_or_default().to_string())
-        }).filter(|s| !s.trim().is_empty()).unwrap_or_else(|| "Sem título".into())
+        }).filter(|s| !s.trim().is_empty()).unwrap_or_else(|| tr("Sem título").into())
     }
 }
 
@@ -41,7 +42,7 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, estado: &'a Estado, largura_jan
         let titulo = estado.titulo(i);
         let rotulo = format!("{}   {}. {}{}", if marcado { "☑" } else { "☐" },
             i + 1, titulo.chars().take(55).collect::<String>(),
-            if slide.oculto { "   [oculto]" } else { "" });
+            if slide.oculto { tr("   [oculto]") } else { "" });
         lista = lista.push(
             button(text(rotulo).size(12))
                 .padding([7, 11]).width(Length::FILL)
@@ -51,25 +52,25 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, estado: &'a Estado, largura_jan
     }
 
     let botoes = row![
-        button(text("Selecionar todos").size(12)).padding([6, 10])
+        button(text(tr("Selecionar todos")).size(12)).padding([6, 10])
             .style(estilo_botao_secundario).on_press(Mensagem::ReutilizarTodos),
         Space::new(Length::FILL, Length::Shrink),
-        button(text("Cancelar").size(12)).padding([6, 10])
+        button(text(tr("Cancelar")).size(12)).padding([6, 10])
             .style(estilo_botao_secundario).on_press(Mensagem::ReutilizarFechar),
-        button(text("Manter original").size(12)).padding([6, 10])
+        button(text(tr("Manter original")).size(12)).padding([6, 10])
             .style(estilo_botao_primario)
             .on_press_maybe((!estado.selecionados.is_empty())
                 .then_some(Mensagem::ReutilizarConfirmar(EstiloColagem::ManterOrigem))),
-        button(text("Adaptar tema").size(12)).padding([6, 10])
+        button(text(tr("Adaptar tema")).size(12)).padding([6, 10])
             .style(estilo_botao_secundario)
             .on_press_maybe((!estado.selecionados.is_empty())
                 .then_some(Mensagem::ReutilizarConfirmar(EstiloColagem::AdaptarAoTema))),
     ].spacing(7).align(Align::Center);
 
     let painel = container(column![
-        text("Reutilizar slides").size(18),
-        text(format!("Arquivo: {} · {} de {} slides selecionados",
-            nome, estado.selecionados.len(), estado.apresentacao.slides.len()))
+        text(tr("Reutilizar slides")).size(18),
+        text(crate::localidade::trf("Arquivo: {} · {} de {} slides selecionados",
+            &[&nome, &estado.selecionados.len(), &estado.apresentacao.slides.len()]))
             .size(12).color(COR_TEXTO_MUTED()),
         scrollable(lista).scrollbar_width(10).scrollbar_track(COR_TRILHO_ROLAGEM()).scrollbar_color(COR_POLEGAR_ROLAGEM()).height(Length::Fixed(425.0)),
         botoes,

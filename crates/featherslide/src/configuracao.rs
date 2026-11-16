@@ -45,6 +45,8 @@ pub struct Configuracao {
     pub sinonimos: HashMap<String, String>,
     /// Chave: idioma origem|idioma destino|expressão. Tradução exata pelo glossário local.
     pub traducoes: HashMap<String, String>,
+    /// Idioma da interface (`pt-BR`, `en-US`, `es-ES`); vazio = o do sistema.
+    pub idioma: String,
 }
 
 /// Os atalhos que se podem regravar: (id, rótulo, padrão).
@@ -81,7 +83,7 @@ impl Default for Configuracao {
             autocorrecao: false, capitalizacao: false,
             correcoes: [("nao", "não"), ("voce", "você"), ("tbm", "também")].into_iter().map(|(a,b)| (a.into(),b.into())).collect(),
             sinonimos: [("importante", "relevante;significativo"), ("rápido", "veloz;ligeiro"), ("bonito", "belo;formoso"), ("iniciar", "começar;principiar"), ("finalizar", "concluir;terminar")].into_iter().map(|(a,b)| (a.into(),b.into())).collect(),
-            traducoes: HashMap::new() }
+            traducoes: HashMap::new(), idioma: String::new() }
     }
 }
 

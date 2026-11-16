@@ -2,6 +2,7 @@
 //! transparência, o conta-gotas (pega a cor de um ponto do slide) e os campos R, G, B, A e hex.
 //! Abre embaixo do botão da cor; cada mudança já vale no elemento.
 
+use crate::localidade::tr;
 use std::f32::consts::FRAC_PI_2;
 
 use pelicano::{button, column, container, mouse_area, program, row, text, text_input, Space};
@@ -199,11 +200,11 @@ pub fn sobrepor<'a>(
 ) -> Element<'a, Mensagem> {
     const LARGURA: f32 = 264.0;
     let (nome, titulo) = match alvo {
-        AlvoCor::Preenchimento => ("cor_preenchimento", "Preenchimento"),
-        AlvoCor::Contorno => ("cor_contorno", "Contorno"),
-        AlvoCor::Texto => ("cor_texto", "Cor do texto"),
-        AlvoCor::Realce => ("cor_realce", "Fundo do texto"),
-        AlvoCor::Fundo => ("cor_fundo_imagem", "Cor do fundo a remover"),
+        AlvoCor::Preenchimento => ("cor_preenchimento", tr("Preenchimento")),
+        AlvoCor::Contorno => ("cor_contorno", tr("Contorno")),
+        AlvoCor::Texto => ("cor_texto", tr("Cor do texto")),
+        AlvoCor::Realce => ("cor_realce", tr("Fundo do texto")),
+        AlvoCor::Fundo => ("cor_fundo_imagem", tr("Cor do fundo a remover")),
     };
     let (esquerda, topo) = crate::medido::ancora(nome, LARGURA, largura_janela, (200.0, 128.0));
     let rgba = rgba_de(atual);
@@ -254,7 +255,7 @@ pub fn sobrepor<'a>(
         row![
             column![
                 text_input("#rrggbb", texto_hex.to_string()).on_input(move |t| FaixaMensagem::TextoCor(alvo, t)).size(12).padding([3, 4]).width(Length::FILL),
-                text("Hex").size(10).color(COR_TEXTO_MUTED()),
+                text(tr("Hex")).size(10).color(COR_TEXTO_MUTED()),
             ]
             .spacing(2)
             .align(Align::Center)
@@ -267,9 +268,9 @@ pub fn sobrepor<'a>(
         .spacing(6),
         prontas,
         row![
-            button(text("Sem cor").size(12)).padding([3, 8]).style(estilo_botao_pequeno(atual.is_empty())).on_press(FaixaMensagem::CorEscolhida(alvo, String::new())),
+            button(text(tr("Sem cor")).size(12)).padding([3, 8]).style(estilo_botao_pequeno(atual.is_empty())).on_press(FaixaMensagem::CorEscolhida(alvo, String::new())),
             Space::new(Length::FILL, 0.0),
-            button(text("Fechar").size(12)).padding([3, 8]).style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::FecharSeletorCor),
+            button(text(tr("Fechar")).size(12)).padding([3, 8]).style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::FecharSeletorCor),
         ],
     ]
     .spacing(10);

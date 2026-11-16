@@ -1,6 +1,7 @@
 //! O aplicativo principal FeatherSlide no Iced: coordena o motor em Rust,
 //! a faixa de opções (Ribbon), o palco de desenho, a lista de miniaturas e as anotações.
 
+use crate::localidade::tr;
 use std::path::PathBuf;
 
 use featherslide_core::modelo::Tipo;
@@ -424,7 +425,7 @@ impl Default for FeatherSlideApp {
             sessao: Sessao::default(),
             arquivos: crate::arquivos::Estado::default(),
             caminho_arquivo: None,
-            nome_arquivo: "Apresentação sem título".into(),
+            nome_arquivo: tr("Apresentação sem título").into(),
             aba_faixa: AbaDaFaixa::Inicio,
             faixa_recolhida: false,
             pegando_cor: false,
@@ -440,7 +441,7 @@ impl Default for FeatherSlideApp {
             cursor_edicao: 0,
             ancora_edicao: None,
             editando_id: None,
-            status: "Salvo".into(),
+            status: tr("Salvo").into(),
             ajuda: ajuda::Estado::default(),
             monitor: feather_ui::monitor::Monitor::novo("FeatherSlide"),
             config_ui: configuracoes::Estado::default(),
@@ -497,7 +498,7 @@ impl Default for FeatherSlideApp {
             modo_apresentador: false,
             monitores_apresentacao: Vec::new(),
             opcoes_plateia: Vec::new(),
-            monitor_plateia: "Janela".into(),
+            monitor_plateia: tr("Janela").into(),
             ultimo_clique_barra: None,
             pesquisa: String::new(),
             pesquisa_resultado: String::new(),
@@ -522,9 +523,9 @@ impl Default for FeatherSlideApp {
             imagem_alt_rascunho: String::new(),
             imagem_alt_rascunho_id: None,
             imagem_opacidade_rascunho: None,
-            imagem_ajuste_selecionado: "Brilho",
-            imagem_efeito_selecionado: "Reflexo",
-            imagem_borda_selecionada: "Esquerda",
+            imagem_ajuste_selecionado: tr("Brilho"),
+            imagem_efeito_selecionado: tr("Reflexo"),
+            imagem_borda_selecionada: tr("Esquerda"),
             imagem_fundo_detalhes: false,
             imagem_alt_expandido: false,
             canto_sel: None,
@@ -552,6 +553,7 @@ impl Default for FeatherSlideApp {
 impl FeatherSlideApp {
     pub fn new() -> (Self, Task<Mensagem>) {
         let config = Configuracao::carregar();
+        crate::localidade::definir(crate::localidade::escolhido(&config.idioma));
         // A principal nasce escondida (`start_hidden` no main) para a moldura seguir a configuração.
         let abrir = Task::open_window(WindowId::MAIN, feather_ui::marca::preparar_janela(Settings {
             title: "FeatherSlide".into(),
@@ -608,10 +610,10 @@ impl FeatherSlideApp {
     fn view_monitor(&self) -> Element<'_, Mensagem> {
         let slides = self.sessao.apresentacao().slides.len();
         let metricas = feather_ui::monitor::Metricas {
-            cartoes: vec![("Slides".into(), slides.to_string(), "Na apresentação atual".into())],
+            cartoes: vec![(tr("Slides").into(), slides.to_string(), tr("Na apresentação atual").into())],
             linhas: vec![
-                ("Slide atual".into(), format!("{} de {slides}", self.sessao.atual() + 1)),
-                ("Estado".into(), self.status.clone()),
+                (tr("Slide atual").into(), crate::localidade::trf("{} de {}", &[&(self.sessao.atual() + 1), &slides])),
+                (tr("Estado").into(), self.status.clone()),
             ],
             ocupado: None,
         };
@@ -620,13 +622,13 @@ impl FeatherSlideApp {
 
     pub fn titulo(&self, janela: WindowId) -> String {
         match self.tipo_de(janela) {
-            Some(Janela::Monitor) => "Monitor do FeatherSlide".into(),
-            Some(Janela::Ajuda) => "Ajuda do FeatherSlide".into(),
-            Some(Janela::Config) => "Configurações do FeatherSlide".into(),
-            Some(Janela::Dados) => "Dados do gráfico".into(),
-            Some(Janela::Animacoes) => "Painel de animação".into(),
-            Some(Janela::Plateia) => "FeatherSlide — apresentação".into(),
-            None => format!("FeatherSlide — {}", self.nome_arquivo),
+            Some(Janela::Monitor) => tr("Monitor do FeatherSlide").into(),
+            Some(Janela::Ajuda) => tr("Ajuda do FeatherSlide").into(),
+            Some(Janela::Config) => tr("Configurações do FeatherSlide").into(),
+            Some(Janela::Dados) => tr("Dados do gráfico").into(),
+            Some(Janela::Animacoes) => tr("Painel de animação").into(),
+            Some(Janela::Plateia) => tr("FeatherSlide — apresentação").into(),
+            None => crate::localidade::trf("FeatherSlide — {}", &[&self.nome_arquivo]),
         }
     }
 
@@ -696,7 +698,7 @@ impl FeatherSlideApp {
             if self.rascunho == id && self.sessao.apresentacao() != original.apresentacao() {
                 self.sessao = original;
                 self.limpar_interface_documento();
-                self.status = "Apresentação somente para leitura; use Duplicar para editar uma cópia".into();
+                self.status = tr("Apresentação somente para leitura; use Duplicar para editar uma cópia").into();
             }
         }
         if self.sessao.estado().versao != versao_antes {
@@ -705,7 +707,10 @@ impl FeatherSlideApp {
         // Tudo que a barra de status disse também vai ao Console (F12); erro vai com a marca `[erro]`.
         if self.status != status_antes {
             let minusculo = self.status.to_lowercase();
-            let falha = minusculo.starts_with("erro") || minusculo.contains("não ") || minusculo.contains("falta") || minusculo.contains("precisa") || minusculo.contains("fora do") || minusculo.contains("ilegível");
+            // O status chega na língua da interface: as marcas de falha cobrem as três.
+            let falha = minusculo.starts_with("erro")
+                || ["não ", "falta", "precisa", "fora do", "ilegível", "couldn't", "invalid", "no pude", "no se pudo", "no válid"]
+                    .iter().any(|m| minusculo.contains(m));
             registro::registrar(format!("{} {}", if falha { "[erro]" } else { "[status]" }, self.status));
         }
         if let Some(n) = nome {
@@ -773,7 +778,7 @@ impl FeatherSlideApp {
                     C::Fechar => self.configuracao_slide = None,
                     C::Imagem => {
                         return Task::perform(async {
-                            let arquivo = rfd::AsyncFileDialog::new().add_filter("Imagem", &["png", "jpg", "jpeg", "webp", "bmp"]).pick_file().await?;
+                            let arquivo = rfd::AsyncFileDialog::new().add_filter(tr("Imagem"), &["png", "jpg", "jpeg", "webp", "bmp"]).pick_file().await?;
                             let caminho = arquivo.path().to_path_buf();
                             tokio::task::spawn_blocking(move || {
                                 let bytes = std::fs::read(caminho).ok()?;
@@ -785,14 +790,14 @@ impl FeatherSlideApp {
                         }, Mensagem::FundoImagemLida);
                     }
                     C::AplicarTamanho | C::AplicarFundo => {
-                        if self.arquivos.leitura { self.status = "Arquivo aberto somente para leitura".into(); return Task::none(); }
+                        if self.arquivos.leitura { self.status = tr("Arquivo aberto somente para leitura").into(); return Task::none(); }
                         if let Some(e) = self.configuracao_slide.clone() {
                             let resultado = if matches!(acao, C::AplicarTamanho) {
                                 e.tamanho().and_then(|(w, h, ajuste)| self.sessao.tamanho_slide_definir(w, h, ajuste))
                             } else {
                                 e.fundo().and_then(|f| self.sessao.fundo_configurar(&e.cor, f, e.todos, e.mestre))
                             };
-                            if let Some(p) = &mut self.configuracao_slide { p.aviso = match resultado { Ok(_) => "Configuração aplicada. Ctrl+Z desfaz.".into(), Err(e) => e }; }
+                            if let Some(p) = &mut self.configuracao_slide { p.aviso = match resultado { Ok(_) => tr("Configuração aplicada. Ctrl+Z desfaz.").into(), Err(e) => e }; }
                         }
                     }
                     outra => if let Some(e) = &mut self.configuracao_slide { e.tratar(outra); },
@@ -809,11 +814,11 @@ impl FeatherSlideApp {
                     propriedades::Msg::Salvar => {
                         if self.arquivos.leitura {
                             if let Some(p) = &mut self.propriedades {
-                                p.aviso = "Arquivo somente para leitura: salve uma cópia antes de editar.".into();
+                                p.aviso = tr("Arquivo somente para leitura: salve uma cópia antes de editar.").into();
                             }
                         } else if let Some(p) = self.propriedades.clone() {
                             match self.sessao.propriedades_definir(p.titulo, p.autor, p.dados) {
-                                Ok(_) => { self.propriedades = None; self.status = "Propriedades atualizadas".into(); }
+                                Ok(_) => { self.propriedades = None; self.status = tr("Propriedades atualizadas").into(); }
                                 Err(e) => { if let Some(estado) = &mut self.propriedades { estado.aviso = e; } }
                             }
                         }
@@ -827,8 +832,8 @@ impl FeatherSlideApp {
                     Ok(ap) if !ap.slides.is_empty() => {
                         self.reutilizacao = Some(reutilizar_slides::Estado::novo(ap, path));
                     },
-                    Ok(_) => self.status = "O arquivo não possui slides para reutilizar.".into(),
-                    Err(e) => self.status = format!("Não foi possível reutilizar slides: {e}"),
+                    Ok(_) => self.status = tr("O arquivo não possui slides para reutilizar.").into(),
+                    Err(e) => self.status = crate::localidade::trf("Não foi possível reutilizar slides: {}", &[&e]),
                 }
             }
             Mensagem::ReutilizarArquivoEscolhido(None) => {}
@@ -853,7 +858,7 @@ impl FeatherSlideApp {
                             let pos = self.sessao.atual() + 1;
                             match self.sessao.slides_colar(pos, &transferencia, estilo) {
                                 Ok(_) => {
-                                    self.status = format!("{} slides reutilizados", transferencia.quantidade());
+                                    self.status = crate::localidade::trf("{} slides reutilizados", &[&transferencia.quantidade()]);
                                     self.slides_sel = (pos..pos+transferencia.quantidade()).collect();
                                     self.reutilizacao = None;
                                 },
@@ -875,12 +880,12 @@ impl FeatherSlideApp {
                                     self.slides_sel = [n - 1].into();
                                     self.foco_miniaturas = true;
                                     self.ir_numero = None;
-                                    self.status = format!("Slide {n} de {}", self.sessao.apresentacao().slides.len());
+                                    self.status = crate::localidade::trf("Slide {} de {}", &[&n, &(self.sessao.apresentacao().slides.len())]);
                                 },
                                 Err(e) => self.status = e,
                             }
                         }
-                        _ => self.status = format!("Informe um número de 1 a {}.", self.sessao.apresentacao().slides.len()),
+                        _ => self.status = crate::localidade::trf("Informe um número de 1 a {}.", &[&(self.sessao.apresentacao().slides.len())]),
                     }
                 }
             }
@@ -888,21 +893,21 @@ impl FeatherSlideApp {
                 self.trocar_sessao(Sessao::default());
                 self.aplicar_dicas();
                 self.caminho_arquivo = None;
-                self.nome_arquivo = "Apresentação sem título".into();
+                self.nome_arquivo = tr("Apresentação sem título").into();
                 self.em_tela_inicio = false;
                 self.pode_continuar = false;
-                self.status = "Novo documento criado".into();
+                self.status = tr("Novo documento criado").into();
             }
             Mensagem::NovoDoModelo(id) => {
                 if let Some(ap) = featherslide_core::modelos::criar(id) {
                     self.trocar_sessao(Sessao::nova(ap));
                     self.aplicar_dicas();
                     self.caminho_arquivo = None;
-                    self.nome_arquivo = "Apresentação sem título".into();
+                    self.nome_arquivo = tr("Apresentação sem título").into();
                     self.em_tela_inicio = false;
                     self.pode_continuar = false;
                     self.slides_sel.clear();
-                    self.status = format!("Novo documento a partir do modelo \"{id}\"");
+                    self.status = crate::localidade::trf("Novo documento a partir do modelo \"{}\"", &[&id]);
                 }
             }
             Mensagem::IrParaInicio => {
@@ -949,24 +954,24 @@ impl FeatherSlideApp {
                     self.trocar_sessao(Sessao::nova(ap));
                     self.aplicar_dicas();
                     self.caminho_arquivo = None;
-                    self.nome_arquivo = "Apresentação sem título".into();
+                    self.nome_arquivo = tr("Apresentação sem título").into();
                     self.em_tela_inicio = false;
                     self.pode_continuar = false;
-                    self.status = "Novo documento a partir de um modelo seu".into();
+                    self.status = tr("Novo documento a partir de um modelo seu").into();
                 }
-                Err(e) => self.status = format!("Erro ao abrir o modelo: {e}"),
+                Err(e) => self.status = crate::localidade::trf("Erro ao abrir o modelo: {}", &[&e]),
             },
             Mensagem::ModeloImportarEscolhido(Some(origem)) => {
                 match crate::modelos_usuario::importar(&origem) {
-                    Ok(_) => self.status = "Modelo importado".into(),
-                    Err(e) => self.status = format!("Erro ao importar o modelo: {e}"),
+                    Ok(_) => self.status = tr("Modelo importado").into(),
+                    Err(e) => self.status = crate::localidade::trf("Erro ao importar o modelo: {}", &[&e]),
                 }
                 self.meus_modelos = crate::modelos_usuario::listar();
             }
             Mensagem::ModeloImportarEscolhido(None) => {}
             Mensagem::ModeloExportarEscolhido(modelo, Some(destino)) => match crate::modelos_usuario::exportar(&modelo, &destino) {
-                Ok(()) => self.status = "Modelo exportado".into(),
-                Err(e) => self.status = format!("Erro ao exportar o modelo: {e}"),
+                Ok(()) => self.status = tr("Modelo exportado").into(),
+                Err(e) => self.status = crate::localidade::trf("Erro ao exportar o modelo: {}", &[&e]),
             },
             Mensagem::ModeloExportarEscolhido(_, None) => {}
             Mensagem::AbrirArquivo => {
@@ -999,7 +1004,7 @@ impl FeatherSlideApp {
                                 if let Some(combo) = combo_de(key, *modifiers) {
                                     match self.config.comando_de(&combo) {
                                         Some(outro) if outro != atalho => {
-                                            self.config_ui.aviso = format!("{combo} já é de outro atalho.");
+                                            self.config_ui.aviso = crate::localidade::trf("{} já é de outro atalho.", &[&combo]);
                                         }
                                         _ => {
                                             self.config.atalhos.insert(atalho.to_string(), combo);
@@ -1044,7 +1049,7 @@ impl FeatherSlideApp {
                 }
             }
             Mensagem::ColarDoSistema(texto) => match self.sessao.colar(&texto.unwrap_or_default()) {
-                Ok(_) => self.status = "Colado".into(),
+                Ok(_) => self.status = tr("Colado").into(),
                 Err(e) => self.status = e,
             },
             Mensagem::FormatoForma(m) => {
@@ -1053,7 +1058,7 @@ impl FeatherSlideApp {
                     crate::formato_forma::Msg::Aplicar => {
                         if let Some(e)=&mut self.formato_forma {
                             let r=e.aparencia().and_then(|a|self.sessao.forma_aparencia_previa(a));
-                            e.aviso=match r{Ok(_)=>{self.sessao.confirmar_previa();"Aparência aplicada. Ctrl+Z desfaz.".into()},Err(e)=>e};
+                            e.aviso=match r{Ok(_)=>{self.sessao.confirmar_previa();tr("Aparência aplicada. Ctrl+Z desfaz.").into()},Err(e)=>e};
                         }
                     },
                     m=>if let Some(e)=&mut self.formato_forma {
@@ -1088,7 +1093,7 @@ impl FeatherSlideApp {
                     Msg::Nivel(i,b) => if let Some(e)=&mut self.editor_diagrama { e.edicao.nivel_alterar(i,b); },
                     Msg::Aplicar => if let Some(e) = &mut self.editor_diagrama {
                         match self.sessao.diagrama_textos_definir(&e.edicao) {
-                            Ok(_) => { self.editor_diagrama = None; self.status = "Textos do diagrama atualizados. Ctrl+Z desfaz.".into(); },
+                            Ok(_) => { self.editor_diagrama = None; self.status = tr("Textos do diagrama atualizados. Ctrl+Z desfaz.").into(); },
                             Err(aviso) => e.aviso = aviso,
                         }
                     },
@@ -1096,7 +1101,7 @@ impl FeatherSlideApp {
             }
             Mensagem::ColarOriginalDoSistema(texto) => {
                 self.status = match self.sessao.colar_com_formatacao_original(&texto.unwrap_or_default()) {
-                    Ok(_) => "Colado com formatação original".into(), Err(e) => e,
+                    Ok(_) => tr("Colado com formatação original").into(), Err(e) => e,
                 };
             }
             Mensagem::CapturarTela => match self.passo_captura {
@@ -1119,7 +1124,7 @@ impl FeatherSlideApp {
                     }
                     if self.sessao.elemento_inserir(Tipo::Texto, None, None).is_ok() {
                         if let Some(id) = self.sessao.slide().elementos.last().map(|e| e.id) {
-                            let _ = self.sessao.texto_definir(id, "Exemplo de texto");
+                            let _ = self.sessao.texto_definir(id, tr("Exemplo de texto"));
                             self.sessao.selecionar_por_id(id);
                         }
                     }
@@ -1133,7 +1138,16 @@ impl FeatherSlideApp {
                     self.passo_captura = 2;
                     // Sem janela: o pelicano desenha a mesma árvore direto num PNG.
                     if let Some(caminho) = std::env::var_os("FEATHERSLIDE_CAPTURAR") {
-                        let png = pelicano::capture(&self.view(WindowId::MAIN), Size::new(1280.0, 800.0), 1.0,
+                        // `FEATHERSLIDE_CAPTURAR_TELA=config|ajuda`: a janela de Configurações ou da Ajuda.
+                        let tela = match std::env::var("FEATHERSLIDE_CAPTURAR_TELA").as_deref() {
+                            Ok("config") => {
+                                let extras = configuracoes::Extras { grade: self.grade, guias: self.guias, repetir: self.repetir, dois_monitores: self.config.dois_monitores, monitores: self.n_monitores };
+                                self.config_ui.view(&self.config, self.sessao.apresentacao().proporcao, None, extras, &self.meus_modelos).map(Mensagem::ConfigMsg)
+                            }
+                            Ok("ajuda") => self.ajuda.view().map(Mensagem::AjudaMsg),
+                            _ => self.view(WindowId::MAIN),
+                        };
+                        let png = pelicano::capture(&tela, Size::new(1280.0, 800.0), 1.0,
                             &crate::tema::tema(), &mut pelicano::Renderer::new(), None);
                         let _ = std::fs::write(&caminho, png);
                     }
@@ -1152,7 +1166,7 @@ impl FeatherSlideApp {
                 }
                 if self.editando_id.is_some() { return self.tratar(Mensagem::ColarNoTexto(texto)); }
                 self.status = match self.sessao.colar_sem_formatacao(&texto.unwrap_or_default()) {
-                    Ok(_) => "Texto colado sem formatação".into(), Err(e) => e,
+                    Ok(_) => tr("Texto colado sem formatação").into(), Err(e) => e,
                 };
             }
             Mensagem::Tique => {
@@ -1180,7 +1194,7 @@ impl FeatherSlideApp {
                         self.inicio_arrasto_secao = None;
                         self.arrastando_slide = Some(i);
                         self.cursor_arrasto = None;
-                        self.status = "Solte sobre o slide para criar a visão dele, ou sobre outra miniatura para reordenar".into();
+                        self.status = tr("Solte sobre o slide para criar a visão dele, ou sobre outra miniatura para reordenar").into();
                     }
                     MiniaturaMensagem::Soltou(i) => {
                         // Soltar uma seção sobre a miniatura de outro grupo também
@@ -1200,7 +1214,7 @@ impl FeatherSlideApp {
                                     Ok(_) => {
                                         let pos = i.min(self.sessao.apresentacao().slides.len() - alvos.len());
                                         self.slides_sel = (pos..pos+alvos.len()).collect();
-                                        self.status = format!("{} slides reordenados", alvos.len());
+                                        self.status = crate::localidade::trf("{} slides reordenados", &[&alvos.len()]);
                                     }
                                     Err(e) => self.status = e,
                                 }
@@ -1271,7 +1285,7 @@ impl FeatherSlideApp {
                                         let quantidade = if inserir_slide { 1 } else { alvos.len() };
                                         self.slides_sel = (inicio..inicio + quantidade).collect();
                                         self.renomeando_secao = Some((inicio, nome));
-                                        self.status = format!("Seção criada com {} slide(s)", quantidade);
+                                        self.status = crate::localidade::trf("Seção criada com {} slide(s)", &[&quantidade]);
                                         return Task::focus(ID_RENOMEAR);
                                     }
                                     Err(e) => self.status = e,
@@ -1281,7 +1295,7 @@ impl FeatherSlideApp {
                     }
                     MiniaturaMensagem::Novo => {
                         let _ = self.sessao.slide_novo("titulo_conteudo");
-                        self.status = "Novo slide adicionado".into();
+                        self.status = tr("Novo slide adicionado").into();
                     }
                 }
             }
@@ -1299,7 +1313,7 @@ impl FeatherSlideApp {
                         if self.pincel.is_some() {
                             if let Some(id) = self.sessao.elemento_no_ponto(x, y) {
                                 let p = self.pincel.take().unwrap();
-                                self.status = match self.sessao.pincel_aplicar(id, &p) { Ok(_) => "Formatação aplicada".into(), Err(e) => e };
+                                self.status = match self.sessao.pincel_aplicar(id, &p) { Ok(_) => tr("Formatação aplicada").into(), Err(e) => e };
                             }
                             return Task::none();
                         }
@@ -1310,12 +1324,12 @@ impl FeatherSlideApp {
                                     if id!=origem {
                                         self.sessao.selecionar_no_ponto(x,y,true);
                                         match self.sessao.conector_inserir(estilo) {
-                                            Ok(_)=>{self.conector_modo=None;self.conector_origem=None;self.status="Conector criado".into();}
+                                            Ok(_)=>{self.conector_modo=None;self.conector_origem=None;self.status=tr("Conector criado").into();}
                                             Err(e)=>self.status=e,
                                         }
-                                    } else {self.status="Clique em outra forma para o destino".into();}
-                                } else {self.conector_origem=Some(id);self.status="Agora clique na forma de destino. Esc cancela.".into();}
-                            } else {self.status="Clique sobre uma forma. Esc cancela.".into();}
+                                    } else {self.status=tr("Clique em outra forma para o destino").into();}
+                                } else {self.conector_origem=Some(id);self.status=tr("Agora clique na forma de destino. Esc cancela.").into();}
+                            } else {self.status=tr("Clique sobre uma forma. Esc cancela.").into();}
                             return Task::none();
                         }
                         if let Some(manter) = self.marcando {
@@ -1326,10 +1340,10 @@ impl FeatherSlideApp {
                         if let Some(alvo) = self.conta_gotas.take() {
                             match self.cor_no_slide(x, y) {
                                 Some(hex) => {
-                                    self.status = format!("Cor pega: {hex}");
+                                    self.status = crate::localidade::trf("Cor pega: {}", &[&hex]);
                                     self.aplicar_cor(alvo, hex);
                                 }
-                                None => self.status = "Não achei uma cor nesse ponto".into(),
+                                None => self.status = tr("Não achei uma cor nesse ponto").into(),
                             }
                             return Task::none();
                         }
@@ -1341,9 +1355,9 @@ impl FeatherSlideApp {
                                 Some(cor) => {
                                     let _ = self.sessao.formatar_previa(Formatacao::FundoCor(cor.clone()));
                                     self.sessao.confirmar_previa();
-                                    self.status = format!("Cor do fundo a remover: {cor}");
+                                    self.status = crate::localidade::trf("Cor do fundo a remover: {}", &[&cor]);
                                 }
-                                None => self.status = "Clique sobre a imagem selecionada para pegar a cor".into(),
+                                None => self.status = tr("Clique sobre a imagem selecionada para pegar a cor").into(),
                             }
                             return Task::none();
                         }
@@ -1389,10 +1403,10 @@ impl FeatherSlideApp {
                                     Some(Tipo::Imagem) => {
                                         if self.ajustando_recorte == Some(id) {
                                             self.ajustando_recorte = None;
-                                            self.status = "Ajuste de enquadramento concluído".into();
+                                            self.status = tr("Ajuste de enquadramento concluído").into();
                                         } else {
                                             self.ajustando_recorte = Some(id);
-                                            self.status = "Modo de enquadramento: arraste a foto para posicionar no recorte, use a roda do mouse para zoom, Esc/Enter para sair".into();
+                                            self.status = tr("Modo de enquadramento: arraste a foto para posicionar no recorte, use a roda do mouse para zoom, Esc/Enter para sair").into();
                                         }
                                     }
                                     _ => {
@@ -1426,9 +1440,9 @@ impl FeatherSlideApp {
                                 Some(cor) => {
                                     let _ = self.sessao.formatar_previa(Formatacao::FundoCor(cor.clone()));
                                     self.sessao.confirmar_previa();
-                                    self.status = format!("Cor mais comum da região: {cor} — removida do fundo");
+                                    self.status = crate::localidade::trf("Cor mais comum da região: {} — removida do fundo", &[&cor]);
                                 }
-                                None => self.status = "Selecione uma região dentro da imagem".into(),
+                                None => self.status = tr("Selecione uma região dentro da imagem").into(),
                             }
                             return Task::none();
                         }
@@ -1508,11 +1522,11 @@ impl FeatherSlideApp {
                         self.arrastando_slide = None;
                         self.cursor_arrasto = None;
                         if slide == self.sessao.atual() {
-                            self.status = "Solte um slide diferente do que está aberto".into();
+                            self.status = tr("Solte um slide diferente do que está aberto").into();
                         } else {
                             let visao = self.gerar_visao_slide(slide);
                             match self.sessao.gatilho_inserir(slide, Some([x, y]), visao) {
-                                Ok(_) => self.status = format!("Visão do slide {} adicionada (clique leva a ele)", slide + 1),
+                                Ok(_) => self.status = crate::localidade::trf("Visão do slide {} adicionada (clique leva a ele)", &[&(slide + 1)]),
                                 Err(e) => self.status = e,
                             }
                         }
@@ -1564,7 +1578,7 @@ impl FeatherSlideApp {
                 // Só por clique explícito do usuário; o app não abre nada sozinho.
                 if let Some(url) = self.sessao.link_do_elemento(self.sessao.atual(), id) {
                     if let Err(e) = abrir_endereco(&url) {
-                        self.status = format!("Não consegui abrir o link: {e}");
+                        self.status = crate::localidade::trf("Não consegui abrir o link: {}", &[&e]);
                     }
                 }
             }
@@ -1585,7 +1599,7 @@ impl FeatherSlideApp {
                 self.impressao = None;
                 self.status = match r {
                     Ok(m) => m,
-                    Err(e) => format!("Erro ao imprimir: {e}"),
+                    Err(e) => crate::localidade::trf("Erro ao imprimir: {}", &[&e]),
                 };
             }
             Mensagem::IdiomaEscolhido(Some(dic)) => {
@@ -1596,7 +1610,7 @@ impl FeatherSlideApp {
                         }
                         self.config.gravar();
                         self.config_ui.atualizar_ortografia();
-                        self.config_ui.aviso = format!("Idioma {codigo} instalado.");
+                        self.config_ui.aviso = crate::localidade::trf("Idioma {} instalado.", &[&codigo]);
                         self.recarregar_corretor();
                     }
                     Err(e) => self.config_ui.aviso = e,
@@ -1628,7 +1642,7 @@ impl FeatherSlideApp {
             Mensagem::RodapeAplicar => {
                 if let Some(r) = self.rodape.take() {
                     self.status = match self.sessao.rodape_definir(r) {
-                        Ok(_) => "Rodapé aplicado a todos os slides (Ctrl+Z desfaz).".into(),
+                        Ok(_) => tr("Rodapé aplicado a todos os slides (Ctrl+Z desfaz).").into(),
                         Err(e) => e,
                     };
                 }
@@ -1637,7 +1651,7 @@ impl FeatherSlideApp {
                 if let Some(t) = &self.topicos {
                     match self.sessao.topicos_aplicar(&t.texto.text()) {
                         Ok(_) => {
-                            self.status = "Estrutura aplicada aos slides (Ctrl+Z desfaz).".into();
+                            self.status = tr("Estrutura aplicada aos slides (Ctrl+Z desfaz).").into();
                             self.topicos = None;
                         }
                         Err(e) => self.status = e,
@@ -1661,7 +1675,7 @@ impl FeatherSlideApp {
                                 estado.selecionada = Some(i);
                                 estado.nome_novo.clear();
                             }
-                            self.status = "Apresentação personalizada criada".into();
+                            self.status = tr("Apresentação personalizada criada").into();
                         }
                         Err(e) => self.status = e,
                     }
@@ -1780,14 +1794,14 @@ impl FeatherSlideApp {
                 let (largura, altura) = (w * escala, h * escala);
                 let rect = [(sl - largura) / 2.0, (sa - altura) / 2.0, largura, altura];
                 match self.sessao.elemento_inserir(Tipo::Imagem, Some(rect), Some(url)) {
-                    Ok(_) => self.status = "Imagem inserida".into(),
+                    Ok(_) => self.status = tr("Imagem inserida").into(),
                     Err(e) => self.status = e,
                 }
             }
             Mensagem::ImagemLida(None) => {}
             Mensagem::SvgLido(Some(resultado)) => {
                 self.status = match resultado.and_then(|d| self.sessao.svg_inserir(d.elementos,d.tamanho)) {
-                    Ok(_) => "SVG importado como grupo vetorial".into(), Err(e) => e,
+                    Ok(_) => tr("SVG importado como grupo vetorial").into(), Err(e) => e,
                 };
             }
             Mensagem::SvgLido(None) => {}
@@ -1795,7 +1809,7 @@ impl FeatherSlideApp {
             Mensagem::ImagemArquivoSubstituida(id, Some(imagem)) => {
                 if self.sessao.estado().selecao.contains(&id) {
                     match self.sessao.imagem_substituir(imagem, false) {
-                        Ok(_) => self.status = "Imagem substituída mantendo tamanho e efeitos".into(),
+                        Ok(_) => self.status = tr("Imagem substituída mantendo tamanho e efeitos").into(),
                         Err(e) => self.status = e,
                     }
                 }
@@ -1804,8 +1818,8 @@ impl FeatherSlideApp {
             Mensagem::ImagemRecomprimida(id, resultado) => {
                 if self.sessao.estado().selecao.contains(&id) {
                     match resultado.and_then(|url| self.sessao.imagem_substituir(url, true).map(|_| ())) {
-                        Ok(()) => self.status = "Imagem compactada. Ctrl+Z recupera os bytes anteriores.".into(),
-                        Err(e) => self.status = format!("Não foi possível compactar: {e}"),
+                        Ok(()) => self.status = tr("Imagem compactada. Ctrl+Z recupera os bytes anteriores.").into(),
+                        Err(e) => self.status = crate::localidade::trf("Não foi possível compactar: {}", &[&e]),
                     }
                 }
             }
@@ -1819,8 +1833,8 @@ impl FeatherSlideApp {
                 }
                 let so_atual = std::mem::take(&mut self.pdf_so_atual);
                 self.status = match self.exportar_pdf(&p, so_atual) {
-                    Ok(paginas) => format!("PDF exportado: {paginas} páginas em {}", p.file_name().unwrap_or_default().to_string_lossy()),
-                    Err(e) => format!("Não consegui exportar o PDF: {e}"),
+                    Ok(paginas) => crate::localidade::trf("PDF exportado: {} páginas em {}", &[&paginas, &(p.file_name().unwrap_or_default().to_string_lossy())]),
+                    Err(e) => crate::localidade::trf("Não consegui exportar o PDF: {}", &[&e]),
                 };
             }
             Mensagem::PdfEscolhido(None) => {}
@@ -1838,7 +1852,7 @@ impl FeatherSlideApp {
                     // O formato gravado é sempre `.fsdz`: o nome também.
                     if p.extension().map_or(true, |e| !e.eq_ignore_ascii_case("fsdz")) { p.set_extension("fsdz"); }
                     if self.arquivos.leitura && self.caminho_arquivo.as_ref().is_some_and(|atual| atual == &p || atual.canonicalize().ok().zip(p.canonicalize().ok()).is_some_and(|(a,b)| a == b)) {
-                        self.status = "Escolha outro destino para a apresentação somente leitura".into();
+                        self.status = tr("Escolha outro destino para a apresentação somente leitura").into();
                         return Task::none();
                     }
                     if !self.arquivos.leitura { self.atualizar_imagens_de_gatilhos(); }
@@ -1849,10 +1863,10 @@ impl FeatherSlideApp {
                             self.nome_arquivo = p.file_name().unwrap_or_default().to_string_lossy().to_string();
                             self.sessao.marcar_gravado();
                             let _ = std::fs::remove_file(&self.rascunho);
-                            self.status = "Salvo".into();
+                            self.status = tr("Salvo").into();
                             if self.arquivos.painel { self.atualizar_arquivos(); }
                         }
-                        Err(e) => self.status = format!("Não consegui salvar: {e}"),
+                        Err(e) => self.status = crate::localidade::trf("Não consegui salvar: {}", &[&e]),
                     }
                 }
             }
@@ -1875,10 +1889,10 @@ impl FeatherSlideApp {
                     return Task::none();
                 }
                 if self.pincel.is_some() && matches!(key, Key::Named(NamedKey::Escape)) {
-                    self.pincel = None; self.status = "Pincel cancelado".into(); return Task::none();
+                    self.pincel = None; self.status = tr("Pincel cancelado").into(); return Task::none();
                 }
                 if self.conector_modo.is_some() && matches!(key, Key::Named(NamedKey::Escape)) {
-                    self.conector_modo=None;self.conector_origem=None;self.status="Conector cancelado".into();return Task::none();
+                    self.conector_modo=None;self.conector_origem=None;self.status=tr("Conector cancelado").into();return Task::none();
                 }
                 if self.configuracao_slide.is_some() {
                     if matches!(key, Key::Named(NamedKey::Escape)) { self.configuracao_slide = None; }
@@ -2084,7 +2098,7 @@ impl FeatherSlideApp {
                     match &key {
                         Key::Named(Named::Escape | Named::Enter) => {
                             self.ajustando_recorte = None;
-                            self.status = "Ajuste de enquadramento concluído".into();
+                            self.status = tr("Ajuste de enquadramento concluído").into();
                             return Task::none();
                         }
                         Key::Named(Named::ArrowLeft) => {
@@ -2329,7 +2343,7 @@ impl FeatherSlideApp {
         self.editando_id = None;
         self.editando_celula = None;
         self.monitores_apresentacao = crate::monitores::listar();
-        self.opcoes_plateia = std::iter::once("Janela".to_string()).chain(self.monitores_apresentacao.iter().map(|m| m.nome.clone())).collect();
+        self.opcoes_plateia = std::iter::once(tr("Janela").to_string()).chain(self.monitores_apresentacao.iter().map(|m| m.nome.clone())).collect();
         if self.modo_leitura {
             return Task::none();
         }
@@ -2352,7 +2366,7 @@ impl FeatherSlideApp {
                 Settings { size: Size::new(m.largura as f32, m.altura as f32), position: Some(Point::new(m.x as f32, m.y as f32)), decorations: false, close_on_request: false, ..Default::default() }
             }
             None => {
-                self.monitor_plateia = "Janela".into();
+                self.monitor_plateia = tr("Janela").into();
                 Settings { size: Size::new(960.0, 540.0), close_on_request: false, ..Default::default() }
             }
         };
@@ -2399,7 +2413,7 @@ impl FeatherSlideApp {
             let tempos = self.ensaio.take().map(|(t, _)| t).unwrap_or_default();
             let total: f32 = tempos.iter().map(|(_, t)| t).sum();
             self.status = match self.sessao.tempos_do_ensaio(&tempos) {
-                Ok(_) => format!("Ensaio: {} slides em {}:{:02}. Os tempos viraram o avanço automático (Ctrl+Z desfaz).", tempos.len(), total as u32 / 60, total as u32 % 60),
+                Ok(_) => crate::localidade::trf("Ensaio: {} slides em {}:{}. Os tempos viraram o avanço automático (Ctrl+Z desfaz).", &[&(tempos.len()), &(total as u32 / 60), &(format!("{:02}", total as u32 % 60))]),
                 Err(e) => e,
             };
         }
@@ -2556,7 +2570,7 @@ impl FeatherSlideApp {
         let _ = self.sessao.slide_ir(i);
         self.editando_id = None;
         if self.slides_sel.len() > 1 {
-            self.status = format!("{} slides marcados", self.slides_sel.len());
+            self.status = crate::localidade::trf("{} slides marcados", &[&self.slides_sel.len()]);
         }
     }
 
@@ -2597,7 +2611,7 @@ impl FeatherSlideApp {
                     .filter(|s| ids_recolhidas.contains(&self.sessao.apresentacao().slides[s.inicio].id))
                     .map(|s| s.inicio)
                     .collect();
-                self.status = "Seção movida com todos os seus slides (Ctrl+Z para desfazer)".into();
+                self.status = tr("Seção movida com todos os seus slides (Ctrl+Z para desfazer)").into();
             }
             Err(e) => self.status = e,
         }
@@ -2681,9 +2695,9 @@ impl FeatherSlideApp {
             Some(r) => {
                 let _ = self.sessao.imagem_marca_adicionar(manter, r);
                 let (m, r2) = self.sessao.imagem_marcas_contagem();
-                self.status = format!("Marcas: {m} para manter, {r2} para remover");
+                self.status = crate::localidade::trf("Marcas: {} para manter, {} para remover", &[&m, &r2]);
             }
-            None => self.status = "Marque dentro da imagem selecionada".into(),
+            None => self.status = tr("Marque dentro da imagem selecionada").into(),
         }
     }
 
@@ -2822,12 +2836,12 @@ impl FeatherSlideApp {
         if self.caminho_arquivo.as_ref().is_some_and(|original| {
             *original == destino || original.canonicalize().ok().zip(destino.canonicalize().ok()).is_some_and(|(a, b)| a == b)
         }) {
-            self.status = "Escolha outro destino para salvar a cópia.".into();
+            self.status = tr("Escolha outro destino para salvar a cópia.").into();
             return false;
         }
         match crate::arquivos::salvar_em_ordem(self.sessao.apresentacao(), &destino) {
-            Ok(_) => { self.status = format!("Cópia salva: {}", destino.display()); true }
-            Err(e) => { self.status = format!("Não consegui salvar a cópia: {e}"); false }
+            Ok(_) => { self.status = crate::localidade::trf("Cópia salva: {}", &[&(destino.display())]); true }
+            Err(e) => { self.status = crate::localidade::trf("Não consegui salvar a cópia: {}", &[&e]); false }
         }
     }
 
@@ -2847,7 +2861,7 @@ impl FeatherSlideApp {
 
     /// Grava no caminho atual; `true` se gravou.
     pub(crate) fn gravar_no_caminho(&mut self) -> bool {
-        if self.arquivos.leitura { self.status = "Arquivo somente para leitura; use Salvar cópia".into(); return false; }
+        if self.arquivos.leitura { self.status = tr("Arquivo somente para leitura; use Salvar cópia").into(); return false; }
         self.atualizar_imagens_de_gatilhos();
         let Some(mut path) = self.caminho_arquivo.clone() else { return false };
         // Nunca grava `.fsdz` por cima de um `.pptx`/`.odp` (corrompia o original): vai para um `.fsdz` ao lado.
@@ -2860,12 +2874,12 @@ impl FeatherSlideApp {
                 self.nome_arquivo = path.file_name().unwrap_or_default().to_string_lossy().to_string();
                 self.sessao.marcar_gravado();
                 let _ = std::fs::remove_file(&self.rascunho);
-                self.status = "Salvo".into();
+                self.status = tr("Salvo").into();
                 if self.arquivos.painel { self.atualizar_arquivos(); }
                 true
             }
             Err(e) => {
-                self.status = format!("Não consegui salvar: {e}");
+                self.status = crate::localidade::trf("Não consegui salvar: {}", &[&e]);
                 false
             }
         }
@@ -2901,7 +2915,7 @@ impl FeatherSlideApp {
                 } else if !usar && lista.len() > 1 {
                     lista.retain(|c| *c != codigo);
                 } else if !usar {
-                    self.config_ui.aviso = "Deixe pelo menos um idioma ligado.".into();
+                    self.config_ui.aviso = tr("Deixe pelo menos um idioma ligado.").into();
                     return Task::none();
                 }
                 self.config_ui.aviso.clear();
@@ -2917,7 +2931,7 @@ impl FeatherSlideApp {
             Msg::OrtAdicionar => {
                 return Task::perform(
                     async {
-                        rfd::AsyncFileDialog::new().set_title("Escolha o dicionário (.dic)").add_filter("Dicionário Hunspell (*.dic)", &["dic"]).pick_file().await.map(|f| f.path().to_path_buf())
+                        rfd::AsyncFileDialog::new().set_title(tr("Escolha o dicionário (.dic)")).add_filter(tr("Dicionário Hunspell (*.dic)"), &["dic"]).pick_file().await.map(|f| f.path().to_path_buf())
                     },
                     Mensagem::IdiomaEscolhido,
                 );
@@ -2927,8 +2941,8 @@ impl FeatherSlideApp {
             Msg::OrtLimparSim => {
                 self.config_ui.confirmar_limpar = false;
                 self.config_ui.aviso = match featherslide_ortografia::limpar_dicionario_pessoal() {
-                    Ok(()) => "Dicionário pessoal esvaziado.".into(),
-                    Err(e) => format!("Não consegui esvaziar: {e}"),
+                    Ok(()) => tr("Dicionário pessoal esvaziado.").into(),
+                    Err(e) => crate::localidade::trf("Não consegui esvaziar: {}", &[&e]),
                 };
                 self.config_ui.atualizar_ortografia();
                 self.recarregar_corretor();
@@ -2968,6 +2982,10 @@ impl FeatherSlideApp {
             Msg::PainelNotas(b) => self.config.painel_notas = b,
             Msg::Grade(b) => self.grade = b,
             Msg::BarraPropria(b) => self.config.barra_propria = b,
+            Msg::Idioma(codigo) => {
+                self.config.idioma = codigo.into();
+                crate::localidade::definir(codigo);
+            }
             Msg::DoisMonitores(b) => self.config.dois_monitores = b,
             Msg::Guias(b) => self.guias = b,
             Msg::Repetir(b) => self.repetir = b,
@@ -2983,11 +3001,11 @@ impl FeatherSlideApp {
                 let nome = if nome.trim().is_empty() { self.nome_arquivo.trim_end_matches(".fsdz").to_string() } else { nome };
                 match crate::modelos_usuario::criar(&nome, self.sessao.apresentacao()) {
                     Ok(_) => {
-                        self.config_ui.aviso = format!("Modelo \"{nome}\" criado.");
+                        self.config_ui.aviso = crate::localidade::trf("Modelo \"{}\" criado.", &[&nome]);
                         self.config_ui.nome_modelo.clear();
-                        self.status = "Modelo criado".into();
+                        self.status = tr("Modelo criado").into();
                     }
-                    Err(e) => self.config_ui.aviso = format!("Erro ao criar o modelo: {e}"),
+                    Err(e) => self.config_ui.aviso = crate::localidade::trf("Erro ao criar o modelo: {}", &[&e]),
                 }
                 self.meus_modelos = crate::modelos_usuario::listar();
                 return Task::none();
@@ -3016,7 +3034,7 @@ impl FeatherSlideApp {
                     let nome = format!("{}.fsdz", m.nome);
                     return Task::perform(
                         async move {
-                            let escolhido = rfd::AsyncFileDialog::new().set_file_name(&nome).add_filter("FeatherSlide (*.fsdz)", &["fsdz"]).save_file().await.map(|f| f.path().to_path_buf());
+                            let escolhido = rfd::AsyncFileDialog::new().set_file_name(&nome).add_filter(tr("FeatherSlide (*.fsdz)"), &["fsdz"]).save_file().await.map(|f| f.path().to_path_buf());
                             (origem, escolhido)
                         },
                         |(o, d)| Mensagem::ModeloExportarEscolhido(o, d),
@@ -3027,7 +3045,7 @@ impl FeatherSlideApp {
             Msg::RemoverModelo(i) => {
                 if let Some(m) = self.meus_modelos.get(i) {
                     match crate::modelos_usuario::remover(&m.caminho) {
-                        Ok(()) => self.config_ui.aviso = format!("Modelo \"{}\" removido.", m.nome),
+                        Ok(()) => self.config_ui.aviso = crate::localidade::trf("Modelo \"{}\" removido.", &[&m.nome]),
                         Err(e) => self.config_ui.aviso = e,
                     }
                 }
@@ -3047,9 +3065,9 @@ impl FeatherSlideApp {
     fn exportar_pptx(&self, destino: &std::path::Path) -> String {
         let nome = destino.file_name().unwrap_or_default().to_string_lossy().to_string();
         match featherslide_io::pptx::gravar::salvar(self.sessao.apresentacao(), destino) {
-            Ok(g) if g.de_fora == 0 => format!("PowerPoint exportado: {nome}"),
-            Ok(g) => format!("PowerPoint exportado: {nome}. {} elemento(s) sem equivalente ficaram de fora (ícones, WordArt, desenhos livres).", g.de_fora),
-            Err(e) => format!("Não consegui exportar o PowerPoint: {e}"),
+            Ok(g) if g.de_fora == 0 => crate::localidade::trf("PowerPoint exportado: {}", &[&nome]),
+            Ok(g) => crate::localidade::trf("PowerPoint exportado: {}. {} elemento(s) sem equivalente ficaram de fora (ícones, WordArt, desenhos livres).", &[&nome, &g.de_fora]),
+            Err(e) => crate::localidade::trf("Não consegui exportar o PowerPoint: {}", &[&e]),
         }
     }
 
@@ -3057,7 +3075,7 @@ impl FeatherSlideApp {
         let ap = self.sessao.apresentacao();
         let mut quadros: Vec<_> = (0..ap.slides.len()).filter(|&i| if so_atual { i == self.sessao.atual() } else { !ap.slides[i].oculto }).filter_map(|i| self.sessao.quadro(i, None, false).ok().flatten()).collect();
         if quadros.is_empty() {
-            return Err("não há slides visíveis para exportar".into());
+            return Err(tr("não há slides visíveis para exportar").into());
         }
         // Efeitos externos da foto são camadas PNG temporárias na saída PDF.
         // O arquivo .fsdz nunca é substituído por pixels processados.
@@ -3173,8 +3191,8 @@ impl FeatherSlideApp {
     fn abrir_dialogo_copia(&self) -> Task<Mensagem> {
         let nome = format!("{} - cópia.fsdz", std::path::Path::new(&self.nome_arquivo).file_stem().unwrap_or_default().to_string_lossy());
         Task::perform(async move {
-            let mut dialogo = rfd::AsyncFileDialog::new().set_title("Salvar cópia")
-                .set_file_name(&nome).add_filter("FeatherSlide (*.fsdz)", &["fsdz"]);
+            let mut dialogo = rfd::AsyncFileDialog::new().set_title(tr("Salvar cópia"))
+                .set_file_name(&nome).add_filter(tr("FeatherSlide (*.fsdz)"), &["fsdz"]);
             if let Some(pasta) = crate::configuracao::pasta_das_apresentacoes() { dialogo = dialogo.set_directory(pasta); }
             dialogo.save_file().await.map(|f| f.path().to_path_buf())
         }, Mensagem::CopiaEscolhida)
@@ -3184,7 +3202,7 @@ impl FeatherSlideApp {
         let nome_sugerido = self.nome_arquivo.clone();
         Task::perform(
             async move {
-                let mut dialogo = rfd::AsyncFileDialog::new().set_file_name(&nome_sugerido).add_filter("FeatherSlide (*.fsdz)", &["fsdz"]);
+                let mut dialogo = rfd::AsyncFileDialog::new().set_file_name(&nome_sugerido).add_filter(tr("FeatherSlide (*.fsdz)"), &["fsdz"]);
                 if let Some(pasta) = crate::configuracao::pasta_das_apresentacoes() {
                     dialogo = dialogo.set_directory(pasta);
                 }
@@ -3255,14 +3273,14 @@ impl FeatherSlideApp {
             FaixaMensagem::ColarSemFormatacao => return Task::read_clipboard(Mensagem::ColarTextoSimples),
             FaixaMensagem::ColarOriginal => {
                 if self.editando_id.is_some() {
-                    self.status = "Para preservar o estilo original, cole como elemento fora da edição de texto.".into();
+                    self.status = tr("Para preservar o estilo original, cole como elemento fora da edição de texto.").into();
                 } else { return Task::read_clipboard(Mensagem::ColarOriginalDoSistema); }
             }
             FaixaMensagem::Pincel => match self.sessao.pincel_capturar() {
                 Ok(p) => {
                     self.pincel = Some(p); self.conector_modo = None; self.desenho_livre = false;
                     self.editando_id = None;
-                    self.status = "Clique no elemento de destino para aplicar a formatação. Esc cancela.".into();
+                    self.status = tr("Clique no elemento de destino para aplicar a formatação. Esc cancela.").into();
                 }, Err(e) => self.status = e,
             },
             FaixaMensagem::AbrirAjuda => return self.alternar(Janela::Ajuda),
@@ -3277,7 +3295,7 @@ impl FeatherSlideApp {
                     self.pagina_imagem = crate::imagem_painel::Pagina::Cor;
                     self.painel_imagem = true;
                 } else {
-                    self.status = "Selecione uma imagem para abrir os ajustes.".into();
+                    self.status = tr("Selecione uma imagem para abrir os ajustes.").into();
                 }
             }
             FaixaMensagem::ImagemFecharAjustes => self.painel_imagem = false,
@@ -3302,7 +3320,7 @@ impl FeatherSlideApp {
                                     Err(e) => self.status = e,
                                 }
                             }
-                            _ => self.status = "Opacidade inválida: informe de 0 a 100%.".into(),
+                            _ => self.status = tr("Opacidade inválida: informe de 0 a 100%.").into(),
                         }
                     }
                 }
@@ -3343,25 +3361,25 @@ impl FeatherSlideApp {
                             .map(|e| e.texto_alternativo.clone()).unwrap_or_default()
                     };
                     match self.sessao.imagem_texto_alternativo(&alternativa) {
-                        Ok(_) => { self.imagem_alt_rascunho_id = None; self.status = "Texto alternativo atualizado".into(); },
+                        Ok(_) => { self.imagem_alt_rascunho_id = None; self.status = tr("Texto alternativo atualizado").into(); },
                         Err(e) => self.status = e,
                     }
                 }
             }
             FaixaMensagem::ImagemSombra(ligado) => {
                 match self.sessao.imagem_sombra(ligado) {
-                    Ok(_) => self.status = if ligado { "Sombra aplicada à imagem".into() } else { "Sombra removida".into() },
+                    Ok(_) => self.status = if ligado { tr("Sombra aplicada à imagem").into() } else { tr("Sombra removida").into() },
                     Err(e) => self.status = e,
                 }
             }
             FaixaMensagem::ImagemSubstituir => {
                 let Some(&id) = self.sessao.estado().selecao.first() else {
-                    self.status = "Selecione uma imagem.".into();
+                    self.status = tr("Selecione uma imagem.").into();
                     return Task::none();
                 };
                 return Task::perform(async move {
                     let caminho = rfd::AsyncFileDialog::new()
-                        .add_filter("Imagens", &["png","jpg","jpeg","gif","webp","bmp"])
+                        .add_filter(tr("Imagens"), &["png", "jpg", "jpeg", "gif", "webp", "bmp"])
                         .pick_file().await.map(|f| f.path().to_path_buf());
                     let Some(caminho) = caminho else { return (id,None) };
                     let img = tokio::task::spawn_blocking(move || {
@@ -3380,11 +3398,11 @@ impl FeatherSlideApp {
             }
             FaixaMensagem::ImagemReduzir(lado) => {
                 let Some(&id) = self.sessao.estado().selecao.first() else {
-                    self.status = "Selecione uma imagem.".into(); return Task::none();
+                    self.status = tr("Selecione uma imagem.").into(); return Task::none();
                 };
                 let Some(fonte) = self.sessao.slide().elementos.iter().find(|e| e.id==id && e.tipo==Tipo::Imagem)
                     .map(|e| e.imagem.to_string()) else { return Task::none(); };
-                self.status = format!("Reduzindo imagem para até {lado} px…");
+                self.status = crate::localidade::trf("Reduzindo imagem para até {} px…", &[&lado]);
                 return Task::perform(async move {
                     let resultado = tokio::task::spawn_blocking(move || crate::imagem_arquivo::recomprimir(&fonte, Some(lado), 90))
                         .await.unwrap_or_else(|e| Err(e.to_string()));
@@ -3393,11 +3411,11 @@ impl FeatherSlideApp {
             }
             FaixaMensagem::ImagemComprimir(qualidade) => {
                 let Some(&id) = self.sessao.estado().selecao.first() else {
-                    self.status = "Selecione uma imagem.".into(); return Task::none();
+                    self.status = tr("Selecione uma imagem.").into(); return Task::none();
                 };
                 let Some(fonte) = self.sessao.slide().elementos.iter().find(|e| e.id==id && e.tipo==Tipo::Imagem)
                     .map(|e| e.imagem.to_string()) else { return Task::none(); };
-                self.status = format!("Compactando imagem (JPEG {qualidade})…");
+                self.status = crate::localidade::trf("Compactando imagem (JPEG {})…", &[&qualidade]);
                 return Task::perform(async move {
                     let resultado = tokio::task::spawn_blocking(move || crate::imagem_arquivo::recomprimir(&fonte, None, qualidade))
                         .await.unwrap_or_else(|e| Err(e.to_string()));
@@ -3422,7 +3440,7 @@ impl FeatherSlideApp {
                 self.pegando_cor = false;
                 self.marcando = if self.marcando == Some(manter) { None } else { Some(manter) };
                 if self.marcando.is_some() {
-                    self.status = if manter { "Arraste sobre o que deve ser MANTIDO (parte do objeto)".into() } else { "Arraste sobre o que deve ser REMOVIDO (parte do fundo)".into() };
+                    self.status = if manter { tr("Arraste sobre o que deve ser MANTIDO (parte do objeto)").into() } else { tr("Arraste sobre o que deve ser REMOVIDO (parte do fundo)").into() };
                 }
             }
             FaixaMensagem::ImagemLimparMarcas => {
@@ -3439,7 +3457,7 @@ impl FeatherSlideApp {
                 self.marcando = None;
                 self.pegando_cor = !self.pegando_cor;
                 if self.pegando_cor {
-                    self.status = "Conta-gotas: clique no slide, sobre o fundo da imagem, para escolher a cor a remover".into();
+                    self.status = tr("Conta-gotas: clique no slide, sobre o fundo da imagem, para escolher a cor a remover").into();
                 }
             }
             FaixaMensagem::ImagemRemoverFundo(v) => {
@@ -3457,8 +3475,8 @@ impl FeatherSlideApp {
                 self.trocar_sessao(Sessao::default());
                 self.aplicar_dicas();
                 self.caminho_arquivo = None;
-                self.nome_arquivo = "Apresentação sem título".into();
-                self.status = "Novo documento".into();
+                self.nome_arquivo = tr("Apresentação sem título").into();
+                self.status = tr("Novo documento").into();
             }
             FaixaMensagem::Abrir => {
                 return self.abrir_dialogo_abrir();
@@ -3478,7 +3496,7 @@ impl FeatherSlideApp {
                 let sugerido = std::path::Path::new(&self.nome_arquivo).with_extension("pptx").to_string_lossy().to_string();
                 return Task::perform(
                     async move {
-                        let mut dialogo = rfd::AsyncFileDialog::new().set_file_name(&sugerido).add_filter("PowerPoint (*.pptx)", &["pptx"]);
+                        let mut dialogo = rfd::AsyncFileDialog::new().set_file_name(&sugerido).add_filter(tr("PowerPoint (*.pptx)"), &["pptx"]);
                         if let Some(pasta) = crate::configuracao::pasta_das_apresentacoes() {
                             dialogo = dialogo.set_directory(pasta);
                         }
@@ -3521,14 +3539,14 @@ impl FeatherSlideApp {
             }
             FaixaMensagem::SlidesCopiar => {
                 match self.sessao.slides_copiar(&self.alvos_de_slides()) {
-                    Ok(dados) => { self.status = format!("{} slides copiados", dados.quantidade()); self.slides_copiados = Some(dados); },
+                    Ok(dados) => { self.status = crate::localidade::trf("{} slides copiados", &[&dados.quantidade()]); self.slides_copiados = Some(dados); },
                     Err(e) => self.status = e,
                 }
             }
             FaixaMensagem::SlidesRecortar => {
                 match self.sessao.slides_recortar(&self.alvos_de_slides()) {
                     Ok((dados, _)) => {
-                        self.status = format!("{} slides recortados", dados.quantidade());
+                        self.status = crate::localidade::trf("{} slides recortados", &[&dados.quantidade()]);
                         self.slides_copiados = Some(dados);
                         self.slides_sel = [self.sessao.atual()].into();
                     },
@@ -3542,22 +3560,22 @@ impl FeatherSlideApp {
                         match self.sessao.slides_colar(pos, &dados, estilo) {
                             Ok(_) => {
                                 self.slides_sel = (pos..pos + dados.quantidade()).collect();
-                                self.status = format!("{} slides colados", dados.quantidade());
+                                self.status = crate::localidade::trf("{} slides colados", &[&dados.quantidade()]);
                             },
                             Err(e) => self.status = e,
                         }
                     }
-                    None => self.status = "Primeiro copie ou recorte um slide na barra de miniaturas.".into(),
+                    None => self.status = tr("Primeiro copie ou recorte um slide na barra de miniaturas.").into(),
                 }
             }
             FaixaMensagem::SlidesSelecionarTodos => {
                 self.slides_sel = (0..self.sessao.apresentacao().slides.len()).collect();
                 self.foco_miniaturas = true;
-                self.status = format!("{} slides marcados", self.slides_sel.len());
+                self.status = crate::localidade::trf("{} slides marcados", &[&self.slides_sel.len()]);
             }
             FaixaMensagem::SlidesRestaurarLayout => {
                 match self.sessao.slides_restaurar_layout(&self.alvos_de_slides()) {
-                    Ok(_) => self.status = "Layout original dos slides restaurado".into(),
+                    Ok(_) => self.status = tr("Layout original dos slides restaurado").into(),
                     Err(e) => self.status = e,
                 }
             }
@@ -3565,7 +3583,7 @@ impl FeatherSlideApp {
                 return Task::perform(
                     async {
                         crate::arquivos::dialogo_abrir()
-                            .set_title("Reutilizar slides de outra apresentação")
+                            .set_title(tr("Reutilizar slides de outra apresentação"))
                             .pick_file().await.map(|f| f.path().to_path_buf())
                     },
                     Mensagem::ReutilizarArquivoEscolhido,
@@ -3618,7 +3636,7 @@ impl FeatherSlideApp {
             }
             FaixaMensagem::Copiar => {
                 let texto = self.sessao.copiar();
-                self.status = "Copiado".into();
+                self.status = tr("Copiado").into();
                 return Task::write_clipboard(texto);
             }
             FaixaMensagem::Recortar => {
@@ -3780,13 +3798,13 @@ impl FeatherSlideApp {
                 } else {
                     self.conector_modo=Some(estilo);
                     self.conector_origem=if sel.len()==1{Some(sel[0])}else{None};
-                    self.status=if self.conector_origem.is_some(){"Clique na forma de destino. Esc cancela."}else{"Clique na forma de origem e depois no destino. Esc cancela."}.into();
+                    self.status=if self.conector_origem.is_some(){tr("Clique na forma de destino. Esc cancela.")}else{tr("Clique na forma de origem e depois no destino. Esc cancela.")}.into();
                 }
             }
             FaixaMensagem::DesenhoLivre => {
                 self.conector_modo=None;self.conector_origem=None;
                 self.galeria_figuras=None;self.editando_id=None;self.desenho_livre=true;
-                self.status="Arraste no slide para desenhar. Esc cancela.".into();
+                self.status=tr("Arraste no slide para desenhar. Esc cancela.").into();
             }
             FaixaMensagem::InserirTabela(l, c) => {
                 let _ = self.sessao.tabela_inserir(l, c);
@@ -3805,7 +3823,7 @@ impl FeatherSlideApp {
                 self.galeria_figuras = None;
                 match self.sessao.diagrama_inserir(categoria) {
                     Ok(_) => {
-                        self.status = format!("Diagrama {} inserido — formas e textos editáveis", categoria.rotulo());
+                        self.status = crate::localidade::trf("Diagrama {} inserido — formas e textos editáveis", &[&(categoria.rotulo())]);
                         return self.tratar_faixa(FaixaMensagem::DiagramaEditar);
                     },
                     Err(e) => self.status = e,
@@ -3823,7 +3841,7 @@ impl FeatherSlideApp {
                 if let Err(e) = self.sessao.wordart_inserir() { self.status = e; }
                 self.aba_faixa = AbaDaFaixa::Imagem;
                 self.editando_id = self.sessao.estado().selecao.first().copied();
-                self.texto_edicao = "Seu texto".into();
+                self.texto_edicao = tr("Seu texto").into();
                 self.cursor_edicao = self.texto_edicao.len();
                 self.ancora_edicao = Some(0);
             }
@@ -3895,7 +3913,7 @@ impl FeatherSlideApp {
                 let ja_agrupado = self.sessao.slide().elementos.iter().any(|e| e.grupo != 0 && sel.contains(&e.id));
                 let r = if ja_agrupado { self.sessao.desagrupar() } else { self.sessao.agrupar() };
                 match r {
-                    Ok(_) => self.status = if ja_agrupado { "Desagrupado".into() } else { "Agrupado".into() },
+                    Ok(_) => self.status = if ja_agrupado { tr("Desagrupado").into() } else { tr("Agrupado").into() },
                     Err(e) => self.status = e,
                 }
             }
@@ -3912,7 +3930,7 @@ impl FeatherSlideApp {
             FaixaMensagem::MesclarFormas(op) => {
                 self.editando_id = None;
                 match self.sessao.formas_booleanas(op) {
-                    Ok(_) => self.status = format!("Operação {:?} concluída no motor Rust", op),
+                    Ok(_) => self.status = crate::localidade::trf("Operação {} concluída no motor Rust", &[&(format!("{:?}", op))]),
                     Err(erro) => self.status = erro,
                 }
             }
@@ -3974,7 +3992,7 @@ impl FeatherSlideApp {
                 self.galeria_figuras = None;
                 match self.sessao.elemento_recorte(tipo) {
                     Ok(_) => {
-                        self.status = format!("Recorte da imagem: {}", tipo.nome());
+                        self.status = crate::localidade::trf("Recorte da imagem: {}", &[&tr(tipo.nome())]);
                         registro::registrar(format!("[imagem] recorte alterado para {}", tipo.nome()));
                     }
                     Err(e) => self.status = e,
@@ -3985,25 +4003,25 @@ impl FeatherSlideApp {
             }
             FaixaMensagem::ImagemResetarRecorte => {
                 let _ = self.sessao.imagem_resetar_recorte();
-                self.status = "Enquadramento da imagem centralizado".into();
+                self.status = tr("Enquadramento da imagem centralizado").into();
             }
             FaixaMensagem::AlternarModoRecorte => {
                 if self.ajustando_recorte.is_some() {
                     self.ajustando_recorte = None;
-                    self.status = "Modo de enquadramento finalizado".into();
+                    self.status = tr("Modo de enquadramento finalizado").into();
                 } else {
                     let sel = self.sessao.estado().selecao.first().copied();
                     if let Some(id) = sel {
                         if let Some(el) = self.sessao.slide().elementos.iter().find(|e| e.id == id) {
                             if el.tipo == featherslide_core::modelo::Tipo::Imagem {
                                 self.ajustando_recorte = Some(id);
-                                self.status = "Modo de enquadramento ativo: arraste a foto, use a roda do mouse para zoom ou as setas do teclado".into();
+                                self.status = tr("Modo de enquadramento ativo: arraste a foto, use a roda do mouse para zoom ou as setas do teclado").into();
                             } else {
-                                self.status = "Selecione uma imagem para ajustar o enquadramento".into();
+                                self.status = tr("Selecione uma imagem para ajustar o enquadramento").into();
                             }
                         }
                     } else {
-                        self.status = "Selecione uma imagem para ajustar o enquadramento".into();
+                        self.status = tr("Selecione uma imagem para ajustar o enquadramento").into();
                     }
                 }
             }
@@ -4070,7 +4088,7 @@ impl FeatherSlideApp {
             FaixaMensagem::OrtografiaAdicionar => {
                 if let (Some(c), Some(e)) = (self.corretor.as_mut(), self.erro_do_menu.take()) {
                     if let Err(msg) = c.adicionar_ao_dicionario(&e.palavra) {
-                        self.status = format!("Não consegui gravar o dicionário pessoal: {msg}");
+                        self.status = crate::localidade::trf("Não consegui gravar o dicionário pessoal: {}", &[&msg]);
                     }
                 }
             }
@@ -4089,11 +4107,11 @@ impl FeatherSlideApp {
             }
             FaixaMensagem::ComentariosExcluirTodos => {
                 let _ = self.sessao.comentarios_excluir_todos(true);
-                self.status = "Comentários excluídos".into();
+                self.status = tr("Comentários excluídos").into();
             }
             FaixaMensagem::LinkAbrir => {
                 if self.sessao.estado().selecao.is_empty() {
-                    self.status = "Selecione uma forma, imagem ou caixa de texto para ligar.".into();
+                    self.status = tr("Selecione uma forma, imagem ou caixa de texto para ligar.").into();
                 } else {
                     let atual = self.sessao.estado().selecao.first().and_then(|&id| self.sessao.link_do_elemento(self.sessao.atual(), id)).unwrap_or_default();
                     self.revisao = Some(Revisao::Link(atual));
@@ -4114,7 +4132,7 @@ impl FeatherSlideApp {
                         self.slides_sel = [inicio].into();
                         self.secoes_recolhidas.clear();
                         self.renomeando_secao = Some((inicio, nome));
-                        self.status = "Seção criada. Digite o nome e pressione Enter.".into();
+                        self.status = tr("Seção criada. Digite o nome e pressione Enter.").into();
                         return Task::focus(ID_RENOMEAR);
                     }
                     Err(e) => self.status = e,
@@ -4130,7 +4148,7 @@ impl FeatherSlideApp {
                     Ok(_) => {
                         self.slides_sel = [self.sessao.atual()].into();
                         self.secoes_recolhidas.clear();
-                        self.status = "Seção movida com todos os seus slides".into();
+                        self.status = tr("Seção movida com todos os seus slides").into();
                     }
                     Err(e) => self.status = e,
                 }
@@ -4142,7 +4160,7 @@ impl FeatherSlideApp {
                         let primeiro = self.sessao.atual();
                         self.slides_sel = (primeiro..primeiro + alvos.len()).collect();
                         self.secoes_recolhidas.clear();
-                        self.status = format!("{} slides transferidos para a seção", alvos.len());
+                        self.status = crate::localidade::trf("{} slides transferidos para a seção", &[&alvos.len()]);
                     }
                     Err(e) => self.status = e,
                 }
@@ -4173,7 +4191,7 @@ impl FeatherSlideApp {
                     let msg = if acao == "renomear" { FaixaMensagem::SecaoRenomear(s.inicio) } else { FaixaMensagem::SecaoRemover(s.inicio, false) };
                     return self.tratar_faixa(msg);
                 }
-                self.status = "Este slide não está em nenhuma seção.".into();
+                self.status = tr("Este slide não está em nenhuma seção.").into();
             }
             FaixaMensagem::Organizar(o) => {
                 let _ = self.sessao.organizar(o);
@@ -4188,7 +4206,7 @@ impl FeatherSlideApp {
                 let _ = self.sessao.slide_mover(de, para);
             }
             FaixaMensagem::FundoLiberar => match self.sessao.fundo_liberar(false) {
-                Ok(_) => self.status = "Formas do fundo soltas: agora dá para selecionar e mover".into(),
+                Ok(_) => self.status = tr("Formas do fundo soltas: agora dá para selecionar e mover").into(),
                 Err(e) => self.status = e,
             },
             FaixaMensagem::SelecaoParaFundo => {
@@ -4248,7 +4266,7 @@ impl FeatherSlideApp {
             FaixaMensagem::TransicaoTodos => {
                 let tr = self.sessao.slide().transicao.clone();
                 let _ = self.sessao.transicao_definir(tr, true);
-                self.status = "Transição aplicada a todos os slides".into();
+                self.status = crate::localidade::tr("Transição aplicada a todos os slides").into();
             }
             FaixaMensagem::AnimTipo(t) => {
                 self.previa = None;
@@ -4331,7 +4349,7 @@ impl FeatherSlideApp {
             FaixaMensagem::ConteGotas(alvo) => {
                 self.conta_gotas = if self.conta_gotas == Some(alvo) { None } else { Some(alvo) };
                 if self.conta_gotas.is_some() {
-                    self.status = "Conta-gotas: clique no slide para pegar a cor".into();
+                    self.status = tr("Conta-gotas: clique no slide para pegar a cor").into();
                 }
             }
             FaixaMensagem::TextoCanal(alvo, canal, texto) => {
@@ -4414,7 +4432,7 @@ impl FeatherSlideApp {
                 return Task::perform(
                     async {
                         let caminho = rfd::AsyncFileDialog::new()
-                            .add_filter("Imagens", &["png", "jpg", "jpeg", "gif", "webp", "bmp"])
+                            .add_filter(tr("Imagens"), &["png", "jpg", "jpeg", "gif", "webp", "bmp"])
                             .pick_file()
                             .await
                             .map(|f| f.path().to_path_buf())?;
@@ -4525,15 +4543,15 @@ impl FeatherSlideApp {
                 let fundo = pelicano::mouse_area(Space::new(Length::FILL, Length::FILL))
                     .on_press(Mensagem::NumeroSlideFechar);
                 let painel = container(column![
-                    text("Ir para o slide").size(16),
-                    text(format!("Digite um número entre 1 e {}.", self.sessao.apresentacao().slides.len())).size(12),
-                    text_input("Número do slide", numero)
+                    text(tr("Ir para o slide")).size(16),
+                    text(crate::localidade::trf("Digite um número entre 1 e {}.", &[&(self.sessao.apresentacao().slides.len())])).size(12),
+                    text_input(tr("Número do slide"), numero)
                         .on_input(Mensagem::NumeroSlideTexto)
                         .on_submit(Mensagem::NumeroSlideConfirmar)
                         .size(14).padding([7, 10]),
                     row![
-                        button(text("Cancelar")).on_press(Mensagem::NumeroSlideFechar).style(estilo_botao_secundario),
-                        button(text("Ir")).on_press(Mensagem::NumeroSlideConfirmar).style(estilo_botao_primario),
+                        button(text(tr("Cancelar"))).on_press(Mensagem::NumeroSlideFechar).style(estilo_botao_secundario),
+                        button(text(tr("Ir"))).on_press(Mensagem::NumeroSlideConfirmar).style(estilo_botao_primario),
                     ].spacing(9),
                 ].spacing(12))
                     .width(Length::Fixed(320.0))
@@ -4640,7 +4658,7 @@ impl FeatherSlideApp {
             let cartao = button(
                 column![
                     miniatura,
-                    text(format!("{}{}", i + 1, if oculto { "  (oculto)" } else { "" })).size(12).color(COR_TEXTO_MUTED()),
+                    text(format!("{}{}", i + 1, if oculto { tr("  (oculto)") } else { "" })).size(12).color(COR_TEXTO_MUTED()),
                 ]
                 .spacing(5)
                 .align(Align::Center),
@@ -4670,7 +4688,7 @@ impl FeatherSlideApp {
             grade = grade.push(linha);
         }
         container(column![
-            container(row![icone_classificacao(20.0, "#5f6368"),text("Todos os slides").size(19),text(format!("{} slides",self.sessao.apresentacao().slides.len())).size(12).color(COR_TEXTO_MUTED()),Space::new(Length::FILL, 0),button(text("Voltar ao editor").size(12)).padding([6,12]).style(estilo_botao_secundario).on_press(Mensagem::Faixa(FaixaMensagem::ExibirNormal))].spacing(10).align(Align::Center)).padding([14,20]).style(estilo_container_topo),
+            container(row![icone_classificacao(20.0, "#5f6368"),text(tr("Todos os slides")).size(19),text(crate::localidade::trf("{} slides", &[&self.sessao.apresentacao().slides.len()])).size(12).color(COR_TEXTO_MUTED()),Space::new(Length::FILL, 0),button(text(tr("Voltar ao editor")).size(12)).padding([6,12]).style(estilo_botao_secundario).on_press(Mensagem::Faixa(FaixaMensagem::ExibirNormal))].spacing(10).align(Align::Center)).padding([14,20]).style(estilo_container_topo),
             crate::tema::rolagem(container(grade).padding(20)).height(Length::FILL),
         ]).width(Length::FILL).height(Length::FILL).style(|_| Style {
             background: Some(Background::Color(COR_MESA())),
@@ -4730,7 +4748,7 @@ impl FeatherSlideApp {
         });
 
         let etiqueta = container(
-            text(format!("Slide {}", slide_idx + 1))
+            text(crate::localidade::trf("Slide {}", &[&(slide_idx + 1)]))
                 .size(10)
                 .color(Color::WHITE),
         )
@@ -4767,7 +4785,7 @@ impl FeatherSlideApp {
         let cartao = container(
             column![
                 text(secao.nome.clone()).size(12).color(COR_TEXTO()),
-                text(format!("{} slide(s)", secao.fim - secao.inicio)).size(10).color(COR_TEXTO_MUTED()),
+                text(crate::localidade::trf("{} slide(s)", &[&(secao.fim - secao.inicio)])).size(10).color(COR_TEXTO_MUTED()),
             ].spacing(2)
         )
         .padding([5, 9])
@@ -4854,7 +4872,7 @@ impl FeatherSlideApp {
             O::Adicionar => {
                 if let Some(e) = o.atual().cloned() {
                     if let Err(msg) = c.adicionar_ao_dicionario(&e.palavra) {
-                        self.status = format!("Não consegui gravar o dicionário pessoal: {msg}");
+                        self.status = crate::localidade::trf("Não consegui gravar o dicionário pessoal: {}", &[&msg]);
                     }
                     o.atualizar(c, self.sessao.apresentacao());
                 }
@@ -4869,7 +4887,7 @@ impl FeatherSlideApp {
         let sugerido = std::path::Path::new(&self.nome_arquivo).with_extension("pdf").to_string_lossy().to_string();
         Task::perform(
             async move {
-                let mut dialogo = rfd::AsyncFileDialog::new().set_file_name(&sugerido).add_filter("PDF (*.pdf)", &["pdf"]);
+                let mut dialogo = rfd::AsyncFileDialog::new().set_file_name(&sugerido).add_filter(tr("PDF (*.pdf)"), &["pdf"]);
                 if let Some(pasta) = crate::configuracao::pasta_das_apresentacoes() {
                     dialogo = dialogo.set_directory(pasta);
                 }
@@ -4910,7 +4928,7 @@ impl FeatherSlideApp {
                 let arquivo = std::env::temp_dir().join(format!("featherslide-impressao-{}.pdf", std::process::id()));
                 if let Err(e) = self.exportar_pdf(&arquivo, so_atual) {
                     self.impressao = None;
-                    self.status = format!("Erro ao imprimir: {e}");
+                    self.status = crate::localidade::trf("Erro ao imprimir: {}", &[&e]);
                     return Task::none();
                 }
                 return Task::perform(
@@ -5046,7 +5064,7 @@ impl FeatherSlideApp {
         let contexto = self.contexto_faixa();
         let faixa: Element<'_, Mensagem> = if self.faixa_recolhida {
             container(
-                button(text("Faixa de opções (Ctrl+F1 para expandir)").size(12))
+                button(text(tr("Faixa de opções (Ctrl+F1 para expandir)")).size(12))
                     .padding([5, 12])
                     .style(estilo_botao_secundario)
                     .on_press(Mensagem::AlternarFaixa),
@@ -5148,7 +5166,7 @@ impl FeatherSlideApp {
         let painel_notas = container(
             row![
                 container(icone_comentario(15.0, "#5f6368")).padding(pelicano::Padding { top: 2.0, ..Default::default() }),
-                text_input("Clique para adicionar anotações do apresentador", notas_do_slide)
+                text_input(tr("Clique para adicionar anotações do apresentador"), notas_do_slide)
                     .on_input(Mensagem::NotasMudou)
                     .padding([2, 4])
                     .size(13)
@@ -5193,17 +5211,16 @@ impl FeatherSlideApp {
         // Barra de Status e Rodapé
         let rodape = container(
             row![
-                text(format!(
+                text(crate::localidade::trf(
                     "Slide {} de {}",
-                    self.sessao.atual() + 1,
-                    self.sessao.apresentacao().slides.len()
+                    &[&(self.sessao.atual() + 1), &self.sessao.apresentacao().slides.len()],
                 ))
                 .size(11)
                 .color(COR_TEXTO_MUTED()),
                 Space::new(Length::FILL, 0),
                 text(&self.status).size(11).color(COR_TEXTO_MUTED()),
                 Space::new(Length::FILL, 0),
-                button(row![icone_classificacao(14.0, "#5f6368"), text("Todos os slides").size(11)].spacing(5).align(Align::Center))
+                button(row![icone_classificacao(14.0, "#5f6368"), text(tr("Todos os slides")).size(11)].spacing(5).align(Align::Center))
                     .padding([3,8]).style(estilo_botao_pequeno(self.classificacao))
                     .on_press(Mensagem::Faixa(if self.classificacao { FaixaMensagem::ExibirNormal } else { FaixaMensagem::Classificacao })),
                 button(icone_menos(12.0, "#5f6368"))
@@ -5262,9 +5279,9 @@ impl FeatherSlideApp {
             row![
                 feather_ui::marca::icone_atual(26.),
                 text("FeatherSlide").size(13),
-                button(text("Arquivos")).on_press(Mensagem::Arquivos(crate::arquivos::Acao::Painel)).style(estilo_botao_secundario),
+                button(text(tr("Arquivos"))).on_press(Mensagem::Arquivos(crate::arquivos::Acao::Painel)).style(estilo_botao_secundario),
                 Space::new(Length::FILL, 0),
-                button(row![icone_config(14.0, "#5f6368"), text("Configurações").size(12.5)].spacing(6).align(Align::Center)).padding([5, 12]).style(estilo_botao_secundario).on_press(Mensagem::Configuracoes),
+                button(row![icone_config(14.0, "#5f6368"), text(tr("Configurações")).size(12.5)].spacing(6).align(Align::Center)).padding([5, 12]).style(estilo_botao_secundario).on_press(Mensagem::Configuracoes),
             ]
             .spacing(8)
             .align(Align::Center),
@@ -5277,7 +5294,7 @@ impl FeatherSlideApp {
         if self.pesquisa.is_empty() {
             String::new()
         } else if total == 0 {
-            "Nada encontrado".into()
+            tr("Nada encontrado").into()
         } else {
             format!("{atual} de {total}")
         }
@@ -5293,11 +5310,11 @@ impl FeatherSlideApp {
         let ativo = if estado.sujo { "#5f6368" } else { "#9aa0a6" };
         let titulo = row![
             text(self.nome_arquivo.clone()).size(13),
-            text(if estado.sujo { "  • não salvo" } else { "  salvo" }).size(11.5).color(COR_TEXTO_MUTED()),
+            text(if estado.sujo { tr("  • não salvo") } else { "  salvo" }).size(11.5).color(COR_TEXTO_MUTED()),
         ]
         .align(Align::Center);
         let pesquisa = row![
-            text_input("Pesquisar nos slides", &self.pesquisa)
+            text_input(tr("Pesquisar nos slides"), &self.pesquisa)
                 .on_input(Mensagem::Pesquisa)
                 .on_submit(Mensagem::PesquisaProximo)
                 .size(12.5)
@@ -5315,21 +5332,21 @@ impl FeatherSlideApp {
         .align(Align::Center);
         let apresentar = pelicano::tooltip(
             button(icone_apresentar(18.0, "#ffffff")).padding([7, 12]).style(estilo_botao_primario).on_press(Mensagem::Faixa(FaixaMensagem::Apresentar)),
-            "Apresentar do começo (F5)",
+            tr("Apresentar do começo (F5)"),
             pelicano::TooltipPosition::Bottom,
         ).padding([4, 8]).style(estilo_dica);
         let barra = container(
             row![
                 emblema,
-                button(text("Arquivos").size(12.5)).padding([7, 10]).style(estilo_botao_pequeno(false)).on_press(Mensagem::Arquivos(crate::arquivos::Acao::Painel)),
+                button(text(tr("Arquivos")).size(12.5)).padding([7, 10]).style(estilo_botao_pequeno(false)).on_press(Mensagem::Arquivos(crate::arquivos::Acao::Painel)),
                 Space::new(6, 0),
-                tira(icone_salvar(19.0, ativo), Some(FaixaMensagem::Salvar), "Salvar (Ctrl+S)"),
-                tira(icone_pdf(19.0, ativo), Some(FaixaMensagem::ExportarPdf), "Exportar como PDF (Ctrl+Shift+E)"),
-                tira(icone_apresentar(19.0, ativo), Some(FaixaMensagem::ExportarPptx), "Exportar como PowerPoint (.pptx)"),
-                tira(icone_imprimir(19.0, ativo), Some(FaixaMensagem::Imprimir), "Imprimir (Ctrl+P)"),
-                tira(icone_dados(19.0, ativo), Some(FaixaMensagem::Propriedades), "Propriedades da apresentação"),
-                tira(icone_desfazer(19.0, if estado.pode_desfazer { "#5f6368" } else { "#bdc1c6" }), estado.pode_desfazer.then_some(FaixaMensagem::Desfazer), "Voltar (Ctrl+Z)"),
-                tira(icone_refazer(19.0, if estado.pode_refazer { "#5f6368" } else { "#bdc1c6" }), estado.pode_refazer.then_some(FaixaMensagem::Refazer), "Avançar (Ctrl+Y)"),
+                tira(icone_salvar(19.0, ativo), Some(FaixaMensagem::Salvar), tr("Salvar (Ctrl+S)")),
+                tira(icone_pdf(19.0, ativo), Some(FaixaMensagem::ExportarPdf), tr("Exportar como PDF (Ctrl+Shift+E)")),
+                tira(icone_apresentar(19.0, ativo), Some(FaixaMensagem::ExportarPptx), tr("Exportar como PowerPoint (.pptx)")),
+                tira(icone_imprimir(19.0, ativo), Some(FaixaMensagem::Imprimir), tr("Imprimir (Ctrl+P)")),
+                tira(icone_dados(19.0, ativo), Some(FaixaMensagem::Propriedades), tr("Propriedades da apresentação")),
+                tira(icone_desfazer(19.0, if estado.pode_desfazer { "#5f6368" } else { "#bdc1c6" }), estado.pode_desfazer.then_some(FaixaMensagem::Desfazer), tr("Voltar (Ctrl+Z)")),
+                tira(icone_refazer(19.0, if estado.pode_refazer { "#5f6368" } else { "#bdc1c6" }), estado.pode_refazer.then_some(FaixaMensagem::Refazer), tr("Avançar (Ctrl+Y)")),
                 Space::new(8, 0),
                 apresentar,
                 container(Space::new(1, 0)).height(Length::Fixed(20.0)).style(estilo_linha),
@@ -5361,23 +5378,23 @@ impl FeatherSlideApp {
     fn view_painel_selecao(&self) -> Element<'_, Mensagem> {
         let itens = self.sessao.lista_de_elementos();
         let nome_do_tipo = |t: &str| match t {
-            "texto" => "Caixa de texto",
-            "retangulo" => "Retângulo",
-            "retangulo_arredondado" => "Retângulo arredondado",
-            "elipse" => "Elipse",
-            "triangulo" => "Triângulo",
-            "seta" => "Seta",
-            "linha" => "Linha",
-            "imagem" => "Imagem",
-            "setor" => "Círculo parcial",
-            "tabela" => "Tabela",
-            "grafico" => "Gráfico",
+            "texto" => tr("Caixa de texto"),
+            "retangulo" => tr("Retângulo"),
+            "retangulo_arredondado" => tr("Retângulo arredondado"),
+            "elipse" => tr("Elipse"),
+            "triangulo" => tr("Triângulo"),
+            "seta" => tr("Seta"),
+            "linha" => tr("Linha"),
+            "imagem" => tr("Imagem"),
+            "setor" => tr("Círculo parcial"),
+            "tabela" => tr("Tabela"),
+            "grafico" => tr("Gráfico"),
             outro => outro,
         }
         .to_string();
         let mut lista = column![].spacing(2);
         if itens.is_empty() {
-            lista = lista.push(text("Este slide não tem itens.").size(12).color(COR_TEXTO_MUTED()));
+            lista = lista.push(text(tr("Este slide não tem itens.")).size(12).color(COR_TEXTO_MUTED()));
         }
         for it in itens {
             let rotulo = if it.rotulo == it.tipo { nome_do_tipo(it.tipo) } else { it.rotulo.clone() };
@@ -5386,7 +5403,7 @@ impl FeatherSlideApp {
                 .padding([4, 6])
                 .style(estilo_botao_pequeno(false))
                 .on_press(Mensagem::Faixa(FaixaMensagem::OcultarItem(it.id, !it.oculto)));
-            let grupo = if it.grupo != 0 { text(format!("grupo {}", it.grupo)).size(10.5).color(COR_AZUL_ACENTO()) } else { text("").size(10.5) };
+            let grupo = if it.grupo != 0 { text(crate::localidade::trf("grupo {}", &[&it.grupo])).size(10.5).color(COR_AZUL_ACENTO()) } else { text("").size(10.5) };
             let linha = row![
                 text(rotulo).size(12.5).color(cor).width(Length::FILL),
                 grupo,
@@ -5401,11 +5418,11 @@ impl FeatherSlideApp {
             lista = lista.push(row![olho, corpo].spacing(2).align(Align::Center));
         }
         let acoes = row![
-            button(row![icone_agrupar(13.0, "#5f6368"), text("Agrupar").size(11.5)].spacing(5).align(Align::Center)).padding([3, 8]).style(estilo_botao_pequeno(false)).on_press_maybe((self.sessao.estado().selecao.len() >= 2).then_some(Mensagem::Faixa(FaixaMensagem::Agrupar))),
-            button(row![icone_desagrupar(13.0, "#5f6368"), text("Desagrupar").size(11.5)].spacing(5).align(Align::Center)).padding([3, 8]).style(estilo_botao_pequeno(false)).on_press_maybe((!self.sessao.estado().selecao.is_empty()).then_some(Mensagem::Faixa(FaixaMensagem::Desagrupar))),
+            button(row![icone_agrupar(13.0, "#5f6368"), text(tr("Agrupar")).size(11.5)].spacing(5).align(Align::Center)).padding([3, 8]).style(estilo_botao_pequeno(false)).on_press_maybe((self.sessao.estado().selecao.len() >= 2).then_some(Mensagem::Faixa(FaixaMensagem::Agrupar))),
+            button(row![icone_desagrupar(13.0, "#5f6368"), text(tr("Desagrupar")).size(11.5)].spacing(5).align(Align::Center)).padding([3, 8]).style(estilo_botao_pequeno(false)).on_press_maybe((!self.sessao.estado().selecao.is_empty()).then_some(Mensagem::Faixa(FaixaMensagem::Desagrupar))),
         ]
         .spacing(4);
-        container(column![text("Painel de seleção").size(13.5), acoes, crate::tema::rolagem(lista).height(Length::FILL)].spacing(8).padding(12))
+        container(column![text(tr("Painel de seleção")).size(13.5), acoes, crate::tema::rolagem(lista).height(Length::FILL)].spacing(8).padding(12))
             .width(Length::Fixed(240.0))
             .height(Length::FILL)
             .style(estilo_painel_miniaturas)
@@ -5455,7 +5472,7 @@ impl FeatherSlideApp {
                 text(if let Some(roteiro) = &self.roteiro_personalizado {
                     let id = self.sessao.slide().id;
                     let n = roteiro.iter().position(|&x| x == id).map_or(0, |p| p + 1);
-                    format!("{} / {} (personalizada)", n, roteiro.len())
+                    crate::localidade::trf("{} / {} (personalizada)", &[&n, &roteiro.len()])
                 } else {
                     format!("{} / {}", self.sessao.atual() + 1, self.sessao.apresentacao().slides.len())
                 }).size(13).color(Color::WHITE),
@@ -5489,35 +5506,35 @@ impl FeatherSlideApp {
         let proximo = self.visivel_a_partir_de(atual, 1);
         let miniatura_proximo: Element<'_, Mensagem> = match proximo.and_then(|i| self.quadro_em_cache(i)) {
             Some(q) => Element::from(program(Miniatura::nova(Some(q), None, false)).width(Length::FILL).height(Length::Fixed(190.0))).map(|_: MiniaturaMensagem| Mensagem::Tique),
-            None => container(text("Fim da apresentação").size(14).color(COR_TEXTO_MUTED())).width(Length::FILL).height(Length::Fixed(190.0)).align_x(Align::Center).align_y(Align::Center).into(),
+            None => container(text(tr("Fim da apresentação")).size(14).color(COR_TEXTO_MUTED())).width(Length::FILL).height(Length::Fixed(190.0)).align_x(Align::Center).align_y(Align::Center).into(),
         };
         let decorrido = self.cronometro.decorrido().as_secs();
         let cronometro = format!("{:02}:{:02}", decorrido / 60, decorrido % 60);
         let notas = self.sessao.slide().notas.clone();
         let notas: Element<'_, Mensagem> = if notas.trim().is_empty() {
-            text("Sem anotações neste slide.").size(14).color(COR_TEXTO_MUTED()).into()
+            text(tr("Sem anotações neste slide.")).size(14).color(COR_TEXTO_MUTED()).into()
         } else {
             crate::tema::rolagem(text(notas).size(17)).height(Length::FILL).into()
         };
         let botao = |rotulo: &str, msg: Mensagem| button(text(rotulo.to_string()).size(13).align_x(Align::Center)).padding([8, 14]).style(estilo_botao_secundario).on_press(msg);
         let controles = row![
-            botao("Anterior", Mensagem::ApresentacaoAnterior),
-            botao("Próximo", Mensagem::ApresentacaoProximo),
-            button(text("Encerrar").size(13)).padding([8, 14]).style(estilo_botao_primario).on_press(Mensagem::ApresentacaoSair),
+            botao(tr("Anterior"), Mensagem::ApresentacaoAnterior),
+            botao(tr("Próximo"), Mensagem::ApresentacaoProximo),
+            button(text(tr("Encerrar")).size(13)).padding([8, 14]).style(estilo_botao_primario).on_press(Mensagem::ApresentacaoSair),
         ]
         .spacing(8);
         let lateral = column![
             text(cronometro).size(40),
-            row![botao(if self.cronometro.pausado() { "Retomar tempo" } else { "Pausar tempo" }, Mensagem::CronometroAlternar), botao("Zerar", Mensagem::CronometroReiniciar)].spacing(6),
-            text("Tela da plateia").size(12).color(COR_TEXTO_MUTED()),
+            row![botao(if self.cronometro.pausado() { tr("Retomar tempo") } else { tr("Pausar tempo") }, Mensagem::CronometroAlternar), botao(tr("Zerar"), Mensagem::CronometroReiniciar)].spacing(6),
+            text(tr("Tela da plateia")).size(12).color(COR_TEXTO_MUTED()),
             pelicano::pick_list(&self.opcoes_plateia, Some(self.monitor_plateia.clone()), Mensagem::ApresentadorMonitor).size(13),
-            row![botao("Tela preta", Mensagem::TelaApresentacao(1)), botao("Tela branca", Mensagem::TelaApresentacao(2))].spacing(6),
-            text(format!("Slide {} de {}", atual + 1, total)).size(13).color(COR_TEXTO_MUTED()),
+            row![botao(tr("Tela preta"), Mensagem::TelaApresentacao(1)), botao(tr("Tela branca"), Mensagem::TelaApresentacao(2))].spacing(6),
+            text(crate::localidade::trf("Slide {} de {}", &[&(atual + 1), &total])).size(13).color(COR_TEXTO_MUTED()),
             Space::new(0, 6),
-            text("Próximo").size(12.5).color(COR_TEXTO_MUTED()),
+            text(tr("Próximo")).size(12.5).color(COR_TEXTO_MUTED()),
             miniatura_proximo,
             Space::new(0, 8),
-            text("Anotações").size(12.5).color(COR_TEXTO_MUTED()),
+            text(tr("Anotações")).size(12.5).color(COR_TEXTO_MUTED()),
             notas,
             controles,
         ]
@@ -5535,9 +5552,9 @@ impl FeatherSlideApp {
     fn view_tela_inicio(&self) -> Element<'_, Mensagem> {
         let topo = container(
             row![
-                button(text(if self.arquivos.recuperacoes.is_empty() { "Arquivos".to_string() } else { format!("Arquivos · {} recuperáveis", self.arquivos.recuperacoes.len()) })).padding([6, 14]).style(estilo_botao_secundario).on_press(Mensagem::Arquivos(crate::arquivos::Acao::Painel)),
+                button(text(if self.arquivos.recuperacoes.is_empty() { tr("Arquivos").to_string() } else { crate::localidade::trf("Arquivos · {} recuperáveis", &[&(self.arquivos.recuperacoes.len())]) })).padding([6, 14]).style(estilo_botao_secundario).on_press(Mensagem::Arquivos(crate::arquivos::Acao::Painel)),
                 Space::new(Length::FILL, 0),
-                button(row![icone_config(14.0, "#5f6368"), text("Configurações").size(12.5)].spacing(6).align(Align::Center))
+                button(row![icone_config(14.0, "#5f6368"), text(tr("Configurações")).size(12.5)].spacing(6).align(Align::Center))
                     .padding([6, 14])
                     .style(estilo_botao_secundario)
                     .on_press(Mensagem::Configuracoes),
@@ -5561,7 +5578,7 @@ impl FeatherSlideApp {
             icone_f,
             column![
                 text("FeatherSlide").size(26),
-                text("Apresentações que ficam na sua máquina.").size(13).color(COR_TEXTO_MUTED()),
+                text(tr("Apresentações que ficam na sua máquina.")).size(13).color(COR_TEXTO_MUTED()),
             ]
             .spacing(2),
         ]
@@ -5569,18 +5586,18 @@ impl FeatherSlideApp {
         .align(Align::Center);
 
         let mut botoes_acao = row![
-            button(row![icone_mais(16.0, "#ffffff"), text("Nova apresentação").size(13.5)].spacing(8).align(Align::Center))
+            button(row![icone_mais(16.0, "#ffffff"), text(tr("Nova apresentação")).size(13.5)].spacing(8).align(Align::Center))
                 .padding([9, 18])
                 .style(estilo_botao_primario)
                 .on_press(Mensagem::NovaApresentacao),
-            button(text("Abrir…").size(13.5))
+            button(text(tr("Abrir…")).size(13.5))
                 .padding([9, 18])
                 .style(estilo_botao_secundario)
                 .on_press(Mensagem::AbrirArquivo),
         ]
         .spacing(12);
         if self.pode_continuar {
-            botoes_acao = botoes_acao.push(button(row![icone_voltar(15.0, "#5f6368"), text("Continuar editando").size(13.5)].spacing(8).align(Align::Center)).padding([9, 18]).style(estilo_botao_secundario).on_press(Mensagem::ContinuarEditando));
+            botoes_acao = botoes_acao.push(button(row![icone_voltar(15.0, "#5f6368"), text(tr("Continuar editando")).size(13.5)].spacing(8).align(Align::Center)).padding([9, 18]).style(estilo_botao_secundario).on_press(Mensagem::ContinuarEditando));
         }
 
         let divisoria = container(Space::new(0, 1)).width(Length::FILL).style(|_theme| Style {
@@ -5610,10 +5627,10 @@ impl FeatherSlideApp {
         };
         let mut todos: Vec<Element<'_, Mensagem>> = Vec::new();
         for (m, quadro) in &self.modelos {
-            todos.push(cartao_modelo(quadro.clone(), m.nome.to_string(), m.descricao.to_string(), Mensagem::NovoDoModelo(m.id)));
+            todos.push(cartao_modelo(quadro.clone(), tr(m.nome).to_string(), tr(m.descricao).to_string(), Mensagem::NovoDoModelo(m.id)));
         }
         for m in &self.meus_modelos {
-            todos.push(cartao_modelo(m.quadro.clone(), m.nome.clone(), "Modelo seu".into(), Mensagem::NovoDeMeuModelo(m.caminho.clone())));
+            todos.push(cartao_modelo(m.quadro.clone(), m.nome.clone(), tr("Modelo seu").into(), Mensagem::NovoDeMeuModelo(m.caminho.clone())));
         }
         let total = todos.len();
         let visiveis = (((self.tamanho_janela.width - 160.0) / 234.0).floor() as usize).clamp(1, total.max(1));
@@ -5647,11 +5664,11 @@ impl FeatherSlideApp {
             faixa.into()
         };
         let cabecalho = row![
-            text("Comece por um modelo").size(13.5),
+            text(tr("Comece por um modelo")).size(13.5),
             Space::new(Length::FILL, 0),
-            text(if self.ver_todos_modelos { format!("{total} modelos") } else { format!("{}–{} de {}", inicio + 1, (inicio + visiveis).min(total), total) }).size(11.5).color(COR_TEXTO_MUTED()),
-            button(text(if self.ver_todos_modelos { "Mostrar em carrossel" } else { "Ver todos" }).size(12)).padding([4, 10]).style(estilo_botao_secundario).on_press(Mensagem::VerTodosModelos),
-            button(text("Importar modelo…").size(12)).padding([4, 10]).style(estilo_botao_secundario).on_press(Mensagem::Faixa(FaixaMensagem::AbrirConfigModelos)),
+            text(if self.ver_todos_modelos { crate::localidade::trf("{} modelos", &[&total]) } else { crate::localidade::trf("{}–{} de {}", &[&(inicio + 1), &(inicio + visiveis).min(total), &total]) }).size(11.5).color(COR_TEXTO_MUTED()),
+            button(text(if self.ver_todos_modelos { tr("Mostrar em carrossel") } else { tr("Ver todos") }).size(12)).padding([4, 10]).style(estilo_botao_secundario).on_press(Mensagem::VerTodosModelos),
+            button(text(tr("Importar modelo…")).size(12)).padding([4, 10]).style(estilo_botao_secundario).on_press(Mensagem::Faixa(FaixaMensagem::AbrirConfigModelos)),
         ]
         .spacing(12)
         .align(Align::Center);
@@ -5659,7 +5676,7 @@ impl FeatherSlideApp {
 
         let mut rolagem = column![modelos_col, Space::new(0, 8)].spacing(10);
         if !self.recentes.is_empty() {
-            rolagem = rolagem.push(text("Apresentações recentes").size(13.5));
+            rolagem = rolagem.push(text(tr("Apresentações recentes")).size(13.5));
             let mut cartoes: Vec<Element<'_, Mensagem>> = Vec::new();
             for r in &self.recentes {
                 let miniatura = container(Element::from(program(Miniatura::nova(r.quadro.clone(), None, false)).width(Length::Fixed(200.0)).height(Length::Fixed(112.0))).map(|_: MiniaturaMensagem| Mensagem::Tique))
@@ -6793,3 +6810,44 @@ fn numero_do_slide_abre_o_rodape_e_aplica_a_todos() {
     let textos: Vec<String> = q.elementos.iter().flat_map(|e| e.linhas.iter().map(|l| l.texto.clone())).collect();
     assert!(textos.contains(&"2".to_string()) && textos.contains(&"Empresa".to_string()), "{textos:?}");
 }
+
+/// As telas principais montadas em inglês e em espanhol não pedem texto sem tradução
+/// (o `tr` anota o que faltou; o teste estático só vê `tr("…")` escrito no código).
+#[cfg(test)]
+#[test]
+fn em_ingles_e_espanhol_as_telas_principais_nao_pedem_texto_sem_traducao() {
+    for idioma in ["en-US", "es-ES"] {
+        crate::localidade::definir_na_thread(idioma);
+        let _ = crate::localidade::tirar_faltas();
+        let mut app = FeatherSlideApp::default();
+        app.em_tela_inicio = true;
+        let _ = app.view_editor();
+        app.em_tela_inicio = false;
+        app.sessao.elemento_inserir(Tipo::Texto, None, None).unwrap();
+        for aba in [
+            AbaDaFaixa::Inicio, AbaDaFaixa::Inserir, AbaDaFaixa::Organizar, AbaDaFaixa::Design,
+            AbaDaFaixa::Transicoes, AbaDaFaixa::Animacoes, AbaDaFaixa::Apresentacao,
+            AbaDaFaixa::Revisao, AbaDaFaixa::Exibir, AbaDaFaixa::Imagem,
+        ] {
+            app.aba_faixa = aba;
+            let _ = app.view_editor();
+            let contexto = app.contexto_faixa();
+            let _ = view_faixa(aba, false, false, false, false, false, false, false, "Liberation Sans", "12", &contexto);
+        }
+        for secao in [
+            configuracoes::Secao::Aparencia, configuracoes::Secao::Salvamento, configuracoes::Secao::Exibicao,
+            configuracoes::Secao::Modelos, configuracoes::Secao::Apresentacao, configuracoes::Secao::Ortografia,
+            configuracoes::Secao::Revisao, configuracoes::Secao::Integracoes, configuracoes::Secao::Atalhos,
+            configuracoes::Secao::Sobre,
+        ] {
+            app.config_ui.secao = secao;
+            let extras = configuracoes::Extras { grade: false, guias: false, repetir: false, dois_monitores: true, monitores: 1 };
+            let _ = app.config_ui.view(&app.config, app.sessao.apresentacao().proporcao, None, extras, &[]);
+        }
+        let _ = crate::ajuda::modelo();
+        let _ = app.ajuda.view();
+        let faltas = crate::localidade::tirar_faltas();
+        assert!(faltas.is_empty(), "{idioma}: {} texto(s) sem tradução:\n{}", faltas.len(), faltas.join("\n"));
+    }
+}
+

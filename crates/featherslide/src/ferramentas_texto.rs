@@ -1,5 +1,5 @@
 //! Recursos locais de revisão. As substituições exigem confirmação; as regras são opcionais.
-use crate::localidade::texto as tr;
+use crate::localidade::{texto, tr};
 use crate::{app::Mensagem, configuracao::Configuracao, tema::*};
 use pelicano::{button, checkbox, column, container, row, scrollable, text, text_input, Space};
 use pelicano::{Element, Length};
@@ -16,12 +16,12 @@ pub enum Modo {
 impl Modo {
     pub fn titulo(self) -> &'static str {
         match self {
-            Self::Dicionario => tr("dicionario"),
-            Self::Sinonimos => tr("sinonimos"),
-            Self::Autocorrecao => tr("autocorrecao"),
-            Self::Idioma => tr("idioma"),
-            Self::Traducao => tr("traducao"),
-            Self::Contagem => tr("contagem"),
+            Self::Dicionario => texto("dicionario"),
+            Self::Sinonimos => texto("sinonimos"),
+            Self::Autocorrecao => texto("autocorrecao"),
+            Self::Idioma => texto("idioma"),
+            Self::Traducao => texto("traducao"),
+            Self::Contagem => texto("contagem"),
         }
     }
 }
@@ -209,7 +209,7 @@ impl crate::app::FeatherSlideApp {
                     }
                 }
             }
-            e.aviso = format!("Texto dos slides (inclui tabelas e rótulos de gráficos; exclui fundos, notas e comentários): {palavras} palavras; {caracteres} caracteres; {sem_espacos} sem espaços.\nTrecho selecionado: {} palavras; {} caracteres.", e.palavra.split_whitespace().count(), e.palavra.chars().count());
+            e.aviso = crate::localidade::trf("Texto dos slides (inclui tabelas e rótulos de gráficos; exclui fundos, notas e comentários): {} palavras; {} caracteres; {} sem espaços.\nTrecho selecionado: {} palavras; {} caracteres.", &[&palavras, &caracteres, &sem_espacos, &(e.palavra.split_whitespace().count()), &(e.palavra.chars().count())]);
         }
         self.ferramentas_texto = Some(e);
     }
@@ -258,13 +258,13 @@ impl crate::app::FeatherSlideApp {
                     Modo::Dicionario => {
                         e.aviso = if let Some(c) = &self.corretor {
                             if c.palavra_ok(e.palavra.trim()) {
-                                tr("reconhecida").into()
+                                texto("reconhecida").into()
                             } else {
                                 e.resultados = c.sugestoes(e.palavra.trim());
-                                tr("nao_reconhecida").into()
+                                texto("nao_reconhecida").into()
                             }
                         } else {
-                            tr("indisponivel").into()
+                            texto("indisponivel").into()
                         };
                     }
                     _ => {
@@ -284,9 +284,9 @@ impl crate::app::FeatherSlideApp {
                             } else {
                                 vec![v.clone()]
                             };
-                            e.aviso = tr("confirmar").into();
+                            e.aviso = texto("confirmar").into();
                         } else {
-                            e.aviso = tr("sem_resultado").into();
+                            e.aviso = texto("sem_resultado").into();
                         }
                     }
                 }
@@ -296,11 +296,11 @@ impl crate::app::FeatherSlideApp {
                 if e.palavra.trim().is_empty()
                     || (matches!(msg, Msg::Salvar) && e.valor.trim().is_empty())
                 {
-                    e.aviso = tr("informe").into();
+                    e.aviso = texto("informe").into();
                 } else if e.modo == Modo::Autocorrecao
                     && !e.palavra.chars().all(|c| c.is_alphabetic() || c == '\'')
                 {
-                    e.aviso = tr("uma_palavra").into();
+                    e.aviso = texto("uma_palavra").into();
                 } else {
                     let mapa = match e.modo {
                         Modo::Sinonimos => &mut self.config.sinonimos,
@@ -314,7 +314,7 @@ impl crate::app::FeatherSlideApp {
                     }
                     self.config.gravar();
                     e.resultados.clear();
-                    e.aviso = tr("atualizado").into();
+                    e.aviso = texto("atualizado").into();
                 }
             }
             Msg::Adicionar => {
@@ -324,11 +324,11 @@ impl crate::app::FeatherSlideApp {
                             && !e.palavra.trim().contains(char::is_whitespace) =>
                     {
                         match c.adicionar_ao_dicionario(e.palavra.trim()) {
-                            Ok(_) => tr("adicionada").into(),
+                            Ok(_) => texto("adicionada").into(),
                             Err(err) => err,
                         }
                     }
-                    _ => tr("aguarde").into(),
+                    _ => texto("aguarde").into(),
                 };
             }
             Msg::Aplicar(nova) => {
@@ -352,15 +352,15 @@ impl crate::app::FeatherSlideApp {
                                     self.ancora_edicao = None;
                                 }
                                 e.alvo = Some((*id, *a, *a + nova.len(), nova));
-                                e.aviso = tr("aplicada").into();
+                                e.aviso = crate::localidade::texto("aplicada").into();
                             }
                             Err(err) => e.aviso = err,
                         }
                     } else {
-                        e.aviso = tr("texto_mudou").into();
+                        e.aviso = crate::localidade::texto("texto_mudou").into();
                     }
                 } else {
-                    e.aviso = tr("selecione").into();
+                    e.aviso = texto("selecione").into();
                 }
             }
             _ => {}
@@ -389,64 +389,64 @@ pub fn sobrepor<'a>(
     let mut conteudo = column![row![
         text(e.modo.titulo()).size(18),
         Space::new(Length::FILL, 1),
-        botao(tr("fechar"), Msg::Fechar)
+        botao(texto("fechar"), Msg::Fechar)
     ]
     .spacing(8)]
     .spacing(10);
     match e.modo {
         Modo::Contagem => {}
         Modo::Idioma => {
-            conteudo = conteudo.push(text(tr("sobre_idioma")).size(12));
+            conteudo = conteudo.push(text(texto("sobre_idioma")).size(12));
             for idioma in featherslide_ortografia::idiomas_disponiveis() {
                 let rotulo = format!(
                     "{}{}",
                     idioma.codigo,
                     if c.idiomas_ortografia.first() == Some(&idioma.codigo) {
-                        " (principal)"
+                        tr(" (principal)")
                     } else {
                         ""
                     }
                 );
                 conteudo = conteudo.push(botao(&rotulo, Msg::Idioma(idioma.codigo)));
             }
-            conteudo = conteudo.push(botao(tr("instalar"), Msg::Instalar));
+            conteudo = conteudo.push(botao(texto("instalar"), Msg::Instalar));
         }
         _ => {
             if e.modo == Modo::Autocorrecao {
                 conteudo = conteudo
-                    .push(checkbox(tr("auto"), c.autocorrecao).on_toggle(Msg::Auto))
-                    .push(checkbox(tr("capital"), c.capitalizacao).on_toggle(Msg::Capital));
+                    .push(checkbox(texto("auto"), c.autocorrecao).on_toggle(Msg::Auto))
+                    .push(checkbox(texto("capital"), c.capitalizacao).on_toggle(Msg::Capital));
             }
             if e.modo == Modo::Traducao {
-                conteudo = conteudo.push(text(tr("sobre_traducao")).size(12)).push(
+                conteudo = conteudo.push(text(texto("sobre_traducao")).size(12)).push(
                     row![
-                        text_input(tr("origem"), &e.origem).on_input(Msg::Origem),
-                        text_input(tr("destino"), &e.destino).on_input(Msg::Destino)
+                        text_input(texto("origem"), &e.origem).on_input(Msg::Origem),
+                        text_input(texto("destino"), &e.destino).on_input(Msg::Destino)
                     ]
                     .spacing(8),
                 );
             }
             if e.modo == Modo::Sinonimos {
-                conteudo = conteudo.push(text(tr("sobre_sinonimos")).size(12));
+                conteudo = conteudo.push(text(texto("sobre_sinonimos")).size(12));
             }
             conteudo = conteudo.push(
-                text_input(tr("palavra"), &e.palavra)
+                text_input(texto("palavra"), &e.palavra)
                     .on_input(Msg::Palavra)
                     .on_submit(Msg::Buscar),
             );
             if e.modo == Modo::Dicionario {
                 conteudo = conteudo.push(row![
-                    botao(tr("consultar"), Msg::Buscar),
-                    botao(tr("adicionar"), Msg::Adicionar)
+                    botao(texto("consultar"), Msg::Buscar),
+                    botao(texto("adicionar"), Msg::Adicionar)
                 ]);
             } else {
                 conteudo = conteudo
-                    .push(text_input(tr("valor"), &e.valor).on_input(Msg::Valor))
+                    .push(text_input(texto("valor"), &e.valor).on_input(Msg::Valor))
                     .push(
                         row![
-                            botao(tr("consultar"), Msg::Buscar),
-                            botao(tr("salvar"), Msg::Salvar),
-                            botao(tr("excluir"), Msg::Remover)
+                            botao(texto("consultar"), Msg::Buscar),
+                            botao(texto("salvar"), Msg::Salvar),
+                            botao(texto("excluir"), Msg::Remover)
                         ]
                         .spacing(6),
                     );

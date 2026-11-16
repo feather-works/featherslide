@@ -1,4 +1,5 @@
 //! Diálogos de SVG; leitura e geometria pertencem a IO e core.
+use crate::localidade::tr;
 use crate::{
     app::{FeatherSlideApp, Mensagem},
     faixa::FaixaMensagem,
@@ -14,11 +15,11 @@ fn svg_grafico_selecionado(
 ) -> Result<String, String> {
     let elemento = elementos.iter().find(|e| {
         ids.contains(&e.id) && e.tipo == featherslide_core::modelo::Tipo::Grafico
-    }).ok_or_else(|| "Selecione um gráfico para exportar.".to_owned())?;
+    }).ok_or_else(|| tr("Selecione um gráfico para exportar.").to_owned())?;
     let comum = featherslide_io::grafico_compartilhado::converter_elemento(elemento)
-        .map_err(|e| format!("Não foi possível converter o gráfico: {e:?}"))?;
+        .map_err(|e| crate::localidade::trf("Não foi possível converter o gráfico: {}", &[&(format!("{:?}", e))]))?;
     comum.exportar_svg()
-        .map_err(|e| format!("Não foi possível exportar o gráfico SVG: {e:?}"))
+        .map_err(|e| crate::localidade::trf("Não foi possível exportar o gráfico SVG: {}", &[&(format!("{:?}", e))]))
 }
 
 impl FeatherSlideApp {
@@ -27,25 +28,25 @@ impl FeatherSlideApp {
             FaixaMensagem::InserirSvg => Task::perform(
                 async {
                     let arquivo = rfd::AsyncFileDialog::new()
-                        .add_filter("Desenho vetorial SVG", &["svg"])
+                        .add_filter(tr("Desenho vetorial SVG"), &["svg"])
                         .pick_file()
                         .await?;
                     let caminho = arquivo.path().to_path_buf();
                     Some(
                         tokio::task::spawn_blocking(move || {
                             let bytes = std::fs::read(caminho)
-                                .map_err(|e| format!("Erro ao ler SVG: {e}"))?;
+                                .map_err(|e| crate::localidade::trf("Erro ao ler SVG: {}", &[&e]))?;
                             featherslide_io::svg::importar(&bytes)
                         })
                         .await
-                        .unwrap_or_else(|e| Err(format!("Erro ao importar SVG: {e}"))),
+                        .unwrap_or_else(|e| Err(crate::localidade::trf("Erro ao importar SVG: {}", &[&e]))),
                     )
                 },
                 Mensagem::SvgLido,
             ),
             FaixaMensagem::ConverterSvg => {
                 self.status = match self.sessao.svg_converter() {
-                    Ok(_) => "SVG convertido: peças liberadas para edição".into(),
+                    Ok(_) => tr("SVG convertido: peças liberadas para edição").into(),
                     Err(e) => e,
                 };
                 Task::none()
@@ -65,16 +66,16 @@ impl FeatherSlideApp {
                 Task::perform(
                     async move {
                         let Some(arquivo) = rfd::AsyncFileDialog::new()
-                            .add_filter("Gráfico vetorial SVG", &["svg"])
+                            .add_filter(tr("Gráfico vetorial SVG"), &["svg"])
                             .set_file_name("grafico.svg")
                             .save_file()
                             .await
                         else {
-                            return Ok("Exportação do gráfico cancelada".into());
+                            return Ok(tr("Exportação do gráfico cancelada").into());
                         };
                         std::fs::write(arquivo.path(), svg)
-                            .map_err(|e| format!("Erro ao exportar gráfico SVG: {e}"))?;
-                        Ok("Gráfico exportado pelo motor Charts para SVG".into())
+                            .map_err(|e| crate::localidade::trf("Erro ao exportar gráfico SVG: {}", &[&e]))?;
+                        Ok(tr("Gráfico exportado pelo motor Charts para SVG").into())
                     },
                     Mensagem::SvgExportado,
                 )
@@ -105,11 +106,11 @@ impl FeatherSlideApp {
                             .save_file()
                             .await
                         else {
-                            return Ok("Exportação SVG cancelada".into());
+                            return Ok(tr("Exportação SVG cancelada").into());
                         };
                         std::fs::write(arquivo.path(), svg)
-                            .map_err(|e| format!("Erro ao exportar SVG: {e}"))?;
-                        Ok("Vetores exportados para SVG".into())
+                            .map_err(|e| crate::localidade::trf("Erro ao exportar SVG: {}", &[&e]))?;
+                        Ok(tr("Vetores exportados para SVG").into())
                     },
                     Mensagem::SvgExportado,
                 )

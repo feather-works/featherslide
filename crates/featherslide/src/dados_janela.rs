@@ -1,6 +1,7 @@
 //! A janela "Dados do gráfico": o tipo, o título e a grade de valores (categorias nas linhas,
 //! séries nas colunas). Cada tecla vai ao motor e o gráfico no slide se refaz na hora.
 
+use crate::localidade::tr;
 use featherslide_core::sessao::Sessao;
 use pelicano::*;
 use pelicano::column;
@@ -22,12 +23,12 @@ pub enum Msg {
 
 fn rotulo_do_tipo(tipo: &str) -> &'static str {
     match tipo {
-        "barras" => "Barras",
-        "linhas" => "Linhas",
-        "area" => "Área",
-        "pizza" => "Pizza",
-        "rosca" => "Rosca",
-        _ => "Colunas",
+        "barras" => tr("Barras"),
+        "linhas" => tr("Linhas"),
+        "area" => tr("Área"),
+        "pizza" => tr("Pizza"),
+        "rosca" => tr("Rosca"),
+        _ => tr("Colunas"),
     }
 }
 
@@ -46,7 +47,7 @@ pub fn atualizar(sessao: &mut Sessao, id: u64, msg: Msg) {
         Msg::LinhaMais => {
             let n = g.grade.len();
             let mut nova = vec![String::new(); g.grade[0].len()];
-            nova[0] = format!("Categoria {n}");
+            nova[0] = crate::localidade::trf("Categoria {}", &[&n]);
             g.grade.push(nova);
         }
         Msg::LinhaMenos if g.grade.len() > 2 => {
@@ -56,7 +57,7 @@ pub fn atualizar(sessao: &mut Sessao, id: u64, msg: Msg) {
             let n = g.grade[0].len();
             for (i, l) in g.grade.iter_mut().enumerate() {
                 l.push(if i == 0 {
-                    format!("Série {n}")
+                    crate::localidade::trf("Série {}", &[&n])
                 } else {
                     "0".into()
                 });
@@ -75,15 +76,15 @@ pub fn atualizar(sessao: &mut Sessao, id: u64, msg: Msg) {
 pub fn view<'a>(sessao: &Sessao, id: Option<u64>) -> Element<'a, Msg> {
     let Some(g) = id.and_then(|i| sessao.grafico_dados(i)) else {
         return container(
-            text("Selecione um gráfico no slide e dê dois cliques nele.")
+            text(tr("Selecione um gráfico no slide e dê dois cliques nele."))
                 .size(14)
                 .color(COR_TEXTO_MUTED()),
         )
         .padding(30)
         .into();
     };
-    let tipo = pick_list(&TIPOS[..], Some(rotulo_do_tipo(&g.tipo)), |t| {
-        Msg::Tipo(t.to_string())
+    let tipo = pick_list(crate::localidade::lista(&TIPOS), Some(crate::localidade::tr(rotulo_do_tipo(&g.tipo))), |t| {
+        Msg::Tipo(crate::localidade::de_volta(&TIPOS, t).to_string())
     })
     .size(12)
     .padding([7, 10])
@@ -93,7 +94,7 @@ pub fn view<'a>(sessao: &Sessao, id: Option<u64>) -> Element<'a, Msg> {
         column![
             row![
                 feather_ui::icones::icone("chart-bar", 22.0),
-                text("Dados do gráfico").size(19),
+                text(tr("Dados do gráfico")).size(19),
                 Space::new(Length::FILL, Length::Shrink),
                 text(format!(
                     "{} categorias · {} séries",
@@ -107,13 +108,13 @@ pub fn view<'a>(sessao: &Sessao, id: Option<u64>) -> Element<'a, Msg> {
             .align(Align::Center),
             row![
                 column![
-                    text("Tipo de gráfico").size(11).color(COR_TEXTO_MUTED()),
+                    text(tr("Tipo de gráfico")).size(11).color(COR_TEXTO_MUTED()),
                     tipo
                 ]
                 .spacing(5),
                 column![
-                    text("Título").size(11).color(COR_TEXTO_MUTED()),
-                    text_input("Título do gráfico", g.titulo.clone())
+                    text(tr("Título")).size(11).color(COR_TEXTO_MUTED()),
+                    text_input(tr("Título do gráfico"), g.titulo.clone())
                         .on_input(Msg::Titulo)
                         .size(13)
                         .padding([7, 10])
@@ -144,7 +145,7 @@ pub fn view<'a>(sessao: &Sessao, id: Option<u64>) -> Element<'a, Msg> {
         for (c, valor) in linha.iter().enumerate() {
             if r == 0 && c == 0 {
                 celulas = celulas.push(
-                    container(text("Categoria").size(12))
+                    container(text(tr("Categoria")).size(12))
                         .width(170)
                         .padding([9, 8]),
                 );
@@ -152,9 +153,9 @@ pub fn view<'a>(sessao: &Sessao, id: Option<u64>) -> Element<'a, Msg> {
                 celulas = celulas.push(
                     text_input(
                         if r == 0 {
-                            "Série"
+                            tr("Série")
                         } else if c == 0 {
-                            "Categoria"
+                            tr("Categoria")
                         } else {
                             "0"
                         },
@@ -210,17 +211,17 @@ pub fn view<'a>(sessao: &Sessao, id: Option<u64>) -> Element<'a, Msg> {
         .on_press_maybe(habilitado.then_some(m))
     };
     let acoes = row![
-        btn("plus", "Categoria", Msg::LinhaMais, true),
-        btn("minus", "Categoria", Msg::LinhaMenos, g.grade.len() > 2),
+        btn("plus", tr("Categoria"), Msg::LinhaMais, true),
+        btn("minus", tr("Categoria"), Msg::LinhaMenos, g.grade.len() > 2),
         Space::new(10, Length::Shrink),
-        btn("plus", "Série", Msg::SerieMais, g.grade[0].len() < 7),
-        btn("minus", "Série", Msg::SerieMenos, g.grade[0].len() > 2)
+        btn("plus", tr("Série"), Msg::SerieMais, g.grade[0].len() < 7),
+        btn("minus", tr("Série"), Msg::SerieMenos, g.grade[0].len() > 2)
     ]
     .spacing(6);
     let dica = if g.tipo == "pizza" {
-        "A pizza usa a primeira série. Alterações aparecem no slide automaticamente."
+        tr("A pizza usa a primeira série. Alterações aparecem no slide automaticamente.")
     } else {
-        "Use vírgula ou ponto decimal. Alterações aparecem no slide automaticamente."
+        tr("Use vírgula ou ponto decimal. Alterações aparecem no slide automaticamente.")
     };
     container(
         column![

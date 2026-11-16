@@ -1,6 +1,7 @@
 //! O menu do botão direito: sobre um elemento, sobre o vazio do slide e sobre uma miniatura.
 //! Aqui só se monta a lista; cada item manda o mesmo comando que o botão da faixa.
 
+use crate::localidade::tr;
 use featherslide_core::Ordem;
 use pelicano::{button, column, container, row, text, Space};
 use pelicano::{Align, Background, Border, Color, Element, Length, Point, Shadow, Style};
@@ -53,134 +54,134 @@ fn itens(tipo: &TipoMenu) -> Vec<Item> {
     match tipo {
         TipoMenu::Elemento(t) => {
             let mut v = vec![
-                Acao("Recortar", "Ctrl+X", F::Recortar),
-                Acao("Copiar", "Ctrl+C", F::Copiar),
-                Acao("Colar", "Ctrl+V", F::Colar),
-                Acao("Duplicar", "Ctrl+D", F::Duplicar),
-                Acao("Excluir", "Del", F::Excluir),
+                Acao(tr("Recortar"), "Ctrl+X", F::Recortar),
+                Acao(tr("Copiar"), "Ctrl+C", F::Copiar),
+                Acao(tr("Colar"), "Ctrl+V", F::Colar),
+                Acao(tr("Duplicar"), "Ctrl+D", F::Duplicar),
+                Acao(tr("Excluir"), tr("Del"), F::Excluir),
                 Sep,
-                Acao("Trazer para a frente", "", F::Organizar(Ordem::Frente)),
-                Acao("Enviar para trás", "", F::Organizar(Ordem::Tras)),
-                Acao("Avançar uma camada", "", F::Organizar(Ordem::Avancar)),
-                Acao("Recuar uma camada", "", F::Organizar(Ordem::Recuar)),
+                Acao(tr("Trazer para a frente"), "", F::Organizar(Ordem::Frente)),
+                Acao(tr("Enviar para trás"), "", F::Organizar(Ordem::Tras)),
+                Acao(tr("Avançar uma camada"), "", F::Organizar(Ordem::Avancar)),
+                Acao(tr("Recuar uma camada"), "", F::Organizar(Ordem::Recuar)),
                 Sep,
-                Acao("Centralizar no slide", "", F::AlinharNoSlide("centro")),
-                Acao("Centralizar na vertical", "", F::AlinharNoSlide("meio")),
+                Acao(tr("Centralizar no slide"), "", F::AlinharNoSlide("centro")),
+                Acao(tr("Centralizar na vertical"), "", F::AlinharNoSlide("meio")),
             ];
             match t.as_str() {
                 "imagem" => v.extend([
                     Sep,
-                    Acao("Cortar como figura…", "", F::AbrirFiguras(crate::galeria_figuras::Figuras::Recorte)),
-                    Acao("Ajustar enquadramento (arrastar foto)", "", F::AlternarModoRecorte),
-                    Acao("Centralizar foto no recorte", "", F::ImagemResetarRecorte),
+                    Acao(tr("Cortar como figura…"), "", F::AbrirFiguras(crate::galeria_figuras::Figuras::Recorte)),
+                    Acao(tr("Ajustar enquadramento (arrastar foto)"), "", F::AlternarModoRecorte),
+                    Acao(tr("Centralizar foto no recorte"), "", F::ImagemResetarRecorte),
                 ]),
                 "tabela" => v.extend([
                     Sep,
-                    Acao("Inserir linha", "", F::TabelaEstrutura("linha+")),
-                    Acao("Excluir última linha", "", F::TabelaEstrutura("linha-")),
-                    Acao("Inserir coluna", "", F::TabelaEstrutura("coluna+")),
-                    Acao("Excluir última coluna", "", F::TabelaEstrutura("coluna-")),
+                    Acao(tr("Inserir linha"), "", F::TabelaEstrutura("linha+")),
+                    Acao(tr("Excluir última linha"), "", F::TabelaEstrutura("linha-")),
+                    Acao(tr("Inserir coluna"), "", F::TabelaEstrutura("coluna+")),
+                    Acao(tr("Excluir última coluna"), "", F::TabelaEstrutura("coluna-")),
                     Sep,
-                    Item::DesligadoComDica("Abrir no FeatherSheet", "Ainda vai ser construído: abrirá esta tabela no FeatherSheet, com fórmulas e dados de verdade."),
+                    Item::DesligadoComDica(tr("Abrir no FeatherSheet"), tr("Ainda vai ser construído: abrirá esta tabela no FeatherSheet, com fórmulas e dados de verdade.")),
                 ]),
                 "icone" => v.extend([
                     Sep,
-                    Acao("Formato do ícone…", "", F::TrocarAba(crate::faixa::AbaDaFaixa::Imagem)),
-                    Acao("Trocar ícone…", "", F::AbrirFiguras(crate::galeria_figuras::Figuras::TrocarIcone)),
-                    Acao("Cor do ícone…", "", F::AbrirSeletorCor(crate::faixa::AlvoCor::Preenchimento)),
-                    Acao("Aumentar 10%", "", F::EscalarSelecao(1.1)),
-                    Acao("Diminuir 10%", "", F::EscalarSelecao(0.9)),
+                    Acao(tr("Formato do ícone…"), "", F::TrocarAba(crate::faixa::AbaDaFaixa::Imagem)),
+                    Acao(tr("Trocar ícone…"), "", F::AbrirFiguras(crate::galeria_figuras::Figuras::TrocarIcone)),
+                    Acao(tr("Cor do ícone…"), "", F::AbrirSeletorCor(crate::faixa::AlvoCor::Preenchimento)),
+                    Acao(tr("Aumentar 10%"), "", F::EscalarSelecao(1.1)),
+                    Acao(tr("Diminuir 10%"), "", F::EscalarSelecao(0.9)),
                 ]),
-                "grafico" => v.extend([Sep, Acao("Editar dados do gráfico…", "", F::EditarDadosGrafico)]),
+                "grafico" => v.extend([Sep, Acao(tr("Editar dados do gráfico…"), "", F::EditarDadosGrafico)]),
                 _ => {}
             }
-            v.extend([Sep, Acao("Enviar ao fundo", "", F::SelecaoParaFundo)]);
+            v.extend([Sep, Acao(tr("Enviar ao fundo"), "", F::SelecaoParaFundo)]);
             v
         }
         TipoMenu::Vazio => vec![
-            Acao("Colar", "Ctrl+V", F::Colar),
-            Acao("Selecionar tudo", "Ctrl+A", F::SelecionarTudo),
+            Acao(tr("Colar"), "Ctrl+V", F::Colar),
+            Acao(tr("Selecionar tudo"), "Ctrl+A", F::SelecionarTudo),
             Sep,
-            Acao("Novo slide", "Ctrl+M", F::SlideNovo),
-            Acao("Editar formas do fundo", "", F::FundoLiberar),
+            Acao(tr("Novo slide"), "Ctrl+M", F::SlideNovo),
+            Acao(tr("Editar formas do fundo"), "", F::FundoLiberar),
         ],
         TipoMenu::Ortografia { sugestoes, base } => {
             let mut v: Vec<Item> = sugestoes.iter().map(|s| Item::Sugestao(s.clone(), F::OrtografiaTrocar(s.clone()))).collect();
             if v.is_empty() {
-                v.push(Item::Desligado("Sem sugestões"));
+                v.push(Item::Desligado(tr("Sem sugestões")));
             }
-            v.extend([Sep, Acao("Ignorar tudo", "", F::OrtografiaIgnorarTudo), Acao("Adicionar ao dicionário", "", F::OrtografiaAdicionar), Sep]);
+            v.extend([Sep, Acao(tr("Ignorar tudo"), "", F::OrtografiaIgnorarTudo), Acao(tr("Adicionar ao dicionário"), "", F::OrtografiaAdicionar), Sep]);
             v.extend(itens(base));
             v
         }
         TipoMenu::Gramatica { mensagem, sugestao, base } => {
-            let rotulo = if sugestao.is_empty() { "Tirar o espaço".to_string() } else { sugestao.clone() };
-            let mut v = vec![Item::Aviso(mensagem.clone()), Item::Sugestao(rotulo, F::OrtografiaTrocar(sugestao.clone())), Sep, Acao("Ignorar este aviso", "", F::GramaticaIgnorar), Sep];
+            let rotulo = if sugestao.is_empty() { tr("Tirar o espaço").to_string() } else { sugestao.clone() };
+            let mut v = vec![Item::Aviso(mensagem.clone()), Item::Sugestao(rotulo, F::OrtografiaTrocar(sugestao.clone())), Sep, Acao(tr("Ignorar este aviso"), "", F::GramaticaIgnorar), Sep];
             v.extend(itens(base));
             v
         }
         TipoMenu::Secao { inicio, recolhida, primeira, ultima } => vec![
-            Acao(if *recolhida { "Expandir seção" } else { "Recolher seção" }, "", F::SecoesAlternar(*inicio)),
-            Acao("Recolher todas", "", F::SecoesRecolherTodas),
-            Acao("Expandir todas", "", F::SecoesExpandirTodas),
+            Acao(if *recolhida { tr("Expandir seção") } else { tr("Recolher seção") }, "", F::SecoesAlternar(*inicio)),
+            Acao(tr("Recolher todas"), "", F::SecoesRecolherTodas),
+            Acao(tr("Expandir todas"), "", F::SecoesExpandirTodas),
             Sep,
-            if *primeira { Item::Desligado("Mover seção para cima") } else { Acao("Mover seção para cima", "", F::SecaoMover(*inicio, -1)) },
-            if *ultima { Item::Desligado("Mover seção para baixo") } else { Acao("Mover seção para baixo", "", F::SecaoMover(*inicio, 1)) },
-            Acao("Mover slides marcados para esta seção", "", F::SlidesParaSecao(*inicio)),
+            if *primeira { Item::Desligado(tr("Mover seção para cima")) } else { Acao(tr("Mover seção para cima"), "", F::SecaoMover(*inicio, -1)) },
+            if *ultima { Item::Desligado(tr("Mover seção para baixo")) } else { Acao(tr("Mover seção para baixo"), "", F::SecaoMover(*inicio, 1)) },
+            Acao(tr("Mover slides marcados para esta seção"), "", F::SlidesParaSecao(*inicio)),
             Sep,
-            Acao("Renomear seção", "", F::SecaoRenomear(*inicio)),
-            Acao("Remover seção (mantém os slides)", "", F::SecaoRemover(*inicio, false)),
-            Acao("Remover seção e seus slides", "", F::SecaoRemover(*inicio, true)),
+            Acao(tr("Renomear seção"), "", F::SecaoRenomear(*inicio)),
+            Acao(tr("Remover seção (mantém os slides)"), "", F::SecaoRemover(*inicio, false)),
+            Acao(tr("Remover seção e seus slides"), "", F::SecaoRemover(*inicio, true)),
             Sep,
-            Acao("Remover todas as seções", "", F::SecoesRemoverTodas),
+            Acao(tr("Remover todas as seções"), "", F::SecoesRemoverTodas),
         ],
         TipoMenu::Slide { oculto, marcados, .. } if *marcados > 1 => {
             // Vários slides marcados: as ações valem para todos eles.
             vec![
-                Acao("Criar seção com os slides marcados", "", F::SecaoDosMarcados),
+                Acao(tr("Criar seção com os slides marcados"), "", F::SecaoDosMarcados),
                 Sep,
-                Acao("Copiar slides marcados", "Ctrl+C", F::SlidesCopiar),
-                Acao("Recortar slides marcados", "Ctrl+X", F::SlidesRecortar),
-                Acao("Colar — manter formatação", "Ctrl+V", F::SlidesColar(featherslide_core::EstiloColagem::ManterOrigem)),
-                Acao("Colar — usar tema de destino", "", F::SlidesColar(featherslide_core::EstiloColagem::AdaptarAoTema)),
+                Acao(tr("Copiar slides marcados"), "Ctrl+C", F::SlidesCopiar),
+                Acao(tr("Recortar slides marcados"), "Ctrl+X", F::SlidesRecortar),
+                Acao(tr("Colar — manter formatação"), "Ctrl+V", F::SlidesColar(featherslide_core::EstiloColagem::ManterOrigem)),
+                Acao(tr("Colar — usar tema de destino"), "", F::SlidesColar(featherslide_core::EstiloColagem::AdaptarAoTema)),
                 Sep,
-                Acao("Duplicar slides marcados", "", F::SlideDuplicar),
-                Acao(if *oculto { "Mostrar slides marcados" } else { "Ocultar slides marcados" }, "", F::OcultarSlide),
-                Acao("Excluir slides marcados", "", F::SlideExcluir),
-                Acao("Aplicar layout aos marcados…", "", F::AbrirGaleria(false)),
-                Acao("Restaurar layouts marcados", "", F::SlidesRestaurarLayout),
+                Acao(tr("Duplicar slides marcados"), "", F::SlideDuplicar),
+                Acao(if *oculto { tr("Mostrar slides marcados") } else { tr("Ocultar slides marcados") }, "", F::OcultarSlide),
+                Acao(tr("Excluir slides marcados"), "", F::SlideExcluir),
+                Acao(tr("Aplicar layout aos marcados…"), "", F::AbrirGaleria(false)),
+                Acao(tr("Restaurar layouts marcados"), "", F::SlidesRestaurarLayout),
                 Sep,
-                Acao("Marcar todos os slides", "", F::SlidesSelecionarTodos),
-                Acao("Desmarcar", "", F::DesmarcarSlides),
+                Acao(tr("Marcar todos os slides"), "", F::SlidesSelecionarTodos),
+                Acao(tr("Desmarcar"), "", F::DesmarcarSlides),
             ]
         }
         TipoMenu::Slide { oculto, primeiro, ultimo, .. } => {
             let mut v = vec![
-                Acao("Inserir slide antes", "", F::SlideInserirAntes),
-                Acao("Inserir slide depois", "Ctrl+M", F::SlideInserirDepois),
-                Acao("Duplicar slide", "", F::SlideDuplicar),
-                Acao("Copiar slide", "Ctrl+C", F::SlidesCopiar),
-                Acao("Recortar slide", "Ctrl+X", F::SlidesRecortar),
-                Acao("Colar — manter original", "Ctrl+V", F::SlidesColar(featherslide_core::EstiloColagem::ManterOrigem)),
-                Acao("Colar — adaptar ao tema", "", F::SlidesColar(featherslide_core::EstiloColagem::AdaptarAoTema)),
-                Acao("Excluir slide", "", F::SlideExcluir), Sep,
+                Acao(tr("Inserir slide antes"), "", F::SlideInserirAntes),
+                Acao(tr("Inserir slide depois"), "Ctrl+M", F::SlideInserirDepois),
+                Acao(tr("Duplicar slide"), "", F::SlideDuplicar),
+                Acao(tr("Copiar slide"), "Ctrl+C", F::SlidesCopiar),
+                Acao(tr("Recortar slide"), "Ctrl+X", F::SlidesRecortar),
+                Acao(tr("Colar — manter original"), "Ctrl+V", F::SlidesColar(featherslide_core::EstiloColagem::ManterOrigem)),
+                Acao(tr("Colar — adaptar ao tema"), "", F::SlidesColar(featherslide_core::EstiloColagem::AdaptarAoTema)),
+                Acao(tr("Excluir slide"), "", F::SlideExcluir), Sep,
             ];
-            v.push(Acao(if *oculto { "Mostrar slide" } else { "Ocultar slide" }, "", F::OcultarSlide));
+            v.push(Acao(if *oculto { tr("Mostrar slide") } else { tr("Ocultar slide") }, "", F::OcultarSlide));
             v.push(Sep);
-            v.push(if *primeiro { Item::Desligado("Mover para cima") } else { Acao("Mover para cima", "", F::SlideMover(-1)) });
-            v.push(if *ultimo { Item::Desligado("Mover para baixo") } else { Acao("Mover para baixo", "", F::SlideMover(1)) });
+            v.push(if *primeiro { Item::Desligado(tr("Mover para cima")) } else { Acao(tr("Mover para cima"), "", F::SlideMover(-1)) });
+            v.push(if *ultimo { Item::Desligado(tr("Mover para baixo")) } else { Acao(tr("Mover para baixo"), "", F::SlideMover(1)) });
             v.extend([
                 Sep,
-                Acao("Alterar layout…", "", F::AbrirGaleria(false)),
-                Acao("Restaurar layout", "", F::SlidesRestaurarLayout),
-                Acao("Reutilizar slides de outro arquivo…", "", F::SlidesImportar),
-                Acao("Importar todos os slides…", "", F::SlidesImportarTodos),
-                Acao("Exportar este slide como PDF…", "", F::SlideExportarPdf),
-                Acao("Ir para o slide número…", "", F::IrParaNumero),
+                Acao(tr("Alterar layout…"), "", F::AbrirGaleria(false)),
+                Acao(tr("Restaurar layout"), "", F::SlidesRestaurarLayout),
+                Acao(tr("Reutilizar slides de outro arquivo…"), "", F::SlidesImportar),
+                Acao(tr("Importar todos os slides…"), "", F::SlidesImportarTodos),
+                Acao(tr("Exportar este slide como PDF…"), "", F::SlideExportarPdf),
+                Acao(tr("Ir para o slide número…"), "", F::IrParaNumero),
                 Sep,
-                Acao("Adicionar seção aqui", "", F::SecaoNova),
-                Acao("Marcar todos os slides", "", F::SlidesSelecionarTodos),
-                Acao("Apresentar a partir daqui", "", F::ApresentarDoAtual),
+                Acao(tr("Adicionar seção aqui"), "", F::SecaoNova),
+                Acao(tr("Marcar todos os slides"), "", F::SlidesSelecionarTodos),
+                Acao(tr("Apresentar a partir daqui"), "", F::ApresentarDoAtual),
             ]);
             v
         }

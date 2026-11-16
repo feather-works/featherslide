@@ -1,5 +1,6 @@
 //! O painel lateral de slides: miniaturas, seções (pastas recolhíveis) e a marca de slide oculto.
 
+use crate::localidade::tr;
 use std::collections::{BTreeSet, HashSet};
 
 use featherslide_core::quadro::Quadro;
@@ -168,7 +169,7 @@ pub fn view_miniaturas<'a>(
 ) -> Element<'a, MiniaturaMensagem> {
     let mut lista = column![].spacing(12).padding([8, 10]);
     lista = lista.push(
-        button(row![icone_mais(15.0, "#ffffff"), text("Novo slide").size(12.5)].spacing(6).align(Align::Center))
+        button(row![icone_mais(15.0, "#ffffff"), text(tr("Novo slide")).size(12.5)].spacing(6).align(Align::Center))
             .width(Length::FILL)
             .padding([7, 12])
             .style(estilo_botao_primario)
@@ -182,7 +183,7 @@ pub fn view_miniaturas<'a>(
             let aberta = !recolhidas.contains(&s.inicio);
             escondendo = !aberta;
             let cabecalho: Element<'a, MiniaturaMensagem> = match renomeando {
-                Some((i, nome)) if *i == s.inicio => text_input("Nome da seção", nome.clone())
+                Some((i, nome)) if *i == s.inicio => text_input(tr("Nome da seção"), nome.clone())
                     .id(ID_RENOMEAR)
                     .on_input(MiniaturaMensagem::RenomearTexto)
                     .on_submit(MiniaturaMensagem::RenomearConfirmar)

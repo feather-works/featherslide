@@ -30,6 +30,19 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   imagem `featherslide-debian12`, build em `target/debian12`): a v0.2.1 e a v0.2.2 saíram compiladas
   aqui e pediam a glibc 2.43, sem abrir no Ubuntu 24.04/22.04 nem no Debian 12. Em 16/11/2026 o
   `.deb` e o `.tar.gz` da v0.2.2 foram trocados na release pelos do contêiner (glibc ≤ 2.36).
+- **Idiomas (16/11/2026, no `main`, sem versão):** interface em pt-BR, en-US e es-ES. O português é a
+  chave: `localidade::tr("texto")` / `trf("… {} …", &[&x])`; `dados/en-US.json` e `es-ES.json` são mapas
+  português → tradução; `pt-BR.json` só guarda o que tem chave (`ferramentas_texto`, Ajuda F1 e dicas), que
+  passa pelo mesmo `tr`. Listas suspensas: opções em português no código, `localidade::lista` para mostrar e
+  `de_volta` para voltar ao valor. Os ajudantes da faixa e das Configurações traduzem o rótulo com
+  `tr_se_houver` (aceita texto já traduzido). Configurações ▸ Aparência ▸ Idioma da interface
+  (`config.idioma`, vazio = `LANG`). Guardas: `localidade::tests` (todo `tr("…")` literal tem en e es) e
+  `app::em_ingles_e_espanhol_as_telas_principais_nao_pedem_texto_sem_traducao` (monta início, editor, as abas,
+  Configurações e Ajuda e falha se o `tr` pediu texto sem tradução). Fotos: `LANG=es_ES.UTF-8
+  FEATHERSLIDE_CAPTURAR=… FEATHERSLIDE_CAPTURAR_TELA=inicio|arquivos|config|ajuda`. Texto novo: sempre com `tr`
+  e nas três línguas. Fica em português de propósito: respostas do MCP, linhas do Console (`[erro]`…) e o
+  conteúdo dos modelos de slide. Limite: "Tópicos principais", "Guias rápidos" e os botões de guia da Ajuda
+  são texto fixo do feather-ui (v0.3.16), sem tradutor.
 - Janela com barra própria: `transparent` (fora do Windows) e `cromo::moldura_redimensionavel_com`
   — cantos de 14 px, borda de redimensionar (`Mensagem::Puxar` → `DragResize`), reta maximizada
   (`Event::Maximized` → `app.maximizada`). Igual ao FeatherDB.
@@ -88,7 +101,7 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   foto (documentos sem identificador dividiam a chave); algarismo digitado sobrando de uma apresentação
   não vale na seguinte.
 - Ficou para depois: data local no Windows (`date` não existe lá: rodapé cai no UTC e os recentes
-  ficam sem data); ponteiro laser/caneta e grade de slides durante a apresentação; espanhol (es-ES).
+  ficam sem data); ponteiro laser/caneta e grade de slides durante a apresentação; espanhol (es-ES) — feito em 16/11/2026.
 
 ## Brainstorm de 05/11/2026 — entregas
 
@@ -134,7 +147,7 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   `[alternadas, 1ª coluna, totais]` (`dados::opcoes_tabela`; sem ajustes = só alternadas); a cor do
   cabeçalho é o preenchimento, as faixas são ela 85% clara, cabeçalho escuro tem letra branca
   (`cor_escura`). Faixa: Inserir → Estilo da tabela. O `.pptx` leva o mesmo. Conferido abrindo no LibreOffice (snap só lê arquivos na home).
-- Textos da faixa continuam só em pt-BR no código (o app não tem localidade da faixa); a ajuda F1 tem pt-BR e en-US.
+- Textos da faixa: desde 16/11/2026 passam pelo `localidade::tr` (pt-BR, en-US, es-ES).
 
 ## Auditoria de 05/11/2026 (11 correções)
 

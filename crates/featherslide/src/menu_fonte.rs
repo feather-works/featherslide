@@ -1,6 +1,7 @@
 //! Os menus suspensos do grupo Fonte (Maiúsculas e minúsculas, Espaçamento entre
 //! letras): um botão com ícone na faixa abre, logo embaixo dele, uma lista com a
 //! prévia de cada opção, no mesmo padrão flutuante do seletor de cor.
+use crate::localidade::tr;
 use pelicano::{button, column, container, mouse_area, row, text, Space};
 use pelicano::{Align, Background, Border, Color, Element, Length, Point, Shadow, Style};
 
@@ -52,9 +53,9 @@ fn icone_da_caixa(c: Caixa) -> &'static str {
 pub fn botao<'a>(menu: MenuFonte, aberto: bool, ligado: bool) -> Element<'a, FaixaMensagem> {
     let cor = if aberto { "#1a73e8" } else { "#5f6368" };
     let (icone, dica) = match menu {
-        MenuFonte::Caixa => (icone_letras("letter-case", 15.0, cor), "Maiúsculas e minúsculas"),
-        MenuFonte::Espacamento => (icone_letras("letter-spacing", 15.0, cor), "Espaçamento entre letras"),
-        MenuFonte::Tracos => (icone_sublinhado_duplo(14.0, cor), "Sublinhado e tachado duplos"),
+        MenuFonte::Caixa => (icone_letras("letter-case", 15.0, cor), tr("Maiúsculas e minúsculas")),
+        MenuFonte::Espacamento => (icone_letras("letter-spacing", 15.0, cor), tr("Espaçamento entre letras")),
+        MenuFonte::Tracos => (icone_sublinhado_duplo(14.0, cor), tr("Sublinhado e tachado duplos")),
     };
     let b = button(
         row![icone, icone_seta_baixo(9.0, "#5f6368")]
@@ -84,12 +85,12 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, menu: MenuFonte, espacamento_at
     let (esquerda, topo) = crate::medido::ancora(menu.ancora(), LARGURA, largura_janela, (420.0, 128.0));
     let (titulo, itens): (&str, Vec<Element<'a, FaixaMensagem>>) = match menu {
         MenuFonte::Caixa => (
-            "Maiúsculas e minúsculas",
+            tr("Maiúsculas e minúsculas"),
             Caixa::TODAS
                 .iter()
                 .map(|&c| {
                     let rotulo = match c {
-                        Caixa::Frase => "Primeira letra da frase.".to_string(),
+                        Caixa::Frase => tr("Primeira letra da frase.").to_string(),
                         _ => c.rotulo().to_string(),
                     };
                     item(Some(icone_letras(icone_da_caixa(c), 16.0, "#5f6368").into()), rotulo, false, FaixaMensagem::Caixa(c))
@@ -97,20 +98,20 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, menu: MenuFonte, espacamento_at
                 .collect(),
         ),
         MenuFonte::Espacamento => (
-            "Espaçamento entre letras",
+            tr("Espaçamento entre letras"),
             ESPACAMENTOS
                 .iter()
                 .map(|&(nome, pt)| {
                     let valor = if pt == 0.0 { "0 pt".to_string() } else { format!("{pt:+} pt") };
-                    item(None, format!("{nome}  ({valor})"), (espacamento_atual - pt).abs() < 0.01, FaixaMensagem::EspacamentoLetras(pt))
+                    item(None, format!("{}  ({valor})", tr(nome)), (espacamento_atual - pt).abs() < 0.01, FaixaMensagem::EspacamentoLetras(pt))
                 })
                 .collect(),
         ),
         MenuFonte::Tracos => (
-            "Traço duplo",
+            tr("Traço duplo"),
             vec![
-                item(Some(icone_sublinhado_duplo(16.0, "#5f6368").into()), "Sublinhado duplo".into(), duplos.0, FaixaMensagem::SublinhadoDuplo),
-                item(Some(icone_tachado_duplo(16.0, "#5f6368").into()), "Tachado duplo".into(), duplos.1, FaixaMensagem::TachadoDuplo),
+                item(Some(icone_sublinhado_duplo(16.0, "#5f6368").into()), tr("Sublinhado duplo").into(), duplos.0, FaixaMensagem::SublinhadoDuplo),
+                item(Some(icone_tachado_duplo(16.0, "#5f6368").into()), tr("Tachado duplo").into(), duplos.1, FaixaMensagem::TachadoDuplo),
             ],
         ),
     };

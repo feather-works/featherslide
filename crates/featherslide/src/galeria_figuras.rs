@@ -1,5 +1,6 @@
 //! As galerias de Formas e de Gráficos: cada opção aparece desenhada, não só escrita.
 
+use crate::localidade::tr;
 use pelicano::{button, column, container, mouse_area, program, row, text, Space};
 use pelicano::{Align, Background, Border, Color, Element, FillRule, Length, LineCap, LineJoin, Path, Point, Program, Rect, Renderer, Shadow, Size, Status, Stroke, Style, Theme, Transform};
 
@@ -43,13 +44,13 @@ enum Desenho {
 
 fn formas() -> Vec<Opcao> {
     let mut opcoes = vec![
-        Opcao { rotulo: "Retângulo", msg: FaixaMensagem::Inserir(Tipo::Retangulo), desenho: Desenho::Forma("retangulo", &[]) },
-        Opcao { rotulo: "Retângulo arredondado", msg: FaixaMensagem::Inserir(Tipo::RetanguloArredondado), desenho: Desenho::Forma("retangulo_arredondado", &[]) },
-        Opcao { rotulo: "Elipse", msg: FaixaMensagem::Inserir(Tipo::Elipse), desenho: Desenho::Forma("elipse", &[]) },
-        Opcao { rotulo: "Círculo parcial", msg: FaixaMensagem::Inserir(Tipo::Setor), desenho: Desenho::Forma("setor", &[0.0, 270.0]) },
-        Opcao { rotulo: "Triângulo", msg: FaixaMensagem::Inserir(Tipo::Triangulo), desenho: Desenho::Forma("triangulo", &[]) },
-        Opcao { rotulo: "Seta", msg: FaixaMensagem::Inserir(Tipo::Seta), desenho: Desenho::Forma("seta", &[]) },
-        Opcao { rotulo: "Linha", msg: FaixaMensagem::Inserir(Tipo::Linha), desenho: Desenho::Forma("linha", &[]) },
+        Opcao { rotulo: tr("Retângulo"), msg: FaixaMensagem::Inserir(Tipo::Retangulo), desenho: Desenho::Forma("retangulo", &[]) },
+        Opcao { rotulo: tr("Retângulo arredondado"), msg: FaixaMensagem::Inserir(Tipo::RetanguloArredondado), desenho: Desenho::Forma("retangulo_arredondado", &[]) },
+        Opcao { rotulo: tr("Elipse"), msg: FaixaMensagem::Inserir(Tipo::Elipse), desenho: Desenho::Forma("elipse", &[]) },
+        Opcao { rotulo: tr("Círculo parcial"), msg: FaixaMensagem::Inserir(Tipo::Setor), desenho: Desenho::Forma("setor", &[0.0, 270.0]) },
+        Opcao { rotulo: tr("Triângulo"), msg: FaixaMensagem::Inserir(Tipo::Triangulo), desenho: Desenho::Forma("triangulo", &[]) },
+        Opcao { rotulo: tr("Seta"), msg: FaixaMensagem::Inserir(Tipo::Seta), desenho: Desenho::Forma("seta", &[]) },
+        Opcao { rotulo: tr("Linha"), msg: FaixaMensagem::Inserir(Tipo::Linha), desenho: Desenho::Forma("linha", &[]) },
     ];
     opcoes.extend(featherslide_core::formas::ADICIONAIS.iter().map(|&(tipo, rotulo)| Opcao {
         rotulo, msg: FaixaMensagem::Inserir(tipo), desenho: Desenho::Forma(tipo.nome(), &[]),
@@ -57,22 +58,22 @@ fn formas() -> Vec<Opcao> {
     opcoes.extend(featherslide_core::outras_galerias::FORMAS.iter().map(|&(_,id,rotulo)| Opcao {
         rotulo, msg: FaixaMensagem::InserirGaleria(id), desenho: Desenho::Modelo(id),
     }));
-    for (id,rotulo) in [("reto","Conector reto"),("cotovelo","Conector em cotovelo"),("curvo","Conector curvo")] {
+    for (id,rotulo) in [("reto",tr("Conector reto")),("cotovelo",tr("Conector em cotovelo")),("curvo",tr("Conector curvo"))] {
         let modelo=match id{"cotovelo"=>"conector_cotovelo","curvo"=>"conector_curvo",_=>"conector_reto"};
         opcoes.push(Opcao{rotulo,msg:FaixaMensagem::InserirConector(id),desenho:Desenho::Modelo(modelo)});
     }
-    opcoes.push(Opcao{rotulo:"Desenho livre",msg:FaixaMensagem::DesenhoLivre,desenho:Desenho::Modelo("livre")});
+    opcoes.push(Opcao{rotulo:tr("Desenho livre"),msg:FaixaMensagem::DesenhoLivre,desenho:Desenho::Modelo("livre")});
     opcoes
 }
 
 fn recorte() -> Vec<Opcao> {
     vec![
-        Opcao { rotulo: "Retângulo (sem corte)", msg: FaixaMensagem::RecorteForma(Tipo::Retangulo), desenho: Desenho::Forma("retangulo", &[]) },
-        Opcao { rotulo: "Elipse (círculo)", msg: FaixaMensagem::RecorteForma(Tipo::Elipse), desenho: Desenho::Forma("elipse", &[]) },
-        Opcao { rotulo: "Cantos arredondados", msg: FaixaMensagem::RecorteForma(Tipo::RetanguloArredondado), desenho: Desenho::Forma("retangulo_arredondado", &[]) },
-        Opcao { rotulo: "Triângulo", msg: FaixaMensagem::RecorteForma(Tipo::Triangulo), desenho: Desenho::Forma("triangulo", &[]) },
-        Opcao { rotulo: "Círculo parcial", msg: FaixaMensagem::RecorteForma(Tipo::Setor), desenho: Desenho::Forma("setor", &[0.0, 270.0]) },
-        Opcao { rotulo: "Seta", msg: FaixaMensagem::RecorteForma(Tipo::Seta), desenho: Desenho::Forma("seta", &[]) },
+        Opcao { rotulo: tr("Retângulo (sem corte)"), msg: FaixaMensagem::RecorteForma(Tipo::Retangulo), desenho: Desenho::Forma("retangulo", &[]) },
+        Opcao { rotulo: tr("Elipse (círculo)"), msg: FaixaMensagem::RecorteForma(Tipo::Elipse), desenho: Desenho::Forma("elipse", &[]) },
+        Opcao { rotulo: tr("Cantos arredondados"), msg: FaixaMensagem::RecorteForma(Tipo::RetanguloArredondado), desenho: Desenho::Forma("retangulo_arredondado", &[]) },
+        Opcao { rotulo: tr("Triângulo"), msg: FaixaMensagem::RecorteForma(Tipo::Triangulo), desenho: Desenho::Forma("triangulo", &[]) },
+        Opcao { rotulo: tr("Círculo parcial"), msg: FaixaMensagem::RecorteForma(Tipo::Setor), desenho: Desenho::Forma("setor", &[0.0, 270.0]) },
+        Opcao { rotulo: tr("Seta"), msg: FaixaMensagem::RecorteForma(Tipo::Seta), desenho: Desenho::Forma("seta", &[]) },
     ]
 }
 
@@ -88,12 +89,12 @@ fn diagramas() -> Vec<Opcao> {
 
 fn graficos() -> Vec<Opcao> {
     vec![
-        Opcao { rotulo: "Colunas", msg: FaixaMensagem::InserirGrafico("colunas".into()), desenho: Desenho::Colunas },
-        Opcao { rotulo: "Barras", msg: FaixaMensagem::InserirGrafico("barras".into()), desenho: Desenho::Barras },
-        Opcao { rotulo: "Linhas", msg: FaixaMensagem::InserirGrafico("linhas".into()), desenho: Desenho::Linhas },
-        Opcao { rotulo: "Área", msg: FaixaMensagem::InserirGrafico("area".into()), desenho: Desenho::Area },
-        Opcao { rotulo: "Pizza", msg: FaixaMensagem::InserirGrafico("pizza".into()), desenho: Desenho::Pizza },
-        Opcao { rotulo: "Rosca", msg: FaixaMensagem::InserirGrafico("rosca".into()), desenho: Desenho::Rosca },
+        Opcao { rotulo: tr("Colunas"), msg: FaixaMensagem::InserirGrafico("colunas".into()), desenho: Desenho::Colunas },
+        Opcao { rotulo: tr("Barras"), msg: FaixaMensagem::InserirGrafico("barras".into()), desenho: Desenho::Barras },
+        Opcao { rotulo: tr("Linhas"), msg: FaixaMensagem::InserirGrafico("linhas".into()), desenho: Desenho::Linhas },
+        Opcao { rotulo: tr("Área"), msg: FaixaMensagem::InserirGrafico("area".into()), desenho: Desenho::Area },
+        Opcao { rotulo: tr("Pizza"), msg: FaixaMensagem::InserirGrafico("pizza".into()), desenho: Desenho::Pizza },
+        Opcao { rotulo: tr("Rosca"), msg: FaixaMensagem::InserirGrafico("rosca".into()), desenho: Desenho::Rosca },
     ]
 }
 
@@ -344,16 +345,16 @@ fn galeria_icones<'a>(busca: &str, trocar: bool) -> Element<'a, FaixaMensagem> {
         grade = grade.push(linha);
     }
     let resumo = if busca.trim().is_empty() {
-        format!("Mais usados — busque entre {} ícones", featherslide_core::icones::todos().len())
+        crate::localidade::trf("Mais usados — busque entre {} ícones", &[&(featherslide_core::icones::todos().len())])
     } else if achados.is_empty() {
-        "Nenhum ícone encontrado. Tente outra palavra (ex.: casa, seta, gráfico, user, chart).".to_string()
+        tr("Nenhum ícone encontrado. Tente outra palavra (ex.: casa, seta, gráfico, user, chart).").to_string()
     } else if achados.len() == LIMITE_ICONES {
-        format!("{LIMITE_ICONES}+ resultados — refine a busca")
+        crate::localidade::trf("{}+ resultados — refine a busca", &[&LIMITE_ICONES])
     } else {
-        format!("{} resultado(s)", achados.len())
+        crate::localidade::trf("{} resultado(s)", &[&achados.len()])
     };
     column![
-        pelicano::text_input("Buscar ícone… (casa, seta, relógio, chart)", busca.to_string())
+        pelicano::text_input(tr("Buscar ícone… (casa, seta, relógio, chart)"), busca.to_string())
             .id(ID_BUSCA_ICONES)
             .on_input(FaixaMensagem::BuscaIcones)
             .size(13)
@@ -389,7 +390,7 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, qual: Figuras, busca_icones: &s
     let fundo = mouse_area(Space::new(Length::FILL, Length::FILL)).on_press(Mensagem::Faixa(FaixaMensagem::FecharFiguras));
     if matches!(qual, Figuras::Icones | Figuras::TrocarIcone) {
         let (esquerda, topo) = crate::medido::ancora("icones", 400.0, largura_janela, (250.0, 128.0));
-        let painel = container(column![text("Ícones").size(12).color(COR_TEXTO_MUTED()), galeria_icones(busca_icones, qual == Figuras::TrocarIcone)].spacing(8))
+        let painel = container(column![text(tr("Ícones")).size(12).color(COR_TEXTO_MUTED()), galeria_icones(busca_icones, qual == Figuras::TrocarIcone)].spacing(8))
             .width(Length::Fixed(400.0))
             .padding(12)
             .style(|_| Style {
@@ -401,10 +402,10 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, qual: Figuras, busca_icones: &s
         return pelicano::stack![base, fundo, sobreposto].into();
     }
     let (titulo, opcoes, nome, padrao) = match qual {
-        Figuras::Formas => ("Formas", formas(), "formas", 250.0),
-        Figuras::Graficos => ("Gráfico", graficos(), "grafico", 330.0),
-        Figuras::Diagramas => ("Diagramas · categorias", diagramas(), "diagramas", 435.0),
-        Figuras::Recorte => ("Cortar como figura", recorte(), "recorte_figura", 330.0),
+        Figuras::Formas => (tr("Formas"), formas(), "formas", 250.0),
+        Figuras::Graficos => (tr("Gráfico"), graficos(), "grafico", 330.0),
+        Figuras::Diagramas => (tr("Diagramas · categorias"), diagramas(), "diagramas", 435.0),
+        Figuras::Recorte => (tr("Cortar como figura"), recorte(), "recorte_figura", 330.0),
         Figuras::Icones | Figuras::TrocarIcone => unreachable!("tratado acima"),
     };
     let (esquerda, topo) = crate::medido::ancora(nome, 440.0, largura_janela, (padrao, 128.0));
@@ -414,10 +415,10 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, qual: Figuras, busca_icones: &s
     let mut categoria = "";
     for o in opcoes {
         let nova = match &o.msg {
-            FaixaMensagem::InserirGaleria(id) => featherslide_core::outras_galerias::FORMAS.iter().find(|(_,i,_)|i==id).map(|(g,_,_)|*g).unwrap_or("Outras formas"),
-            FaixaMensagem::InserirConector(_) => "Conectores — clique na origem e no destino",
-            FaixaMensagem::DesenhoLivre => "Formas livres — arraste no palco",
-            _ => "Formas básicas",
+            FaixaMensagem::InserirGaleria(id) => featherslide_core::outras_galerias::FORMAS.iter().find(|(_,i,_)|i==id).map(|(g,_,_)|*g).unwrap_or(tr("Outras formas")),
+            FaixaMensagem::InserirConector(_) => tr("Conectores — clique na origem e no destino"),
+            FaixaMensagem::DesenhoLivre => tr("Formas livres — arraste no palco"),
+            _ => tr("Formas básicas"),
         };
         if qual==Figuras::Formas && nova!=categoria {
             if n%4!=0 {grade=grade.push(std::mem::replace(&mut atual,row![].spacing(4)));}

@@ -1,31 +1,22 @@
 //! A Ajuda (F1): "Como usar" e "Atalhos", com busca e navegação anterior/próximo. Os textos
-//! vêm do recurso de idioma nativo (`dados/pt-BR.json`).
+//! vêm de `dados/pt-BR.json` e passam pelo tradutor da interface (`localidade::tr`).
 
 use std::sync::OnceLock;
+use crate::localidade::{self, tr};
 
 pub use feather_ui::ajuda::Evento as Msg;
 use feather_ui::ajuda::{Catalogo, Linha, Secao, Topico};
 use pelicano::Element;
 use serde_json::Value;
 
-static IDIOMA: OnceLock<Value> = OnceLock::new();
-
 fn raiz() -> &'static Value {
-    IDIOMA.get_or_init(|| {
-        serde_json::from_str(include_str!("../dados/pt-BR.json")).unwrap_or(Value::Null)
-    })
+    static PT: OnceLock<Value> = OnceLock::new();
+    PT.get_or_init(|| serde_json::from_str(include_str!("../dados/pt-BR.json")).unwrap_or(Value::Null))
 }
 
-/// O texto em `caminho` (`ajuda.rotulos.titulo`), ou o próprio caminho se não existir.
+/// O texto em `caminho` (`ajuda.rotulos.titulo`) no idioma da interface, ou o próprio caminho.
 pub fn t(caminho: &str) -> String {
-    let mut v = raiz();
-    for parte in caminho.split('.') {
-        match v.get(parte) {
-            Some(x) => v = x,
-            None => return caminho.to_string(),
-        }
-    }
-    v.as_str().unwrap_or(caminho).to_string()
+    localidade::pt_em(caminho).map_or(caminho, tr).to_string()
 }
 
 const TOPICOS: [&str; 8] = [
@@ -96,16 +87,17 @@ fn corpo_do_topico(id: &str) -> Vec<String> {
         .as_array()
         .map(|a| {
             a.iter()
-                .filter_map(|x| x.as_str().map(String::from))
+                .filter_map(|x| x.as_str().map(|l| tr(l).to_string()))
                 .collect()
         })
         .unwrap_or_default()
 }
 
-/// O mesmo componente visual do F1 do FeatherSheet, com conteúdo do Slide.
+/// O mesmo componente visual do F1 do FeatherSheet, com conteúdo do Slide (um por idioma).
 pub fn modelo() -> &'static Catalogo {
-    static CATALOGO: OnceLock<Catalogo> = OnceLock::new();
-    CATALOGO.get_or_init(|| {
+    static CATALOGOS: [OnceLock<Catalogo>; 3] = [OnceLock::new(), OnceLock::new(), OnceLock::new()];
+    let i = localidade::IDIOMAS.iter().position(|(c, _)| *c == localidade::atual()).unwrap_or(0);
+    CATALOGOS[i].get_or_init(|| {
         let uso = TOPICOS
             .iter()
             .map(|id| Topico {
@@ -129,7 +121,8 @@ pub fn modelo() -> &'static Catalogo {
                     .iter()
                     .map(|(id, tecla)| Linha::Atalho {
                         descricao: t(&format!("ajuda.teclas.{id}")),
-                        tecla: (*tecla).into(),
+                        // Só as teclas descritas em palavras ("Setas do teclado") se traduzem; "Ctrl+Z" fica.
+                        tecla: if tecla.to_lowercase().contains("seta") { tr(tecla) } else { tecla }.into(),
                     })
                     .collect(),
             })

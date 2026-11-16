@@ -1,5 +1,6 @@
 //! A estrutura de tópicos (Exibir): a apresentação inteira como texto, para escrever a fala
 //! antes do visual. O motor (`Sessao::topicos`, `topicos_aplicar`) faz a conta; aqui só o painel.
+use crate::localidade::tr;
 use pelicano::column;
 use pelicano::*;
 
@@ -15,11 +16,11 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, estado: &'a Estado, largura_jan
     let fundo = mouse_area(Space::new(Length::FILL, Length::FILL)).on_press(Mensagem::TopicosFechar);
     let painel = container(column![
         row![
-            text("Estrutura de tópicos").size(18).width(Length::FILL),
-            button(text("Fechar").size(12)).on_press(Mensagem::TopicosFechar).style(estilo_botao_secundario),
+            text(tr("Estrutura de tópicos")).size(18).width(Length::FILL),
+            button(text(tr("Fechar")).size(12)).on_press(Mensagem::TopicosFechar).style(estilo_botao_secundario),
         ]
         .align(Align::Center),
-        text("Um título por linha; o corpo do slide vai embaixo, com Tab no começo. Títulos a mais viram slides novos; nenhum slide é apagado. Ctrl+Z desfaz.")
+        text(tr("Um título por linha; o corpo do slide vai embaixo, com Tab no começo. Títulos a mais viram slides novos; nenhum slide é apagado. Ctrl+Z desfaz."))
             .size(11.5)
             .color(COR_TEXTO_MUTED()),
         container(text_editor(&estado.texto).size(13.0).wrap(true).id("featherslide.topicos"))
@@ -27,7 +28,7 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, estado: &'a Estado, largura_jan
             .width(Length::FILL),
         row![
             Space::new(Length::FILL, Length::Fixed(1.0)),
-            button(text("Aplicar aos slides").size(12)).style(estilo_botao_primario).padding([7, 12]).on_press(Mensagem::TopicosAplicar),
+            button(text(tr("Aplicar aos slides")).size(12)).style(estilo_botao_primario).padding([7, 12]).on_press(Mensagem::TopicosAplicar),
         ],
     ]
     .spacing(12))

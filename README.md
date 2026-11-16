@@ -20,10 +20,19 @@ format and runs entirely on your machine.
 | **Charts and tables** | charts through [`feather-charts`](https://github.com/feather-works/feather-charts), tables with editable structure, chart export as SVG |
 | **Files** | opens `.pptx` and `.odp` at their own slide size and with their embedded fonts; saves `.fsdz`; exports `.pptx` (slides, text, shapes, photos, tables, native charts, notes), PDF and image. Autosave and recovery points are written off the window thread |
 | **Spelling** | Hunspell dictionaries read from disk, all local |
+| **Languages** | interface, messages and F1 help in Portuguese (Brazil), English and Spanish; follows the system language or the choice in Settings ▸ Appearance |
 | **Local AI** | MCP server (`featherslide-mcp`) so an AI can view, edit and create presentations, over stdio or live in the open app |
 
 Full inventory: [`docs/INVENTARIO-FUNCIONALIDADES.md`](docs/INVENTARIO-FUNCIONALIDADES.md) ·
 verification evidence: [`docs/VERIFICACAO-FUNCIONALIDADES.md`](docs/VERIFICACAO-FUNCIONALIDADES.md).
+
+## Next version
+
+On `main`, not released yet:
+
+- **Spanish and English interface.** Menus, ribbon, messages, dialogs and the F1 help in
+  Portuguese, English and Spanish. Settings ▸ Appearance ▸ Interface language switches right
+  away; with nothing chosen, the app follows the system language.
 
 ## The `.fsdz` format
 

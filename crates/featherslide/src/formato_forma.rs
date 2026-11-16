@@ -1,4 +1,5 @@
 //! Rascunho da aparência: aplicar cria uma única entrada no histórico.
+use crate::localidade::tr;
 use crate::tema::*;
 use featherslide_core::estilo_forma::{Aparencia, Gradiente, PontoCor, TipoGradiente};
 use featherslide_core::modelo::{Elemento, Sombra};
@@ -447,9 +448,9 @@ fn numero(v: &str) -> Result<f32, String> {
         .trim()
         .replace(',', ".")
         .parse()
-        .map_err(|_| "Preencha os valores numéricos corretamente.".to_string())?;
+        .map_err(|_| tr("Preencha os valores numéricos corretamente.").to_string())?;
     if !n.is_finite() {
-        return Err("Use valores numéricos finitos.".into());
+        return Err(tr("Use valores numéricos finitos.").into());
     }
     Ok(n)
 }
@@ -529,9 +530,9 @@ fn seletor_cor<'a>(rotulo: &str, alvo: Alvo, e: &'a Estado) -> Element<'a, Msg> 
         text(rotulo.to_owned()).size(12).width(Length::FILL),
         feather_ui::formatacao::botao_cor(
             if e.cor(alvo).is_empty() {
-                "Sem cor"
+                tr("Sem cor")
             } else {
-                "Cor"
+                tr("Cor")
             },
             e.cor(alvo),
             Some(Msg::AbrirCor(alvo)),
@@ -544,7 +545,7 @@ fn seletor_cor<'a>(rotulo: &str, alvo: Alvo, e: &'a Estado) -> Element<'a, Msg> 
     if e.cor_aberta == Some(alvo) {
         c = c.push(
             feather_ui::seletor_cor::painel_embutido(
-                "Escolher cor",
+                tr("Escolher cor"),
                 e.cor(alvo),
                 e.hsva,
                 &e.texto_hex,
@@ -552,7 +553,7 @@ fn seletor_cor<'a>(rotulo: &str, alvo: Alvo, e: &'a Estado) -> Element<'a, Msg> 
             .map(Msg::Seletor),
         );
         c = c.push(
-            button(text("Concluir cor").size(11))
+            button(text(tr("Concluir cor")).size(11))
                 .padding([4, 8])
                 .style(estilo_botao_secundario)
                 .on_press(Msg::AbrirCor(alvo)),
@@ -574,13 +575,13 @@ fn preenchimento<'a>(e: &'a Estado) -> Element<'a, Msg> {
     let mut c = column![container(
         row![
             chip(
-                "Nenhum",
+                tr("Nenhum"),
                 Msg::Tipo("Sem preenchimento".into()),
                 e.tipo == "Sem preenchimento"
             ),
-            chip("Sólido", Msg::Tipo("Sólido".into()), e.tipo == "Sólido"),
+            chip(tr("Sólido"), Msg::Tipo("Sólido".into()), e.tipo == "Sólido"),
             chip(
-                "Gradiente",
+                tr("Gradiente"),
                 Msg::Tipo(if gradiente {
                     e.tipo.clone()
                 } else {
@@ -599,16 +600,16 @@ fn preenchimento<'a>(e: &'a Estado) -> Element<'a, Msg> {
     }),]
     .spacing(14);
     if e.tipo == "Sólido" {
-        c = c.push(seletor_cor("Preenchimento", Alvo::Preenchimento, e));
+        c = c.push(seletor_cor(tr("Preenchimento"), Alvo::Preenchimento, e));
     }
     if gradiente {
         c = c.push(
             row![
-                text("Tipo").size(12).width(Length::FILL),
+                text(tr("Tipo")).size(12).width(Length::FILL),
                 pick_list(
-                    &GRADIENTES,
-                    Some(e.tipo.as_str()),
-                    |v: &str| Msg::Tipo(v.to_string())
+                    crate::localidade::lista(&GRADIENTES),
+                    Some(tr(e.tipo.as_str())),
+                    |v: &str| Msg::Tipo(crate::localidade::de_volta(&GRADIENTES, v).to_string())
                 )
                 .size(12)
                 .padding([5, 9])
@@ -618,7 +619,7 @@ fn preenchimento<'a>(e: &'a Estado) -> Element<'a, Msg> {
             .align(Align::Center),
         );
         if e.tipo == "Linear" {
-            c = c.push(ajuste("Ângulo", "angulo", &e.angulo, 0.0, 360.0, 1.0, "°"));
+            c = c.push(ajuste(tr("Ângulo"), "angulo", &e.angulo, 0.0, 360.0, 1.0, "°"));
             c = c.push(
                 row([0, 45, 90, 135, 180].into_iter().map(|a| {
                     chip(
@@ -632,7 +633,7 @@ fn preenchimento<'a>(e: &'a Estado) -> Element<'a, Msg> {
         }
         c = c.push(linha()).push(
             row![
-                text("Pontos do gradiente").size(12).width(Length::FILL),
+                text(tr("Pontos do gradiente")).size(12).width(Length::FILL),
                 button(feather_ui::icones::icone("plus", 14.0))
                     .padding(5)
                     .style(estilo_botao_secundario)
@@ -645,7 +646,7 @@ fn preenchimento<'a>(e: &'a Estado) -> Element<'a, Msg> {
             .spacing(5)
             .align(Align::Center),
         );
-        c = c.push(text("Combinações").size(11).color(COR_TEXTO_MUTED()));
+        c = c.push(text(tr("Combinações")).size(11).color(COR_TEXTO_MUTED()));
         c=c.push(row((0..4).map(|i|{
             let cores=match i{0=>("#4285f4","#34a853"),1=>("#7d5cc6","#ec4899"),2=>("#f59e0b","#ef4444"),_=>("#0f172a","#94a3b8")};
             button(svg(Svg::from_bytes(format!("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"52\" height=\"24\"><defs><linearGradient id=\"g\"><stop stop-color=\"{}\"/><stop offset=\"1\" stop-color=\"{}\"/></linearGradient></defs><rect width=\"52\" height=\"24\" rx=\"4\" fill=\"url(#g)\"/></svg>",cores.0,cores.1).as_bytes()).expect("SVG do degradê é gerado aqui")).width(52).height(24)).padding(3).style(estilo_botao_pequeno(false)).on_press(Msg::Preset(i)).into()
@@ -687,7 +688,7 @@ fn preenchimento<'a>(e: &'a Estado) -> Element<'a, Msg> {
         c = c.push(pontos);
         if let Some((_, pos)) = e.pontos.get(e.ponto_atual) {
             c = c.push(seletor_cor(
-                &format!("Cor do ponto {}", e.ponto_atual + 1),
+                &crate::localidade::trf("Cor do ponto {}", &[&(e.ponto_atual + 1)]),
                 Alvo::Ponto(e.ponto_atual),
                 e,
             ));
@@ -695,7 +696,7 @@ fn preenchimento<'a>(e: &'a Estado) -> Element<'a, Msg> {
             c = c.push(
                 column![
                     row![
-                        text("Posição").size(12).width(Length::FILL),
+                        text(tr("Posição")).size(12).width(Length::FILL),
                         text_input("", pos)
                             .on_input(move |v| Msg::Posicao(i, v))
                             .size(12)
@@ -721,7 +722,7 @@ fn preenchimento<'a>(e: &'a Estado) -> Element<'a, Msg> {
             button(
                 row![
                     feather_ui::icones::icone("arrows-horizontal", 14.0),
-                    text("Inverter cores").size(11)
+                    text(tr("Inverter cores")).size(11)
                 ]
                 .spacing(6),
             )
@@ -732,7 +733,7 @@ fn preenchimento<'a>(e: &'a Estado) -> Element<'a, Msg> {
     }
     if e.tipo != "Sem preenchimento" {
         c = c.push(ajuste(
-            "Transparência",
+            tr("Transparência"),
             "transparencia",
             &e.transparencia,
             0.0,
@@ -745,14 +746,14 @@ fn preenchimento<'a>(e: &'a Estado) -> Element<'a, Msg> {
 }
 fn contorno<'a>(e: &'a Estado) -> Element<'a, Msg> {
     let ligado = !e.contorno.is_empty();
-    let mut c = column![checkbox("Mostrar contorno", ligado)
+    let mut c = column![checkbox(tr("Mostrar contorno"), ligado)
         .color(COR_AZUL_ACENTO())
         .on_toggle(Msg::Contorno)
         .size(12)]
     .spacing(14);
     if ligado {
-        c = c.push(seletor_cor("Cor", Alvo::Contorno, e)).push(ajuste(
-            "Espessura",
+        c = c.push(seletor_cor(tr("Cor"), Alvo::Contorno, e)).push(ajuste(
+            tr("Espessura"),
             "espessura",
             &e.espessura,
             0.0,
@@ -765,7 +766,7 @@ fn contorno<'a>(e: &'a Estado) -> Element<'a, Msg> {
 }
 fn sombra<'a>(e: &'a Estado) -> Element<'a, Msg> {
     let ligado = !e.sombra.is_empty();
-    let mut c = column![checkbox("Ativar sombra", ligado)
+    let mut c = column![checkbox(tr("Ativar sombra"), ligado)
         .color(COR_AZUL_ACENTO())
         .on_toggle(Msg::Sombra)
         .size(12)]
@@ -774,15 +775,15 @@ fn sombra<'a>(e: &'a Estado) -> Element<'a, Msg> {
         c = c
             .push(
                 row![
-                    chip("Suave", Msg::SombraPreset(0), false),
-                    chip("Diagonal", Msg::SombraPreset(1), false),
-                    chip("Abaixo", Msg::SombraPreset(2), false)
+                    chip(tr("Suave"), Msg::SombraPreset(0), false),
+                    chip(tr("Diagonal"), Msg::SombraPreset(1), false),
+                    chip(tr("Abaixo"), Msg::SombraPreset(2), false)
                 ]
                 .spacing(3),
             )
-            .push(seletor_cor("Cor", Alvo::Sombra, e))
+            .push(seletor_cor(tr("Cor"), Alvo::Sombra, e))
             .push(ajuste(
-                "Desfoque",
+                tr("Desfoque"),
                 "desfoque",
                 &e.desfoque,
                 0.0,
@@ -793,7 +794,7 @@ fn sombra<'a>(e: &'a Estado) -> Element<'a, Msg> {
             .push(
                 column![
                     row![
-                        text("Direção").size(12).width(Length::FILL),
+                        text(tr("Direção")).size(12).width(Length::FILL),
                         text(format!("{:.0}°", e.direcao_sombra())).size(12)
                     ],
                     slider(0.0..=360.0, e.direcao_sombra(), Msg::SombraDirecao)
@@ -805,7 +806,7 @@ fn sombra<'a>(e: &'a Estado) -> Element<'a, Msg> {
             .push(
                 column![
                     row![
-                        text("Distância").size(12).width(Length::FILL),
+                        text(tr("Distância")).size(12).width(Length::FILL),
                         text(format!("{:.1} pt", e.distancia_sombra())).size(12)
                     ],
                     slider(
@@ -821,7 +822,7 @@ fn sombra<'a>(e: &'a Estado) -> Element<'a, Msg> {
             .push(
                 column![
                     row![
-                        text("Transparência").size(12).width(Length::FILL),
+                        text(tr("Transparência")).size(12).width(Length::FILL),
                         text(format!(
                             "{:.0}%",
                             100.0
@@ -842,8 +843,8 @@ fn sombra<'a>(e: &'a Estado) -> Element<'a, Msg> {
                 ]
                 .spacing(6),
             )
-            .push(campo("Horizontal", "dx", &e.dx, "pt"))
-            .push(campo("Vertical", "dy", &e.dy, "pt"));
+            .push(campo(tr("Horizontal"), "dx", &e.dx, "pt"))
+            .push(campo(tr("Vertical"), "dy", &e.dy, "pt"));
     }
     c.into()
 }
@@ -851,7 +852,7 @@ fn sombra<'a>(e: &'a Estado) -> Element<'a, Msg> {
 pub fn view<'a>(e: &'a Estado) -> Element<'a, Msg> {
     let cabecalho = container(
         row![
-            text("Formato da forma").size(15),
+            text(tr("Formato da forma")).size(15),
             horizontal_space(),
             button(feather_ui::icones::icone("x", 14.0))
                 .padding(5)
@@ -863,9 +864,9 @@ pub fn view<'a>(e: &'a Estado) -> Element<'a, Msg> {
     .padding([14, 16]);
     let mut corpo = column![].spacing(0);
     for (secao, titulo, icone) in [
-        (Secao::Preenchimento, "Preenchimento", "bucket"),
-        (Secao::Contorno, "Contorno", "square"),
-        (Secao::Sombra, "Sombra", "window"),
+        (Secao::Preenchimento, tr("Preenchimento"), "bucket"),
+        (Secao::Contorno, tr("Contorno"), "square"),
+        (Secao::Sombra, tr("Sombra"), "window"),
     ] {
         corpo = corpo.push(titulo_secao(titulo, icone, secao, e));
         if e.aberta == secao && !e.recolhida {
@@ -892,12 +893,12 @@ pub fn view<'a>(e: &'a Estado) -> Element<'a, Msg> {
     }
     rodape = rodape.push(
         row![
-            button(text("Cancelar").size(12))
+            button(text(tr("Cancelar")).size(12))
                 .padding([7, 12])
                 .style(estilo_botao_secundario)
                 .on_press(Msg::Fechar),
             horizontal_space(),
-            button(text("Aplicar").size(12))
+            button(text(tr("Aplicar")).size(12))
                 .padding([7, 18])
                 .style(estilo_botao_primario)
                 .on_press(Msg::Aplicar)

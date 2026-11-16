@@ -1,5 +1,5 @@
 //! Painel de rótulos ao lado do slide; aplicar registra uma única edição.
-use crate::{app::Mensagem, localidade::texto as tr, tema::*};
+use crate::{app::Mensagem, localidade::{texto, tr}, tema::*};
 use featherslide_core::editor_diagrama::{Arranjo, EdicaoDiagrama};
 use pelicano::column;
 use pelicano::*;
@@ -24,13 +24,13 @@ pub struct Estado {
 pub fn view(e: &Estado) -> Element<'_, Mensagem> {
     let mut campos = column![].spacing(3);
     for (i, no) in e.edicao.nos.iter().enumerate() {
-        let campo = text_input(tr("diagrama_rotulo"), &no.texto)
+        let campo = text_input(texto("diagrama_rotulo"), &no.texto)
             .id(format!("rotulo_diagrama_{i}"))
             .on_input(move |s| Msg::Texto(i, s))
             .padding([7, 8])
             .size(13);
         let mut acoes = row![
-            button(text(tr("diagrama_irmao")).size(10))
+            button(text(texto("diagrama_irmao")).size(10))
                 .on_press(Msg::Adicionar(Some(i), false))
                 .style(estilo_botao_secundario),
             button(crate::icones::icone_subir(13.0, "#5f6368"))
@@ -39,14 +39,14 @@ pub fn view(e: &Estado) -> Element<'_, Mensagem> {
             button(crate::icones::icone_descer(13.0, "#5f6368"))
                 .on_press(Msg::Mover(i, 1))
                 .style(estilo_botao_secundario),
-            button(text(tr("diagrama_excluir")).size(10))
+            button(text(texto("diagrama_excluir")).size(10))
                 .on_press_maybe((e.edicao.nos.len() > 1).then_some(Msg::Excluir(i)))
                 .style(estilo_botao_secundario),
         ]
         .spacing(3);
         if e.edicao.arranjo == Arranjo::Organograma {
             acoes = acoes.push(
-                button(text(tr("diagrama_filho")).size(10))
+                button(text(texto("diagrama_filho")).size(10))
                     .on_press(Msg::Adicionar(Some(i), true))
                     .style(estilo_botao_secundario),
             );
@@ -55,12 +55,12 @@ pub fn view(e: &Estado) -> Element<'_, Mensagem> {
         if e.edicao.arranjo == Arranjo::Organograma {
             ajustes = ajustes
                 .push(
-                    button(text(tr("diagrama_promover")).size(10))
+                    button(text(texto("diagrama_promover")).size(10))
                         .on_press(Msg::Nivel(i, false))
                         .style(estilo_botao_secundario),
                 )
                 .push(
-                    button(text(tr("diagrama_rebaixar")).size(10))
+                    button(text(texto("diagrama_rebaixar")).size(10))
                         .on_press(Msg::Nivel(i, true))
                         .style(estilo_botao_secundario),
                 );
@@ -113,19 +113,19 @@ pub fn view(e: &Estado) -> Element<'_, Mensagem> {
         layouts = layouts.push(linha);
     }
     let conteudo = column![
-        text(tr("diagrama_titulo")).size(17),
-        text(tr("diagrama_dica")).size(12),
+        text(texto("diagrama_titulo")).size(17),
+        text(texto("diagrama_dica")).size(12),
         layouts,
-        button(text(tr("diagrama_adicionar")).size(12))
+        button(text(texto("diagrama_adicionar")).size(12))
             .style(estilo_botao_secundario)
             .on_press(Msg::Adicionar(None, false)),
         scrollable(campos).scrollbar_width(10).scrollbar_track(COR_TRILHO_ROLAGEM()).scrollbar_color(COR_POLEGAR_ROLAGEM()).height(Length::FILL),
         text(&e.aviso).size(12),
         row![
-            button(text(tr("diagrama_cancelar")).size(12))
+            button(text(texto("diagrama_cancelar")).size(12))
                 .style(estilo_botao_secundario)
                 .on_press(Msg::Fechar),
-            button(text(tr("diagrama_aplicar")).size(12))
+            button(text(texto("diagrama_aplicar")).size(12))
                 .style(estilo_botao_primario)
                 .on_press(Msg::Aplicar),
         ]
@@ -164,7 +164,7 @@ mod tests {
             .iter()
             .position(|n| Some(n.id) == e.selecionado)
             .unwrap();
-        assert_eq!(e.edicao.nos[i].texto, tr("diagrama_novo"));
+        assert_eq!(e.edicao.nos[i].texto, texto("diagrama_novo"));
         let _ = app.update(Mensagem::EditorDiagrama(Msg::Excluir(i)));
         let e = app.editor_diagrama.as_ref().unwrap();
         assert!(e.edicao.nos.iter().any(|n| Some(n.id) == e.selecionado));
@@ -194,7 +194,7 @@ mod tests {
         );
         let _ = app.update(Mensagem::EditorDiagrama(Msg::Adicionar(Some(4), true)));
         let e = &app.editor_diagrama.as_ref().unwrap().edicao;
-        assert_eq!(e.nos[5].texto, tr("diagrama_novo"));
+        assert_eq!(e.nos[5].texto, texto("diagrama_novo"));
         assert_eq!(e.nos[5].linha, 2);
         let _ = app.update(Mensagem::EditorDiagrama(Msg::Texto(5, "Compras".into())));
         let _ = app.update(Mensagem::EditorDiagrama(Msg::Aplicar));

@@ -1,5 +1,6 @@
 //! A galeria de layouts (Novo slide e Layout): cartões com o esboço de cada um, como no PowerPoint.
 
+use crate::localidade::tr;
 use featherslide_core::layouts::LAYOUTS;
 use featherslide_core::quadro::Quadro;
 use pelicano::{button, column, container, mouse_area, program, row, text, Space};
@@ -32,7 +33,7 @@ fn cartao<'a>(layout: &'static str, nome: &'static str, quadro: Quadro) -> Eleme
         column![
             Element::from(program(Miniatura::nova(Some(quadro), None, false)).width(Length::Fixed(132.0)).height(Length::Fixed(74.0)))
                 .map(|_: MiniaturaMensagem| FaixaMensagem::FecharGaleria),
-            text(nome).size(12),
+            text(tr(nome)).size(12),
         ]
         .spacing(6)
         .align(Align::Center),
@@ -58,7 +59,7 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, novo: bool, sessao: &feathersli
         }
         grade = grade.push(linha);
     }
-    let titulo = if novo { "Novo slide" } else { "Layout do slide" };
+    let titulo = if novo { tr("Novo slide") } else { tr("Layout do slide") };
     let painel = container(column![text(titulo).size(12).color(COR_TEXTO_MUTED()), grade].spacing(8))
         .padding(12)
         .style(|_| Style {

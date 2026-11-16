@@ -130,7 +130,7 @@ impl FeatherSlideApp {
                 self.sessao.alternar_selecao(*id);
             }
         }
-        self.status = format!("IA mudou {tocados} slide(s); {} elemento(s) marcados neste slide. Ctrl+Z desfaz o trabalho da IA de uma vez.", mudados.len());
+        self.status = crate::localidade::trf("IA mudou {} slide(s); {} elemento(s) marcados neste slide. Ctrl+Z desfaz o trabalho da IA de uma vez.", &[&tocados, &mudados.len()]);
     }
 }
 

@@ -1,4 +1,5 @@
 //! Painel de configuração do slide, com rascunhos locais.
+use crate::localidade::tr;
 use crate::app::Mensagem;
 use featherslide_core::configuracao_slide::{Ajuste, Fundo};
 use featherslide_core::sessao::Sessao;
@@ -37,7 +38,7 @@ impl Estado {
         Self {
             largura: w.to_string(),
             altura: h.to_string(),
-            ajuste: "Ajustar".into(),
+            ajuste: tr("Ajustar").into(),
             cor: if slide.fundo.is_empty() {
                 "#ffffff".into()
             } else {
@@ -92,7 +93,7 @@ fn numero(t: &str) -> Result<f32, String> {
     t.trim()
         .replace(',', ".")
         .parse()
-        .map_err(|_| "Digite um número válido.".into())
+        .map_err(|_| tr("Digite um número válido.").into())
 }
 fn enviar(m: Msg) -> Mensagem {
     Mensagem::ConfiguracaoSlide(m)
@@ -111,52 +112,52 @@ fn corpo(e: &Estado) -> Element<'_, Mensagem> {
     const CODIGOS: [&str; 5] = ["solido", "imagem", "gradiente", "textura", "padrao"];
     let selecionado = TIPOS[CODIGOS.iter().position(|t| *t == e.fundo.tipo).unwrap_or(0)];
     column![
-        text("Configuração do slide").size(22),
-        text("Tamanho em pontos (72 pt = 1 polegada)"),
+        text(tr("Configuração do slide")).size(22),
+        text(tr("Tamanho em pontos (72 pt = 1 polegada)")),
         row![
-            campo("Largura", "largura", &e.largura),
-            campo("Altura", "altura", &e.altura)
+            campo(tr("Largura"), "largura", &e.largura),
+            campo(tr("Altura"), "altura", &e.altura)
         ]
         .spacing(12),
         row![
-            button("Paisagem").on_press(enviar(Msg::Retrato(false))),
-            button("Retrato").on_press(enviar(Msg::Retrato(true)))
+            button(tr("Paisagem")).on_press(enviar(Msg::Retrato(false))),
+            button(tr("Retrato")).on_press(enviar(Msg::Retrato(true)))
         ]
         .spacing(8),
-        text("Ao mudar o tamanho: Ajustar preserva proporções; Maximizar pode cortar conteúdo."),
+        text(tr("Ao mudar o tamanho: Ajustar preserva proporções; Maximizar pode cortar conteúdo.")),
         pick_list(
-            &AJUSTES,
-            Some(e.ajuste.as_str()),
-            |v: &str| enviar(Msg::Ajuste(v.to_string()))
+            crate::localidade::lista(&AJUSTES),
+            Some(tr(e.ajuste.as_str())),
+            |v: &str| enviar(Msg::Ajuste(crate::localidade::de_volta(&AJUSTES, v).to_string()))
         ),
-        button("Aplicar tamanho à apresentação").on_press(enviar(Msg::AplicarTamanho)),
-        text("Fundo").size(18),
+        button(tr("Aplicar tamanho à apresentação")).on_press(enviar(Msg::AplicarTamanho)),
+        text(tr("Fundo")).size(18),
         pick_list(
-            &TIPOS,
-            Some(selecionado),
+            crate::localidade::lista(&TIPOS),
+            Some(tr(selecionado)),
             |v: &str| enviar(Msg::Tipo(
-                CODIGOS[TIPOS.iter().position(|t| *t == v).unwrap_or(0)].to_string()
+                CODIGOS[TIPOS.iter().position(|t| *t == crate::localidade::de_volta(&TIPOS, v)).unwrap_or(0)].to_string()
             ))
         ),
         row![
-            campo("Cor #RRGGBB", "cor", &e.cor),
-            campo("Segunda cor #RRGGBB", "cor2", &e.fundo.cor2)
+            campo(tr("Cor #RRGGBB"), "cor", &e.cor),
+            campo(tr("Segunda cor #RRGGBB"), "cor2", &e.fundo.cor2)
         ]
         .spacing(12),
-        text("Gradiente horizontal • Textura pontilhada • Padrão xadrez"),
+        text(tr("Gradiente horizontal • Textura pontilhada • Padrão xadrez")),
         button(if e.fundo.imagem.is_empty() {
-            "Escolher imagem local…"
+            tr("Escolher imagem local…")
         } else {
-            "Substituir imagem local…"
+            tr("Substituir imagem local…")
         })
         .on_press(enviar(Msg::Imagem)),
-        campo("Opacidade do fundo (0–100%)", "opacidade", &e.opacidade),
-        checkbox("Ocultar elementos herdados do mestre/layout", e.mestre)
+        campo(tr("Opacidade do fundo (0–100%)"), "opacidade", &e.opacidade),
+        checkbox(tr("Ocultar elementos herdados do mestre/layout"), e.mestre)
             .on_toggle(|v| enviar(Msg::Mestre(v))),
-        checkbox("Aplicar fundo a todos os slides", e.todos).on_toggle(|v| enviar(Msg::Todos(v))),
+        checkbox(tr("Aplicar fundo a todos os slides"), e.todos).on_toggle(|v| enviar(Msg::Todos(v))),
         row![
-            button("Aplicar fundo").on_press(enviar(Msg::AplicarFundo)),
-            button("Fechar").on_press(enviar(Msg::Fechar))
+            button(tr("Aplicar fundo")).on_press(enviar(Msg::AplicarFundo)),
+            button(tr("Fechar")).on_press(enviar(Msg::Fechar))
         ]
         .spacing(8),
         text(&e.aviso),

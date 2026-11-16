@@ -1,4 +1,5 @@
 //! Gestão de apresentações abertas, rascunhos, histórico e locais do usuário.
+use crate::localidade::tr;
 use crate::app::{FeatherSlideApp, Mensagem};
 use crate::registro;
 use crate::icones::*;
@@ -14,10 +15,10 @@ use std::time::Instant;
 /// Diálogo "Abrir" de apresentação: "Todas as apresentações" e um filtro por formato lido.
 pub(crate) fn dialogo_abrir() -> rfd::AsyncFileDialog {
     rfd::AsyncFileDialog::new()
-        .add_filter("Todas as apresentações", &["fsdz", "pptx", "odp"])
-        .add_filter("FeatherSlide (*.fsdz)", &["fsdz"])
-        .add_filter("PowerPoint (*.pptx)", &["pptx"])
-        .add_filter("OpenDocument (*.odp)", &["odp"])
+        .add_filter(tr("Todas as apresentações"), &["fsdz", "pptx", "odp"])
+        .add_filter(tr("FeatherSlide (*.fsdz)"), &["fsdz"])
+        .add_filter(tr("PowerPoint (*.pptx)"), &["pptx"])
+        .add_filter(tr("OpenDocument (*.odp)"), &["odp"])
 }
 
 /// O `.fsdz` que guarda um `.pptx`/`.odp` editado, ao lado dele: se já existe um `.fsdz` com
@@ -83,7 +84,7 @@ fn gravar_pedido(ap: &featherslide_core::modelo::Apresentacao, destino: &Path, n
         if no_arquivo {
             return salvar(ap, destino).map(|_| ());
         }
-        let pasta = destino.parent().ok_or_else(|| "Pasta do rascunho inválida".to_string())?;
+        let pasta = destino.parent().ok_or_else(|| tr("Pasta do rascunho inválida").to_string())?;
         std::fs::create_dir_all(pasta).map_err(|e| e.to_string())?;
         fsdz::salvar(ap, destino).map(|_| ())
     })
@@ -186,7 +187,7 @@ pub fn checkpoint(sessao: &Sessao, path: &Path) -> Result<(), String> {
     if !sessao.estado().sujo {
         return Ok(());
     }
-    std::fs::create_dir_all(path.parent().ok_or("Pasta do rascunho inválida")?)
+    std::fs::create_dir_all(path.parent().ok_or(tr("Pasta do rascunho inválida"))?)
         .map_err(|e| e.to_string())?;
     gravar_em_ordem(path, senha(), || fsdz::salvar(sessao.apresentacao(), path).map(|_| ()))
 }
@@ -297,9 +298,9 @@ impl FeatherSlideApp {
         self.aplicar_dicas();
         self.config.registrar_recente(&path);
         self.status = if self.arquivos.leitura {
-            "Apresentação aberta somente para leitura"
+            tr("Apresentação aberta somente para leitura")
         } else {
-            "Apresentação aberta"
+            tr("Apresentação aberta")
         }
         .into();
         Ok(())
@@ -381,7 +382,7 @@ impl FeatherSlideApp {
         let nome: String = g.destino.file_name().unwrap_or_default().to_string_lossy().into();
         let ativo = self.rascunho == g.rascunho;
         if let Err(e) = g.resultado {
-            self.status = format!("Não consegui salvar automaticamente {nome}: {e}");
+            self.status = crate::localidade::trf("Não consegui salvar automaticamente {}: {}", &[&nome, &e]);
             // Tenta de novo no próximo intervalo.
             if ativo {
                 self.auto_versao = None;
@@ -458,12 +459,12 @@ impl FeatherSlideApp {
                 let nome = ler(path)
                     .map(|ap| {
                         if ap.titulo.trim().is_empty() {
-                            format!("Apresentação · {} slides", ap.slides.len())
+                            crate::localidade::trf("Apresentação · {} slides", &[&(ap.slides.len())])
                         } else {
                             ap.titulo
                         }
                     })
-                    .unwrap_or_else(|_| "Rascunho recuperável".to_string());
+                    .unwrap_or_else(|_| tr("Rascunho recuperável").to_string());
                 (path.clone(), nome)
             })
             .collect();
@@ -489,7 +490,7 @@ impl FeatherSlideApp {
         } else {
             self.sessao = Sessao::default();
             self.caminho_arquivo = None;
-            self.nome_arquivo = "Apresentação sem título".into();
+            self.nome_arquivo = tr("Apresentação sem título").into();
             self.em_tela_inicio = true;
             self.pode_continuar = false;
             self.limpar_interface_documento();
@@ -536,7 +537,7 @@ impl FeatherSlideApp {
                 let _ = nova.slide_layout("em_branco");
                 self.trocar_sessao(nova);
                 self.caminho_arquivo = None;
-                self.nome_arquivo = "Apresentação em branco".into();
+                self.nome_arquivo = tr("Apresentação em branco").into();
                 self.arquivos.painel = false;
                 self.em_tela_inicio = false;
                 Ok(())
@@ -598,7 +599,7 @@ impl FeatherSlideApp {
                 match self
                     .caminho_arquivo
                     .clone()
-                    .ok_or("Salve a apresentação antes de reverter".to_string())
+                    .ok_or(tr("Salve a apresentação antes de reverter").to_string())
                     .and_then(|p| ler(&p))
                 {
                     Ok(ap) => {
@@ -610,7 +611,7 @@ impl FeatherSlideApp {
                         self.aplicar_dicas();
                         self.limpar_interface_documento();
                         self.auto_versao = None;
-                        self.status = "Versão salva restaurada; alterações anteriores preservadas no rascunho".into();
+                        self.status = tr("Versão salva restaurada; alterações anteriores preservadas no rascunho").into();
                         Ok(())
                     }
                     Err(e) => Err(e),
@@ -636,12 +637,12 @@ impl FeatherSlideApp {
             }
             Renomear => {
                 if self.arquivos.leitura {
-                    Err("Arquivo aberto somente para leitura".into())
+                    Err(tr("Arquivo aberto somente para leitura").into())
                 } else {
                     return Task::perform(
                         async {
                             rfd::AsyncFileDialog::new()
-                                .set_title("Renomear apresentação")
+                                .set_title(tr("Renomear apresentação"))
                                 .add_filter("FeatherSlide", &["fsdz"])
                                 .save_file()
                                 .await
@@ -704,11 +705,11 @@ impl FeatherSlideApp {
                         self.rascunho = p.clone();
                     }
                     self.caminho_arquivo = None;
-                    self.nome_arquivo = "Apresentação recuperada".into();
+                    self.nome_arquivo = tr("Apresentação recuperada").into();
                     self.sessao.marcar_alterado();
                     self.em_tela_inicio = false;
                     self.arquivos.painel = false;
-                    self.status = "Recuperada como nova apresentação; use Salvar como".into();
+                    self.status = tr("Recuperada como nova apresentação; use Salvar como").into();
                     Ok(())
                 }
                 Err(e) => Err(e),
@@ -717,7 +718,7 @@ impl FeatherSlideApp {
                 return Task::perform(
                     async {
                         crate::arquivos::dialogo_abrir()
-                            .set_title("Importar slides")
+                            .set_title(tr("Importar slides"))
                             .pick_file()
                             .await
                             .map(|f| f.path().to_path_buf())
@@ -736,21 +737,21 @@ impl FeatherSlideApp {
     }
     fn renomear_documento(&mut self, mut novo: PathBuf) -> Result<(), String> {
         if self.arquivos.leitura {
-            return Err("Arquivo aberto somente para leitura".into());
+            return Err(tr("Arquivo aberto somente para leitura").into());
         }
         let origem = self
             .caminho_arquivo
             .clone()
-            .ok_or("Salve a apresentação antes de renomear")?;
+            .ok_or(tr("Salve a apresentação antes de renomear"))?;
         novo.set_extension(origem.extension().unwrap_or_default());
         if novo.exists() {
-            return Err("O destino já existe; escolha outro nome".into());
+            return Err(tr("O destino já existe; escolha outro nome").into());
         }
         // Renomeação no mesmo diretório mantém arquivo e histórico juntos, sem cópia parcial.
         if origem.parent().map(|p| p.canonicalize().ok())
             != novo.parent().map(|p| p.canonicalize().ok())
         {
-            return Err("Escolha um nome na mesma pasta; use Salvar cópia para outra pasta".into());
+            return Err(tr("Escolha um nome na mesma pasta; use Salvar cópia para outra pasta").into());
         }
         std::fs::rename(&origem, &novo).map_err(|e| e.to_string())?;
         if featherslide_io::documentos::pasta_historico(&origem).exists() {
@@ -770,23 +771,23 @@ impl FeatherSlideApp {
             .unwrap_or_default()
             .to_string_lossy()
             .into();
-        self.status = "Apresentação renomeada".into();
+        self.status = tr("Apresentação renomeada").into();
         self.atualizar_arquivos();
         Ok(())
     }
     fn excluir_documento(&mut self) -> Result<(), String> {
         if self.arquivos.leitura {
-            return Err("Arquivo aberto somente para leitura".into());
+            return Err(tr("Arquivo aberto somente para leitura").into());
         }
         let origem = self
             .caminho_arquivo
             .clone()
-            .ok_or("A apresentação ainda não tem arquivo")?;
+            .ok_or(tr("A apresentação ainda não tem arquivo"))?;
         // Preserva o arquivo em lixeira própria e oferece recuperação pelo painel.
         let pasta = self
             .rascunho
             .parent()
-            .ok_or("Pasta de recuperação inválida")?;
+            .ok_or(tr("Pasta de recuperação inválida"))?;
         std::fs::create_dir_all(pasta).map_err(|e| e.to_string())?;
         // Os bytes do original, com a extensão dele: um `.pptx` convertido para `.fsdz` perdia o que não importamos.
         let extensao = origem.extension().map(|e| e.to_string_lossy().to_lowercase()).filter(|e| e == "pptx" || e == "odp").unwrap_or_else(|| "fsdz".into());
@@ -797,8 +798,8 @@ impl FeatherSlideApp {
         self.config.recentes.retain(|p| Path::new(p) != origem);
         self.config.gravar();
         self.caminho_arquivo = None;
-        self.nome_arquivo = "Apresentação excluída — cópia aberta".into();
-        self.status = "Arquivo excluído; cópia disponível em Recuperação".into();
+        self.nome_arquivo = tr("Apresentação excluída — cópia aberta").into();
+        self.status = tr("Arquivo excluído; cópia disponível em Recuperação").into();
         self.atualizar_arquivos();
         Ok(())
     }
@@ -811,7 +812,7 @@ impl FeatherSlideApp {
                 icone_apresentar(15.0, "#5f6368"),
                 text(format!(
                     "{nome}{}{}",
-                    if leitura { " · somente leitura" } else { "" },
+                    if leitura { tr(" · somente leitura") } else { "" },
                     if sujo { " •" } else { "" }
                 ))
                 .size(12)
@@ -876,22 +877,22 @@ impl FeatherSlideApp {
         };
         if let Some(pendente) = &self.arquivos.pendente {
             let aviso = if matches!(pendente, Acao::Excluir) {
-                "Excluir o arquivo? Uma cópia será mantida em Recuperação."
+                tr("Excluir o arquivo? Uma cópia será mantida em Recuperação.")
             } else if matches!(pendente, Acao::Descartar(Some(_))) {
-                "Descartar este rascunho? Ele não poderá ser recuperado."
+                tr("Descartar este rascunho? Ele não poderá ser recuperado.")
             } else if matches!(pendente, Acao::Descartar(None)) {
-                "Descartar todos os rascunhos de Recuperação? Eles não poderão ser recuperados."
+                tr("Descartar todos os rascunhos de Recuperação? Eles não poderão ser recuperados.")
             } else {
-                "Há alterações não salvas. Ao continuar, elas serão preservadas em Recuperação."
+                tr("Há alterações não salvas. Ao continuar, elas serão preservadas em Recuperação.")
             };
             let cartao = container(
                 column![
-                    text("Confirmar ação").size(24),
+                    text(tr("Confirmar ação")).size(24),
                     text(aviso).size(15),
                     row![
                         Space::new(Length::FILL, Length::Shrink),
-                        acao("Cancelar", Acao::Cancelar),
-                        acao("Continuar", Acao::Confirmar).style(estilo_botao_primario)
+                        acao(tr("Cancelar"), Acao::Cancelar),
+                        acao(tr("Continuar"), Acao::Confirmar).style(estilo_botao_primario)
                     ]
                     .spacing(10),
                     text(&self.status).size(12).color(COR_TEXTO_MUTED()),
@@ -923,29 +924,29 @@ impl FeatherSlideApp {
         let cinza = "#5f6368";
         let mut lateral = column![
             menu(
-                "Voltar",
+                tr("Voltar"),
                 icone_voltar(18.0, cinza),
                 Mensagem::Arquivos(Acao::Voltar)
             ),
             horizontal_rule(1.0),
-            container(text("ARQUIVOS").size(11).color(COR_TEXTO_MUTED())).padding([8, 12]),
+            container(text(crate::localidade::tr("Arquivos").to_uppercase()).size(11).color(COR_TEXTO_MUTED())).padding([8, 12]),
             menu(
-                "Nova apresentação",
+                tr("Nova apresentação"),
                 icone_mais(18.0, cinza),
                 Mensagem::NovaApresentacao
             ),
             menu(
-                "Em branco",
+                tr("Em branco"),
                 icone_novo_slide(18.0, cinza),
                 Mensagem::Arquivos(Acao::EmBranco)
             ),
             menu(
-                "Abrir…",
+                tr("Abrir…"),
                 icone_pasta(18.0, cinza),
                 Mensagem::Arquivos(Acao::Abrir(false))
             ),
             menu(
-                "Abrir somente leitura…",
+                tr("Abrir somente leitura…"),
                 icone_apresentar(18.0, cinza),
                 Mensagem::Arquivos(Acao::Abrir(true))
             ),
@@ -953,57 +954,57 @@ impl FeatherSlideApp {
         .spacing(3);
         if self.arquivos.ativo {
             lateral = lateral.push(horizontal_rule(1.0)).push(
-                container(text("APRESENTAÇÃO ATUAL").size(11).color(COR_TEXTO_MUTED()))
+                container(text(tr("APRESENTAÇÃO ATUAL")).size(11).color(COR_TEXTO_MUTED()))
                     .padding([8, 12]),
             );
             for (nome, icone, mensagem) in [
                 (
-                    "Salvar",
+                    tr("Salvar"),
                     icone_salvar(18.0, cinza),
                     Mensagem::Faixa(crate::faixa::FaixaMensagem::Salvar),
                 ),
                 (
-                    "Salvar como…",
+                    tr("Salvar como…"),
                     icone_lapis(18.0, cinza),
                     Mensagem::Faixa(crate::faixa::FaixaMensagem::SalvarComo),
                 ),
                 (
-                    "Salvar cópia…",
+                    tr("Salvar cópia…"),
                     icone_copiar(18.0, cinza),
                     Mensagem::Faixa(crate::faixa::FaixaMensagem::SalvarCopia),
                 ),
                 (
-                    "Duplicar",
+                    tr("Duplicar"),
                     icone_duplicar(18.0, cinza),
                     Mensagem::Arquivos(Acao::Duplicar),
                 ),
                 (
-                    "Importar slides…",
+                    tr("Importar slides…"),
                     icone_novo_slide(18.0, cinza),
                     Mensagem::Arquivos(Acao::Importar),
                 ),
                 (
-                    "Renomear…",
+                    tr("Renomear…"),
                     icone_lapis(18.0, cinza),
                     Mensagem::Arquivos(Acao::Renomear),
                 ),
                 (
-                    "Reverter para salva",
+                    tr("Reverter para salva"),
                     icone_desfazer(18.0, cinza),
                     Mensagem::Arquivos(Acao::Reverter),
                 ),
                 (
-                    "Excluir…",
+                    tr("Excluir…"),
                     icone_excluir(18.0, cinza),
                     Mensagem::Arquivos(Acao::Excluir),
                 ),
                 (
-                    "Fechar",
+                    tr("Fechar"),
                     icone_fechar_janela(18.0, cinza),
                     Mensagem::Arquivos(Acao::Fechar),
                 ),
                 (
-                    "Fechar todas",
+                    tr("Fechar todas"),
                     icone_fechar_janela(18.0, cinza),
                     Mensagem::Arquivos(Acao::FecharTodas),
                 ),
@@ -1013,32 +1014,32 @@ impl FeatherSlideApp {
         }
         let mut conteudo = column![row![
             column![
-                text("Arquivos").size(30),
-                text("Suas apresentações, em um só lugar.")
+                text(tr("Arquivos")).size(30),
+                text(tr("Suas apresentações, em um só lugar."))
                     .size(14)
                     .color(COR_TEXTO_MUTED())
             ]
             .spacing(6),
             Space::new(Length::FILL, Length::Shrink),
-            acao("Abrir arquivo…", Acao::Abrir(false)).style(estilo_botao_primario)
+            acao(tr("Abrir arquivo…"), Acao::Abrir(false)).style(estilo_botao_primario)
         ]
         .align(Align::Center)
         .spacing(16),]
         .spacing(24);
         if self.arquivos.ativo {
             let situacao = if self.arquivos.leitura {
-                "Somente leitura"
+                tr("Somente leitura")
             } else if self.sessao.estado().sujo {
-                "Alterações não salvas"
+                tr("Alterações não salvas")
             } else {
-                "Salvo"
+                tr("Salvo")
             };
             conteudo = conteudo.push(
                 container(
                     row![
                         icone_apresentar(24.0, cinza),
                         column![
-                            text("EM EDIÇÃO").size(10).color(COR_TEXTO_MUTED()),
+                            text(tr("EM EDIÇÃO")).size(10).color(COR_TEXTO_MUTED()),
                             text(&self.nome_arquivo).size(15)
                         ]
                         .spacing(4),
@@ -1061,7 +1062,7 @@ impl FeatherSlideApp {
             row![
                 icone_pasta(22.0, cinza),
                 column![
-                    text("Neste computador").size(18),
+                    text(tr("Neste computador")).size(18),
                     text(self.arquivos.pasta.to_string_lossy().to_string())
                         .size(12)
                         .color(COR_TEXTO_MUTED())
@@ -1071,18 +1072,18 @@ impl FeatherSlideApp {
             .spacing(12)
             .align(Align::Center),
             row![
-                acao("Escolher pasta…", Acao::Pasta),
+                acao(tr("Escolher pasta…"), Acao::Pasta),
                 acao(
                     if favorito {
-                        "Remover favorito"
+                        tr("Remover favorito")
                     } else {
-                        "Adicionar favorito"
+                        tr("Adicionar favorito")
                     },
                     Acao::Favorito
                 ),
             ]
             .spacing(8),
-            text_input("Pesquisar nesta pasta", &self.arquivos.busca)
+            text_input(tr("Pesquisar nesta pasta"), &self.arquivos.busca)
                 .on_input(|q| Mensagem::Arquivos(Acao::Busca(q)))
                 .padding([11, 14])
                 .size(14),
@@ -1090,7 +1091,7 @@ impl FeatherSlideApp {
         .spacing(14);
         if !self.config.favoritos.is_empty() {
             let mut locais =
-                column![text("Favoritos").size(12).color(COR_TEXTO_MUTED())].spacing(6);
+                column![text(tr("Favoritos")).size(12).color(COR_TEXTO_MUTED())].spacing(6);
             for local in &self.config.favoritos {
                 locais = locais.push(
                     acao(local, Acao::Local(PathBuf::from(local)))
@@ -1101,23 +1102,23 @@ impl FeatherSlideApp {
         }
         let arquivos = pesquisar(&self.arquivos.lista, &self.arquivos.busca);
         lista = lista.push(row![
-            text(format!("{} apresentações", arquivos.len()))
+            text(crate::localidade::trf("{} apresentações", &[&arquivos.len()]))
                 .size(12)
                 .color(COR_TEXTO_MUTED()),
             Space::new(Length::FILL, Length::Shrink),
-            text("FORMATO").size(10).color(COR_TEXTO_MUTED())
+            text(crate::localidade::tr("Formato").to_uppercase()).size(10).color(COR_TEXTO_MUTED())
         ]);
         if arquivos.is_empty() {
             lista = lista.push(
                 container(
                     column![
                         text(if self.arquivos.busca.is_empty() {
-                            "Nenhuma apresentação nesta pasta"
+                            tr("Nenhuma apresentação nesta pasta")
                         } else {
-                            "Nenhum arquivo encontrado"
+                            tr("Nenhum arquivo encontrado")
                         })
                         .size(16),
-                        text("Escolha outra pasta ou ajuste a pesquisa.")
+                        text(tr("Escolha outra pasta ou ajuste a pesquisa."))
                             .size(13)
                             .color(COR_TEXTO_MUTED()),
                     ]
@@ -1168,14 +1169,14 @@ impl FeatherSlideApp {
             let mut recuperacao = column![
                 row![
                     icone_relogio(22.0, cinza),
-                    text("Recuperação").size(18),
+                    text(tr("Recuperação")).size(18),
                     Space::new(Length::FILL, Length::Shrink),
-                    acao("Descartar todos", Acao::Descartar(None))
+                    acao(tr("Descartar todos"), Acao::Descartar(None))
                         .style(estilo_botao_pequeno(false)),
                 ]
                 .spacing(10)
                 .align(Align::Center),
-                text("Retome um rascunho ou abra uma cópia de um arquivo excluído.")
+                text(tr("Retome um rascunho ou abra uma cópia de um arquivo excluído."))
                     .size(13)
                     .color(COR_TEXTO_MUTED()),
             ]
@@ -1188,7 +1189,7 @@ impl FeatherSlideApp {
                     .nomes_recuperacoes
                     .get(path)
                     .map(String::as_str)
-                    .unwrap_or("Rascunho recuperável");
+                    .unwrap_or(tr("Rascunho recuperável"));
                 recuperacao = recuperacao.push(horizontal_rule(1.0)).push(
                     row![
                         button(
@@ -1198,7 +1199,7 @@ impl FeatherSlideApp {
                                     .style(estilo_selo_arquivos),
                                 column![
                                     text(nome.to_owned()).size(14),
-                                    text(rotulo_versao(path, "Rascunho"))
+                                    text(rotulo_versao(path, tr("Rascunho")))
                                         .size(12)
                                         .color(COR_TEXTO_MUTED()),
                                 ]
@@ -1212,7 +1213,7 @@ impl FeatherSlideApp {
                         .padding([8, 4])
                         .width(Length::FILL)
                         .style(estilo_botao_pequeno(false)),
-                        acao("Descartar", Acao::Descartar(Some(path.clone())))
+                        acao(tr("Descartar"), Acao::Descartar(Some(path.clone())))
                             .style(estilo_botao_pequeno(false)),
                     ]
                     .spacing(8)
@@ -1221,7 +1222,7 @@ impl FeatherSlideApp {
             }
             if total > mostrar {
                 recuperacao = recuperacao.push(horizontal_rule(1.0)).push(
-                    acao(&format!("Mostrar todos ({total})"), Acao::RecuperacoesTodas)
+                    acao(&crate::localidade::trf("Mostrar todos ({})", &[&total]), Acao::RecuperacoesTodas)
                         .style(estilo_botao_pequeno(false)),
                 );
             }
@@ -1234,8 +1235,8 @@ impl FeatherSlideApp {
         }
         if !self.arquivos.versoes.is_empty() {
             let mut versoes = column![
-                text("Histórico de versões").size(18),
-                text("Abra uma versão salva como cópia.")
+                text(tr("Histórico de versões")).size(18),
+                text(tr("Abra uma versão salva como cópia."))
                     .size(13)
                     .color(COR_TEXTO_MUTED())
             ]
@@ -1246,9 +1247,9 @@ impl FeatherSlideApp {
                         &rotulo_versao(
                             path,
                             if i == 0 {
-                                "Versão salva atual"
+                                tr("Versão salva atual")
                             } else {
-                                "Versão anterior"
+                                tr("Versão anterior")
                             },
                         ),
                         Acao::Versao(path.clone()),
@@ -1322,11 +1323,11 @@ fn rotulo_versao(path: &Path, prefixo: &str) -> String {
     let data = if tempo < 60 {
         "agora".to_string()
     } else if tempo < 3600 {
-        format!("há {} min", tempo / 60)
+        crate::localidade::trf("há {} min", &[&(tempo / 60)])
     } else if tempo < 86400 {
-        format!("há {} h", tempo / 3600)
+        crate::localidade::trf("há {} h", &[&(tempo / 3600)])
     } else {
-        format!("há {} dias", tempo / 86400)
+        crate::localidade::trf("há {} dias", &[&(tempo / 86400)])
     };
     format!("{prefixo} · {data}")
 }

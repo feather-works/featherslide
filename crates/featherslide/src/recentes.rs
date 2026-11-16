@@ -63,8 +63,8 @@ fn descrever_data(p: &Path) -> String {
     let agora = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
     let (dia, hora) = (data_local(segundos, "%d/%m/%Y"), data_local(segundos, "%H:%M"));
     match (dia, hora) {
-        (Some(d), Some(h)) if Some(&d) == data_local(agora, "%d/%m/%Y").as_ref() => format!("Modificado hoje {h}"),
-        (Some(d), Some(h)) => format!("Modificado em {d} {h}"),
+        (Some(d), Some(h)) if Some(&d) == data_local(agora, "%d/%m/%Y").as_ref() => crate::localidade::trf("Modificado hoje {}", &[&h]),
+        (Some(d), Some(h)) => crate::localidade::trf("Modificado em {} {}", &[&d, &h]),
         _ => String::new(),
     }
 }

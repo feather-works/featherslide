@@ -1,6 +1,7 @@
 //! O painel de Revisão → Ortografia: mostra a palavra errada, as sugestões e as ações. Achar
 //! os erros e trocar a palavra é do motor (`featherslide-ortografia`); aqui só se desenha.
 
+use crate::localidade::tr;
 use std::collections::HashSet;
 
 use featherslide_ortografia::{Corretor, Erro};
@@ -79,32 +80,32 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, o: &'a Ortografia, largura_jane
 
 fn caixa<'a>(o: &'a Ortografia) -> Element<'a, OrtMsg> {
     let corpo: Element<'a, OrtMsg> = if o.carregando {
-        text("Carregando o dicionário…").size(13).into()
+        text(tr("Carregando o dicionário…")).size(13).into()
     } else if !o.aviso.is_empty() {
-        column![text(o.aviso.as_str()).size(12.5), botao("Fechar", OrtMsg::Fechar, false)].spacing(10).into()
+        column![text(o.aviso.as_str()).size(12.5), botao(tr("Fechar"), OrtMsg::Fechar, false)].spacing(10).into()
     } else if let Some(e) = o.atual() {
         let mut sugestoes = column![].spacing(3);
         for s in o.sugestoes.iter().take(6) {
             sugestoes = sugestoes.push(button(text(s.as_str()).size(12.5)).width(Length::FILL).padding([3, 8]).style(estilo_botao_pequeno(false)).on_press(OrtMsg::Sugestao(s.clone())));
         }
         if o.sugestoes.is_empty() {
-            sugestoes = sugestoes.push(text("Sem sugestões.").size(12).color(COR_TEXTO_MUTED()));
+            sugestoes = sugestoes.push(text(tr("Sem sugestões.")).size(12).color(COR_TEXTO_MUTED()));
         }
         column![
-            text(format!("Erro {} de {} — slide {} — {}", o.indice + 1, o.erros.len(), e.slide + 1,
-                match e.campo { featherslide_ortografia::CampoErro::Texto => "texto".into(), featherslide_ortografia::CampoErro::Notas => "notas".into(), featherslide_ortografia::CampoErro::Celula(l,c) => format!("célula {}, {}", l+1,c+1) })).size(11).color(COR_TEXTO_MUTED()),
-            text(format!("Não está no dicionário: «{}»", e.palavra)).size(13.5),
-            text_input("Correção", &o.correcao).id(ID_CAMPO).on_input(OrtMsg::Texto).on_submit(OrtMsg::Alterar).size(13).padding([6, 8]),
+            text(crate::localidade::trf("Erro {} de {} — slide {} — {}", &[&(o.indice + 1), &o.erros.len(), &(e.slide + 1),
+                &match e.campo { featherslide_ortografia::CampoErro::Texto => tr("texto").to_string(), featherslide_ortografia::CampoErro::Notas => tr("notas").to_string(), featherslide_ortografia::CampoErro::Celula(l,c) => crate::localidade::trf("célula {}, {}", &[&(l+1), &(c+1)]) }])).size(11).color(COR_TEXTO_MUTED()),
+            text(crate::localidade::trf("Não está no dicionário: «{}»", &[&e.palavra])).size(13.5),
+            text_input(tr("Correção"), &o.correcao).id(ID_CAMPO).on_input(OrtMsg::Texto).on_submit(OrtMsg::Alterar).size(13).padding([6, 8]),
             sugestoes,
-            row![botao("Alterar", OrtMsg::Alterar, true), botao("Ignorar", OrtMsg::Ignorar, false), botao("Ignorar tudo", OrtMsg::IgnorarTodas, false)].spacing(6),
-            row![botao("Adicionar ao dicionário", OrtMsg::Adicionar, false), Space::new(Length::FILL, Length::Shrink), botao("Fechar", OrtMsg::Fechar, false)].spacing(6).align(Align::Center),
+            row![botao(tr("Alterar"), OrtMsg::Alterar, true), botao(tr("Ignorar"), OrtMsg::Ignorar, false), botao(tr("Ignorar tudo"), OrtMsg::IgnorarTodas, false)].spacing(6),
+            row![botao(tr("Adicionar ao dicionário"), OrtMsg::Adicionar, false), Space::new(Length::FILL, Length::Shrink), botao(tr("Fechar"), OrtMsg::Fechar, false)].spacing(6).align(Align::Center),
         ]
         .spacing(8)
         .into()
     } else {
-        column![text("Verificação ortográfica concluída.").size(13.5), text("Nenhum erro encontrado.").size(12).color(COR_TEXTO_MUTED()), botao("Fechar", OrtMsg::Fechar, true)].spacing(8).into()
+        column![text(tr("Verificação ortográfica concluída.")).size(13.5), text(tr("Nenhum erro encontrado.")).size(12).color(COR_TEXTO_MUTED()), botao(tr("Fechar"), OrtMsg::Fechar, true)].spacing(8).into()
     };
-    container(column![text("Ortografia").size(14), corpo].spacing(10))
+    container(column![text(tr("Ortografia")).size(14), corpo].spacing(10))
         .width(Length::Fixed(400.0))
         .padding(14)
         .style(|_| Style {

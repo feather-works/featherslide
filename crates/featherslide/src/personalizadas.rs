@@ -1,4 +1,5 @@
 //! Edição e reprodução das apresentações personalizadas (FTS-0121–0123).
+use crate::localidade::tr;
 use std::collections::BTreeSet;
 use featherslide_core::sessao::Sessao;
 use pelicano::*;
@@ -26,29 +27,29 @@ pub fn sobrepor<'a>(
 
     let mut lista = column![].spacing(3);
     for (i, p) in sessao.personalizadas().iter().enumerate() {
-        lista = lista.push(button(text(format!("{}  ({} slides)", p.nome, p.slides.len())).size(12))
+        lista = lista.push(button(text(crate::localidade::trf("{}  ({} slides)", &[&p.nome, &p.slides.len()])).size(12))
             .width(Length::FILL).padding([6, 8])
             .style(estilo_botao_pequeno(estado.selecionada == Some(i)))
             .on_press(Mensagem::PersonalizadaSelecionar(i)));
     }
 
     let criar = row![
-        text_input("Nome da nova apresentação", &estado.nome_novo)
+        text_input(tr("Nome da nova apresentação"), &estado.nome_novo)
             .on_input(Mensagem::PersonalizadaNome).on_submit(Mensagem::PersonalizadaCriar)
             .padding([6, 8]).size(12).width(Length::FILL),
-        button(text("Criar com slides marcados").size(11))
+        button(text(tr("Criar com slides marcados")).size(11))
             .style(estilo_botao_primario).padding([7, 9])
             .on_press(Mensagem::PersonalizadaCriar),
     ].align(Align::Center).spacing(6);
 
     let mut detalhe = column![].spacing(5);
     if let Some(p) = estado.selecionada.and_then(|i| sessao.personalizadas().get(i)) {
-        detalhe = detalhe.push(text(format!("Roteiro: {}", p.nome)).size(13));
+        detalhe = detalhe.push(text(crate::localidade::trf("Roteiro: {}", &[&p.nome])).size(13));
         for (pos, item) in p.slides.iter().enumerate() {
             let slide = sessao.apresentacao().slides.iter().position(|s| s.id == item.id);
             let rotulo = match slide {
-                Some(i) => format!("{}. Slide {}{}", pos+1, i+1, if item.oculto { "  [oculto nesta sequência]" } else { "" }),
-                None => format!("{}. Slide excluído (ID {})", pos+1, item.id),
+                Some(i) => crate::localidade::trf("{}. Slide {}{}", &[&(pos+1), &(i+1), &if item.oculto { tr("  [oculto nesta sequência]") } else { "" }]),
+                None => crate::localidade::trf("{}. Slide excluído (ID {})", &[&(pos+1), &item.id]),
             };
             let botao = |rotulo: &'static str, msg| button(text(rotulo).size(12))
                 .style(estilo_botao_pequeno(false)).padding([4, 7]).on_press_maybe(msg);
@@ -56,28 +57,28 @@ pub fn sobrepor<'a>(
                 text(rotulo).size(11.5).width(Length::FILL),
                 botao("↑", (pos > 0).then_some(Mensagem::PersonalizadaMover(pos, -1))),
                 botao("↓", (pos+1 < p.slides.len()).then_some(Mensagem::PersonalizadaMover(pos, 1))),
-                botao(if item.oculto { "Exibir" } else { "Ocultar" }, Some(Mensagem::PersonalizadaOcultar(pos))),
+                botao(if item.oculto { tr("Exibir") } else { tr("Ocultar") }, Some(Mensagem::PersonalizadaOcultar(pos))),
                 botao("×", (p.slides.len() > 1).then_some(Mensagem::PersonalizadaRemover(pos))),
             ].spacing(3).align(Align::Center));
         }
         detalhe = detalhe.push(row![
-            button(text("Acrescentar marcados").size(12))
+            button(text(tr("Acrescentar marcados")).size(12))
                 .style(estilo_botao_secundario).on_press(Mensagem::PersonalizadaAdicionar),
-            button(text("Excluir roteiro").size(12))
+            button(text(tr("Excluir roteiro")).size(12))
                 .style(estilo_botao_secundario).on_press(Mensagem::PersonalizadaExcluir),
-            button(text("Apresentar roteiro").size(12))
+            button(text(tr("Apresentar roteiro")).size(12))
                 .style(estilo_botao_primario).on_press(Mensagem::PersonalizadaIniciar),
         ].spacing(6));
     } else {
-        detalhe = detalhe.push(text("Crie ou escolha um roteiro acima para definir ordem e slides ocultos.").size(12));
+        detalhe = detalhe.push(text(tr("Crie ou escolha um roteiro acima para definir ordem e slides ocultos.")).size(12));
     }
     let painel = container(column![
         row![
-            text("Apresentações personalizadas").size(18).width(Length::FILL),
-            button(text("Fechar").size(12)).on_press(Mensagem::PersonalizadasFechar)
+            text(tr("Apresentações personalizadas")).size(18).width(Length::FILL),
+            button(text(tr("Fechar")).size(12)).on_press(Mensagem::PersonalizadasFechar)
                 .style(estilo_botao_secundario),
         ].align(Align::Center),
-        text(format!("Marque slides nas miniaturas antes de criar ou acrescentar ({} marcados).", marcados.len()))
+        text(crate::localidade::trf("Marque slides nas miniaturas antes de criar ou acrescentar ({} marcados).", &[&(marcados.len())]))
             .size(11.5).color(COR_TEXTO_MUTED()),
         criar,
         scrollable(lista).scrollbar_width(10).scrollbar_track(COR_TRILHO_ROLAGEM()).scrollbar_color(COR_POLEGAR_ROLAGEM()).height(Length::Fixed(110.0)),

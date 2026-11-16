@@ -1,6 +1,7 @@
 //! Editor de imagem com navegação por categorias.
 //! Só a interface muda: os comandos continuam indo ao motor Rust,
 //! mantendo efeitos reversíveis e compressão apenas sob comando explícito.
+use crate::localidade::tr;
 use featherslide_core::imagem::VisualImagem;
 use pelicano::column;
 use pelicano::*;
@@ -77,7 +78,7 @@ fn controle<'a>(
             .style(estilo_botao_pequeno(false))
             .on_press_maybe(((atual - padrao).abs() > 0.001)
                 .then_some(Msg::ImagemVisual(campo, padrao))),
-        "Restaurar o valor padrão",
+        tr("Restaurar o valor padrão"),
     );
     column![
         row![
@@ -113,18 +114,18 @@ fn enquadrar<'a>(visual: &VisualImagem, margens: [f32; 4]) -> Element<'a, Msg> {
     let modos = cartao(
         column![
             titulo_bloco(
-                "Como a foto ocupa o espaço",
-                "A imagem continua inteira no arquivo original.",
+                tr("Como a foto ocupa o espaço"),
+                tr("A imagem continua inteira no arquivo original."),
             ),
             row![
-                opcao("Preencher", "encaixe", 0.0, visual.encaixe == 0),
-                opcao("Ajustar", "encaixe", 1.0, visual.encaixe == 1),
+                opcao(tr("Preencher"), "encaixe", 0.0, visual.encaixe == 0),
+                opcao(tr("Ajustar"), "encaixe", 1.0, visual.encaixe == 1),
                 horizontal_space(),
                 dica(
                     button(
                         row![
                             text("↔").size(18),
-                            text("Horizontal").size(11),
+                            text(tr("Horizontal")).size(11),
                         ].spacing(5).align(Align::Center),
                     )
                     .padding([8, 10])
@@ -133,13 +134,13 @@ fn enquadrar<'a>(visual: &VisualImagem, margens: [f32; 4]) -> Element<'a, Msg> {
                         "inverter_horizontal",
                         f32::from(!visual.inverter_horizontal),
                     )),
-                    "Espelhar da esquerda para a direita",
+                    tr("Espelhar da esquerda para a direita"),
                 ),
                 dica(
                     button(
                         row![
                             text("↕").size(18),
-                            text("Vertical").size(11),
+                            text(tr("Vertical")).size(11),
                         ].spacing(5).align(Align::Center),
                     )
                     .padding([8, 10])
@@ -148,7 +149,7 @@ fn enquadrar<'a>(visual: &VisualImagem, margens: [f32; 4]) -> Element<'a, Msg> {
                         "inverter_vertical",
                         f32::from(!visual.inverter_vertical),
                     )),
-                    "Espelhar de cima para baixo",
+                    tr("Espelhar de cima para baixo"),
                 ),
             ]
             .spacing(8)
@@ -160,17 +161,17 @@ fn enquadrar<'a>(visual: &VisualImagem, margens: [f32; 4]) -> Element<'a, Msg> {
     let cortar = cartao(
         column![
             titulo_bloco(
-                "Corte pelas bordas",
-                "Arraste os controles para ocultar partes da foto sem apagar pixels.",
+                tr("Corte pelas bordas"),
+                tr("Arraste os controles para ocultar partes da foto sem apagar pixels."),
             ),
             row![
                 column![
-                    controle("Esquerda", "corte_esquerda", margens[0], 0.0, 0.0, 0.45, 0.05, false),
-                    controle("Topo", "corte_topo", margens[1], 0.0, 0.0, 0.45, 0.05, false),
+                    controle(tr("Esquerda"), "corte_esquerda", margens[0], 0.0, 0.0, 0.45, 0.05, false),
+                    controle(tr("Topo"), "corte_topo", margens[1], 0.0, 0.0, 0.45, 0.05, false),
                 ].spacing(17).width(Length::Fill(1)),
                 column![
-                    controle("Direita", "corte_direita", margens[2], 0.0, 0.0, 0.45, 0.05, false),
-                    controle("Base", "corte_base", margens[3], 0.0, 0.0, 0.45, 0.05, false),
+                    controle(tr("Direita"), "corte_direita", margens[2], 0.0, 0.0, 0.45, 0.05, false),
+                    controle(tr("Base"), "corte_base", margens[3], 0.0, 0.0, 0.45, 0.05, false),
                 ].spacing(17).width(Length::Fill(1)),
             ].spacing(25),
         ].spacing(17),
@@ -184,18 +185,18 @@ fn enquadrar<'a>(visual: &VisualImagem, margens: [f32; 4]) -> Element<'a, Msg> {
 fn cor<'a>(visual: &VisualImagem) -> Element<'a, Msg> {
     let luz = cartao(
         column![
-            titulo_bloco("Luz e definição", "Corrija a exposição e destaque os detalhes."),
-            controle("Brilho", "brilho", visual.brilho, 0.0, -1.0, 1.0, 0.05, false),
-            controle("Contraste", "contraste", visual.contraste, 0.0, -1.0, 1.0, 0.05, false),
-            controle("Nitidez", "nitidez", visual.nitidez, 0.0, 0.0, 1.0, 0.05, false),
+            titulo_bloco(tr("Luz e definição"), tr("Corrija a exposição e destaque os detalhes.")),
+            controle(tr("Brilho"), "brilho", visual.brilho, 0.0, -1.0, 1.0, 0.05, false),
+            controle(tr("Contraste"), "contraste", visual.contraste, 0.0, -1.0, 1.0, 0.05, false),
+            controle(tr("Nitidez"), "nitidez", visual.nitidez, 0.0, 0.0, 1.0, 0.05, false),
         ].spacing(19),
     );
     let cores = cartao(
         column![
-            titulo_bloco("Cor", "Controle a intensidade e o tom da imagem."),
-            controle("Saturação", "saturacao", visual.saturacao, 1.0, 0.0, 2.0, 0.05, false),
-            controle("Temperatura", "temperatura", visual.temperatura, 0.0, -1.0, 1.0, 0.05, false),
-            controle("Matiz", "matiz", visual.matiz, 0.0, -180.0, 180.0, 5.0, true),
+            titulo_bloco(tr("Cor"), tr("Controle a intensidade e o tom da imagem.")),
+            controle(tr("Saturação"), "saturacao", visual.saturacao, 1.0, 0.0, 2.0, 0.05, false),
+            controle(tr("Temperatura"), "temperatura", visual.temperatura, 0.0, -1.0, 1.0, 0.05, false),
+            controle(tr("Matiz"), "matiz", visual.matiz, 0.0, -180.0, 180.0, 5.0, true),
         ].spacing(19),
     );
     row![
@@ -230,44 +231,44 @@ fn filtro<'a>(nome: &'static str, numero: u8, atual: u8) -> Element<'a, Msg> {
 fn efeitos<'a>(visual: &VisualImagem, sombra: bool) -> Element<'a, Msg> {
     let filtros = cartao(
         column![
-            titulo_bloco("Filtros", "Escolha uma aparência pronta. Você pode ajustar as cores depois."),
+            titulo_bloco(tr("Filtros"), tr("Escolha uma aparência pronta. Você pode ajustar as cores depois.")),
             row![
-                filtro("Original", 0, visual.filtro),
+                filtro(tr("Original"), 0, visual.filtro),
                 filtro("P&B", 1, visual.filtro),
-                filtro("Sépia", 2, visual.filtro),
+                filtro(tr("Sépia"), 2, visual.filtro),
             ].spacing(9),
             row![
-                filtro("Negativo", 3, visual.filtro),
-                filtro("Pôster", 4, visual.filtro),
-                filtro("Solarizar", 5, visual.filtro),
+                filtro(tr("Negativo"), 3, visual.filtro),
+                filtro(tr("Pôster"), 4, visual.filtro),
+                filtro(tr("Solarizar"), 5, visual.filtro),
             ].spacing(9),
         ].spacing(12),
     );
     let acabamento = cartao(
         column![
-            titulo_bloco("Acabamento", "Destaques e profundidade, sem alterar a foto original."),
+            titulo_bloco(tr("Acabamento"), tr("Destaques e profundidade, sem alterar a foto original.")),
             row![
                 dica(
                     button(row![
                         icone_ajustar(17.0, "#5f6368"),
-                        text(if sombra { "Sombra ativada" } else { "Adicionar sombra" }).size(12),
+                        text(if sombra { tr("Sombra ativada") } else { tr("Adicionar sombra") }).size(12),
                     ].spacing(8).align(Align::Center))
                         .padding([9, 12])
                         .style(estilo_botao_pequeno(sombra))
                         .on_press(Msg::ImagemSombra(!sombra)),
-                    "Ativar/desativar sombra projetada",
+                    tr("Ativar/desativar sombra projetada"),
                 ),
                 horizontal_space(),
-                text("Efeitos podem ser desfeitos com Ctrl+Z")
+                text(tr("Efeitos podem ser desfeitos com Ctrl+Z"))
                     .size(11).color(COR_TEXTO_MUTED()),
             ].align(Align::Center),
-            controle("Reflexo", "reflexo", visual.reflexo, 0.0, 0.0, 1.0, 0.05, false),
+            controle(tr("Reflexo"), "reflexo", visual.reflexo, 0.0, 0.0, 1.0, 0.05, false),
             controle(
-                "Brilho externo", "brilho_externo",
+                tr("Brilho externo"), "brilho_externo",
                 visual.brilho_externo, 0.0, 0.0, 1.0, 0.05, false,
             ),
             controle(
-                "Perspectiva 2D", "perspectiva",
+                tr("Perspectiva 2D"), "perspectiva",
                 visual.perspectiva, 0.0, -1.0, 1.0, 0.05, false,
             ),
         ]
@@ -279,17 +280,17 @@ fn efeitos<'a>(visual: &VisualImagem, sombra: bool) -> Element<'a, Msg> {
 fn arquivo<'a>(visual: &VisualImagem, alternativa: &'a str) -> Element<'a, Msg> {
     let origem = cartao(
         column![
-            titulo_bloco("Imagem de origem", "Troque a foto sem perder posição, formato e efeitos."),
+            titulo_bloco(tr("Imagem de origem"), tr("Troque a foto sem perder posição, formato e efeitos.")),
             row![
                 button(row![
                     icone_substituir(18.0, "#5f6368"),
-                    text("Substituir imagem…").size(12),
+                    text(tr("Substituir imagem…")).size(12),
                 ].spacing(9).align(Align::Center))
                     .padding([10, 13])
                     .style(estilo_botao_secundario)
                     .on_press(Msg::ImagemSubstituir),
                 horizontal_space(),
-                text(if visual.preservar_original { "Original preservado" } else { "Fonte otimizada" })
+                text(if visual.preservar_original { tr("Original preservado") } else { tr("Fonte otimizada") })
                     .size(11).color(COR_TEXTO_MUTED()),
             ].align(Align::Center),
         ].spacing(14),
@@ -297,11 +298,11 @@ fn arquivo<'a>(visual: &VisualImagem, alternativa: &'a str) -> Element<'a, Msg> 
     let acessibilidade = cartao(
         column![
             titulo_bloco(
-                "Texto alternativo",
-                "Descreva a imagem para facilitar a acessibilidade.",
+                tr("Texto alternativo"),
+                tr("Descreva a imagem para facilitar a acessibilidade."),
             ),
             row![
-                text_input("Ex.: Fotografia de uma subestação elétrica", alternativa)
+                text_input(tr("Ex.: Fotografia de uma subestação elétrica"), alternativa)
                     .on_input(Msg::ImagemTextoAltAlterado)
                     .on_submit(Msg::ImagemTextoAltAplicar)
                     .size(12)
@@ -312,7 +313,7 @@ fn arquivo<'a>(visual: &VisualImagem, alternativa: &'a str) -> Element<'a, Msg> 
                         .padding([10, 12])
                         .style(estilo_botao_secundario)
                         .on_press(Msg::ImagemTextoAltAplicar),
-                    "Salvar texto alternativo",
+                    tr("Salvar texto alternativo"),
                 ),
             ].spacing(10),
         ].spacing(13),
@@ -320,12 +321,12 @@ fn arquivo<'a>(visual: &VisualImagem, alternativa: &'a str) -> Element<'a, Msg> 
     let otimizar = cartao(
         column![
             titulo_bloco(
-                "Tamanho do arquivo",
-                "As ações abaixo alteram a fonte incorporada. Ctrl+Z restaura a anterior.",
+                tr("Tamanho do arquivo"),
+                tr("As ações abaixo alteram a fonte incorporada. Ctrl+Z restaura a anterior."),
             ),
             row![
                 column![
-                    text("Reduzir resolução").size(12).color(COR_TEXTO()),
+                    text(tr("Reduzir resolução")).size(12).color(COR_TEXTO()),
                     row![
                         button(text("1280 px").size(12)).padding([9, 13])
                             .style(estilo_botao_secundario).on_press(Msg::ImagemReduzir(1280)),
@@ -334,16 +335,16 @@ fn arquivo<'a>(visual: &VisualImagem, alternativa: &'a str) -> Element<'a, Msg> 
                     ].spacing(7),
                 ].spacing(10).width(Length::Fill(1)),
                 column![
-                    text("Compactar").size(12).color(COR_TEXTO()),
+                    text(tr("Compactar")).size(12).color(COR_TEXTO()),
                     row![
-                        button(text("Alta · 85%").size(12)).padding([9, 13])
+                        button(text(tr("Alta · 85%")).size(12)).padding([9, 13])
                             .style(estilo_botao_secundario).on_press(Msg::ImagemComprimir(85)),
-                        button(text("Menor · 60%").size(12)).padding([9, 13])
+                        button(text(tr("Menor · 60%")).size(12)).padding([9, 13])
                             .style(estilo_botao_secundario).on_press(Msg::ImagemComprimir(60)),
                     ].spacing(7),
                 ].spacing(10).width(Length::Fill(1)),
             ].spacing(15),
-            text("Fotos com transparência permanecem PNG para manter o canal alfa.")
+            text(tr("Fotos com transparência permanecem PNG para manter o canal alfa."))
                 .size(11).color(COR_TEXTO_MUTED()),
         ].spacing(15),
     );
@@ -380,8 +381,8 @@ pub fn sobrepor<'a>(
                 ..Default::default()
             }),
         column![
-            text("Editar imagem").size(20).color(COR_TEXTO()),
-            text("Ajustes aplicados diretamente à apresentação")
+            text(tr("Editar imagem")).size(20).color(COR_TEXTO()),
+            text(tr("Ajustes aplicados diretamente à apresentação"))
                 .size(11).color(COR_TEXTO_MUTED()),
         ].spacing(3),
         horizontal_space(),
@@ -390,15 +391,15 @@ pub fn sobrepor<'a>(
                 .padding([9, 10])
                 .style(estilo_botao_pequeno(false))
                 .on_press(Msg::ImagemFecharAjustes),
-            "Fechar ajustes",
+            tr("Fechar ajustes"),
         ),
     ].spacing(13).align(Align::Center);
 
     let navegacao = row![
-        aba("Enquadrar", icone_enquadramento(17.0, "#5f6368"), Pagina::Enquadrar, pagina == Pagina::Enquadrar),
-        aba("Cor", icone_paleta(17.0, "#5f6368"), Pagina::Cor, pagina == Pagina::Cor),
-        aba("Efeitos", icone_ajustar(17.0, "#5f6368"), Pagina::Efeitos, pagina == Pagina::Efeitos),
-        aba("Arquivo", icone_pasta(17.0, "#5f6368"), Pagina::Arquivo, pagina == Pagina::Arquivo),
+        aba(tr("Enquadrar"), icone_enquadramento(17.0, "#5f6368"), Pagina::Enquadrar, pagina == Pagina::Enquadrar),
+        aba(tr("Cor"), icone_paleta(17.0, "#5f6368"), Pagina::Cor, pagina == Pagina::Cor),
+        aba(tr("Efeitos"), icone_ajustar(17.0, "#5f6368"), Pagina::Efeitos, pagina == Pagina::Efeitos),
+        aba(tr("Arquivo"), icone_pasta(17.0, "#5f6368"), Pagina::Arquivo, pagina == Pagina::Arquivo),
     ].spacing(7);
 
     let conteudo = match pagina {
@@ -415,19 +416,19 @@ pub fn sobrepor<'a>(
 
     let rodape = row![
         icone_check(16.0, "#5f6368"),
-        text("Ajustes reversíveis").size(11).color(COR_TEXTO_MUTED()),
+        text(tr("Ajustes reversíveis")).size(11).color(COR_TEXTO_MUTED()),
         horizontal_space(),
         dica(
             button(row![
                 icone_limpar(15.0, "#5f6368"),
-                text("Redefinir").size(12),
+                text(tr("Redefinir")).size(12),
             ].spacing(7).align(Align::Center))
                 .padding([9, 12])
                 .style(estilo_botao_secundario)
                 .on_press(Msg::ImagemResetarVisual),
-            "Zerar correções de cor e efeitos; não altera a imagem original",
+            tr("Zerar correções de cor e efeitos; não altera a imagem original"),
         ),
-        button(text("Concluir").size(12))
+        button(text(tr("Concluir")).size(12))
             .padding([10, 19])
             .style(estilo_botao_primario)
             .on_press(Msg::ImagemFecharAjustes),

@@ -1,5 +1,6 @@
 //! O diálogo "Cabeçalho e rodapé" (Inserir → Data e hora / Nº do slide / Rodapé): data, número do
 //! slide e texto embaixo de todos os slides. O motor desenha (`featherslide_core::rodape`); aqui o rascunho.
+use crate::localidade::tr;
 use featherslide_core::modelo::Rodape;
 use pelicano::column;
 use pelicano::*;
@@ -35,29 +36,29 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, r: &'a Rodape, largura_janela: 
     let campo = |m: fn(String) -> Campo| move |v: String| Mensagem::RodapeMudar(m(v));
     let painel = container(column![
         row![
-            text("Cabeçalho e rodapé").size(18).width(Length::FILL),
-            button(text("Fechar").size(12)).on_press(Mensagem::RodapeFechar).style(estilo_botao_secundario),
+            text(tr("Cabeçalho e rodapé")).size(18).width(Length::FILL),
+            button(text(tr("Fechar")).size(12)).on_press(Mensagem::RodapeFechar).style(estilo_botao_secundario),
         ]
         .align(Align::Center),
-        text("Aparecem embaixo de todos os slides e se atualizam sozinhos.").size(11.5).color(COR_TEXTO_MUTED()),
-        checkbox("Data (à esquerda)", r.data).on_toggle(|v| Mensagem::RodapeMudar(Campo::Data(v))),
-        text_input("Vazio = a data de hoje, atualizada ao abrir", &r.data_fixa).on_input(campo(Campo::DataFixa)).padding([6, 8]).size(12),
+        text(tr("Aparecem embaixo de todos os slides e se atualizam sozinhos.")).size(11.5).color(COR_TEXTO_MUTED()),
+        checkbox(tr("Data (à esquerda)"), r.data).on_toggle(|v| Mensagem::RodapeMudar(Campo::Data(v))),
+        text_input(tr("Vazio = a data de hoje, atualizada ao abrir"), &r.data_fixa).on_input(campo(Campo::DataFixa)).padding([6, 8]).size(12),
         row![
-            checkbox("Número do slide (à direita)", r.numero).on_toggle(|v| Mensagem::RodapeMudar(Campo::Numero(v))),
+            checkbox(tr("Número do slide (à direita)"), r.numero).on_toggle(|v| Mensagem::RodapeMudar(Campo::Numero(v))),
             Space::new(Length::FILL, Length::Fixed(1.0)),
-            text("Começar em").size(12),
+            text(tr("Começar em")).size(12),
             button(text("−").size(12)).style(estilo_botao_secundario).on_press(Mensagem::RodapeMudar(Campo::Inicio(r.numero_inicial.saturating_sub(1)))),
             text(r.numero_inicial.to_string()).size(12),
             button(text("+").size(12)).style(estilo_botao_secundario).on_press(Mensagem::RodapeMudar(Campo::Inicio(r.numero_inicial + 1))),
         ]
         .spacing(8)
         .align(Align::Center),
-        text("Rodapé (no meio)").size(12),
-        text_input("Por exemplo: nome da empresa · evento", &r.texto).on_input(campo(Campo::Texto)).padding([6, 8]).size(12),
-        checkbox("Não mostrar no slide de título", r.sem_no_titulo).on_toggle(|v| Mensagem::RodapeMudar(Campo::SemNoTitulo(v))),
+        text(tr("Rodapé (no meio)")).size(12),
+        text_input(tr("Por exemplo: nome da empresa · evento"), &r.texto).on_input(campo(Campo::Texto)).padding([6, 8]).size(12),
+        checkbox(tr("Não mostrar no slide de título"), r.sem_no_titulo).on_toggle(|v| Mensagem::RodapeMudar(Campo::SemNoTitulo(v))),
         row![
             Space::new(Length::FILL, Length::Fixed(1.0)),
-            button(text("Aplicar a todos").size(12)).style(estilo_botao_primario).padding([7, 12]).on_press(Mensagem::RodapeAplicar),
+            button(text(tr("Aplicar a todos")).size(12)).style(estilo_botao_primario).padding([7, 12]).on_press(Mensagem::RodapeAplicar),
         ],
     ]
     .spacing(10))

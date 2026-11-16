@@ -4,7 +4,7 @@
 //! usam os componentes Iced compartilhados de feather-ui. Eventos e comandos
 //! permanecem no FeatherSlide; F1/F12/Ctrl+F1 usam o roteador global.
 
-use crate::localidade::texto as tr;
+use crate::localidade::{texto, tr};
 use featherslide_core::modelo::{Alinhamento, Direcao, InicioAnimacao, Proporcao, Tipo, TipoAnimacao, TipoTransicao};
 use pelicano::{button, column, container, pick_list, row, text, text_input, Space};
 use pelicano::{Align, Background, Border, Element, Length, Status, Style, Theme};
@@ -413,7 +413,7 @@ pub fn view_faixa<'a>(
 
     let tab_formato: Element<'a, FaixaMensagem> = if tem_formato {
             let ativa = aba_atual == AbaDaFaixa::Imagem;
-            let titulo: Element<'a, FaixaMensagem> = text(if ctx.tipo_sel == "imagem" { "Formato da Imagem" } else if ctx.tipo_sel == "icone" { "Formato do Ícone" } else if ctx.tipo_sel == "wordart" { "Formato do WordArt" } else { "Formato da Forma" }).size(13).no_wrap().font(pelicano::Font {
+            let titulo: Element<'a, FaixaMensagem> = text(if ctx.tipo_sel == "imagem" { tr("Formato da Imagem") } else if ctx.tipo_sel == "icone" { tr("Formato do Ícone") } else if ctx.tipo_sel == "wordart" { tr("Formato do WordArt") } else { tr("Formato da Forma") }).size(13).no_wrap().font(pelicano::Font {
                 weight: 600,
                 ..pelicano::Font::DEFAULT
             }).into();
@@ -437,23 +437,23 @@ pub fn view_faixa<'a>(
         };
 
     let barra_abas = row![
-        button(row![icone_casa(14.0, "#5f6368"), text("Início").size(13)].spacing(6).align(Align::Center)).padding([7, 12]).style(estilo_botao_secundario).on_press(FaixaMensagem::IrParaInicio),
+        button(row![icone_casa(14.0, "#5f6368"), text(tr("Início")).size(13)].spacing(6).align(Align::Center)).padding([7, 12]).style(estilo_botao_secundario).on_press(FaixaMensagem::IrParaInicio),
         Space::new(6, 0.0),
-        btn_aba(AbaDaFaixa::Inicio, "Página Inicial"),
-        btn_aba(AbaDaFaixa::Inserir, "Inserir"),
-        btn_aba(AbaDaFaixa::Organizar, "Organizar"),
-        btn_aba(AbaDaFaixa::Design, "Design"),
-        btn_aba(AbaDaFaixa::Transicoes, "Transições"),
-        btn_aba(AbaDaFaixa::Animacoes, "Animações"),
-        btn_aba(AbaDaFaixa::Apresentacao, "Apresentação"),
-        btn_aba(AbaDaFaixa::Revisao, "Revisão"),
-        btn_aba(AbaDaFaixa::Exibir, "Exibir"),
+        btn_aba(AbaDaFaixa::Inicio, tr("Página Inicial")),
+        btn_aba(AbaDaFaixa::Inserir, tr("Inserir")),
+        btn_aba(AbaDaFaixa::Organizar, tr("Organizar")),
+        btn_aba(AbaDaFaixa::Design, tr("Design")),
+        btn_aba(AbaDaFaixa::Transicoes, tr("Transições")),
+        btn_aba(AbaDaFaixa::Animacoes, tr("Animações")),
+        btn_aba(AbaDaFaixa::Apresentacao, tr("Apresentação")),
+        btn_aba(AbaDaFaixa::Revisao, tr("Revisão")),
+        btn_aba(AbaDaFaixa::Exibir, tr("Exibir")),
         tab_formato,
         Space::new(Length::FILL, 0.0),
         // No canto direito da barra de abas: Monitor (F12), Ajuda (F1) e Configurações.
         button(text("F12").size(13)).padding([6, 9]).style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::AbrirMonitor),
-        feather_ui::componentes::botao_icone(icone_ajuda(19.0, "#5f6368"), "Ajuda (F1)", Some(FaixaMensagem::AbrirAjuda), false),
-        feather_ui::componentes::botao_icone(icone_config(19.0, "#5f6368"), "Configurações", Some(FaixaMensagem::AbrirConfig), false),
+        feather_ui::componentes::botao_icone(icone_ajuda(19.0, "#5f6368"), tr("Ajuda (F1)"), Some(FaixaMensagem::AbrirAjuda), false),
+        feather_ui::componentes::botao_icone(icone_config(19.0, "#5f6368"), tr("Configurações"), Some(FaixaMensagem::AbrirConfig), false),
         Space::new(8, 0.0),
     ]
     .spacing(2)
@@ -475,7 +475,7 @@ pub fn view_faixa<'a>(
             // Grupo 1: Área de transferência
             let grupo_transferencia = {
                 let btn_colar = button(
-                    column![icone_colar(22.0, "#1a73e8"), com_seta("Colar", 11)]
+                    column![icone_colar(22.0, "#1a73e8"), com_seta(tr("Colar"), 11)]
                         .align(Align::Center)
                         .spacing(3),
                 )
@@ -486,19 +486,19 @@ pub fn view_faixa<'a>(
                 let pilha_acoes = column![
                     feather_ui::componentes::botao_pequeno(
                         icone_recortar(13.0, "#5f6368"),
-                        "Recortar",
+                        tr("Recortar"),
                         tem_selecao.then_some(FaixaMensagem::Recortar),
                         false,
                     ),
                     feather_ui::componentes::botao_pequeno(
                         icone_copiar(13.0, "#5f6368"),
-                        "Copiar",
+                        tr("Copiar"),
                         tem_selecao.then_some(FaixaMensagem::Copiar),
                         false,
                     ),
                     feather_ui::componentes::botao_pequeno(
                         icone_duplicar(13.0, "#5f6368"),
-                        "Duplicar",
+                        tr("Duplicar"),
                         tem_selecao.then_some(FaixaMensagem::Duplicar),
                         false,
                     ),
@@ -508,18 +508,18 @@ pub fn view_faixa<'a>(
                 criar_grupo(
                     // O padding [5, 10] é o padrão do Iced: com o [6, 12] do pelicano o Pincel não cabia.
                     row![btn_colar, pilha_acoes, column![
-                        button(row![feather_ui::icones::icone("clipboard",13.0),text(tr("sem_formatacao")).size(11)].spacing(5).align(Align::Center)).padding([5u16, 10]).style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::ColarSemFormatacao),
-                        button(row![feather_ui::icones::icone("copy",13.0),text(tr("original")).size(11)].spacing(5).align(Align::Center)).padding([5u16, 10]).style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::ColarOriginal),
-                        button(row![feather_ui::icones::icone("brush",13.0),text(tr("pincel")).size(11)].spacing(5).align(Align::Center)).padding([5u16, 10]).style(estilo_botao_pequeno(false)).on_press_maybe(tem_selecao.then_some(FaixaMensagem::Pincel)),
+                        button(row![feather_ui::icones::icone("clipboard",13.0),text(texto("sem_formatacao")).size(11)].spacing(5).align(Align::Center)).padding([5u16, 10]).style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::ColarSemFormatacao),
+                        button(row![feather_ui::icones::icone("copy",13.0),text(texto("original")).size(11)].spacing(5).align(Align::Center)).padding([5u16, 10]).style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::ColarOriginal),
+                        button(row![feather_ui::icones::icone("brush",13.0),text(texto("pincel")).size(11)].spacing(5).align(Align::Center)).padding([5u16, 10]).style(estilo_botao_pequeno(false)).on_press_maybe(tem_selecao.then_some(FaixaMensagem::Pincel)),
                     ].spacing(2)].spacing(6).align(Align::Center).into(),
-                    "Área de transferência",
+                    tr("Área de transferência"),
                 )
             };
 
             // Grupo 2: Slides
             let grupo_slides = {
                 let btn_novo = button(
-                    column![icone_novo_slide(22.0, "#1a73e8"), com_seta("Novo slide", 11)]
+                    column![icone_novo_slide(22.0, "#1a73e8"), com_seta(tr("Novo slide"), 11)]
                         .align(Align::Center)
                         .spacing(3),
                 )
@@ -531,13 +531,13 @@ pub fn view_faixa<'a>(
                 let pilha_slides = column![
                     feather_ui::componentes::botao_pequeno(
                         icone_duplicar(13.0, "#5f6368"),
-                        "Duplicar slide",
+                        tr("Duplicar slide"),
                         Some(FaixaMensagem::SlideDuplicar),
                         false,
                     ),
                     feather_ui::componentes::botao_pequeno(
                         icone_excluir(13.0, "#5f6368"),
-                        "Excluir slide",
+                        tr("Excluir slide"),
                         Some(FaixaMensagem::SlideExcluir),
                         false,
                     ),
@@ -546,16 +546,16 @@ pub fn view_faixa<'a>(
 
                 let transferencia = row![
                     dica_cor(button(icone_copiar(17.0, "#5f6368")).padding([5, 7])
-                        .style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::SlidesCopiar), "Copiar slides selecionados"),
+                        .style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::SlidesCopiar), tr("Copiar slides selecionados")),
                     dica_cor(button(icone_recortar(17.0, "#5f6368")).padding([5, 7])
-                        .style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::SlidesRecortar), "Recortar slides selecionados"),
+                        .style(estilo_botao_pequeno(false)).on_press(FaixaMensagem::SlidesRecortar), tr("Recortar slides selecionados")),
                     dica_cor(button(icone_colar(17.0, "#5f6368")).padding([5, 7])
                         .style(estilo_botao_pequeno(false))
-                        .on_press(FaixaMensagem::SlidesColar(featherslide_core::EstiloColagem::ManterOrigem)), "Colar slides preservando formatação"),
+                        .on_press(FaixaMensagem::SlidesColar(featherslide_core::EstiloColagem::ManterOrigem)), tr("Colar slides preservando formatação")),
                 ].spacing(2);
                 criar_grupo(
                     row![btn_novo, pilha_slides, transferencia].spacing(6).align(Align::Center).into(),
-                    "Slides",
+                    tr("Slides"),
                 )
             };
 
@@ -572,7 +572,7 @@ pub fn view_faixa<'a>(
                 });
                 let linha_1 = row![
                     pick_list(&FONTES[..], atual, |n| FaixaMensagem::FonteEscolhida(n.to_string()))
-                        .placeholder(if fonte_atual.is_empty() { "Fonte".to_string() } else { fonte_atual.to_string() })
+                        .placeholder(if fonte_atual.is_empty() { tr("Fonte").to_string() } else { fonte_atual.to_string() })
                         .size(12)
                         .padding([4, 8])
                         .width(Length::Fixed(150.0)),
@@ -584,13 +584,13 @@ pub fn view_faixa<'a>(
                         .width(Length::Fixed(46.0)),
                     feather_ui::componentes::botao_icone(
                         icone_fonte_mais(16.0, "#5f6368"),
-                        "Aumentar tamanho da fonte",
+                        tr("Aumentar tamanho da fonte"),
                         tem_selecao.then_some(FaixaMensagem::AumentarFonte),
                         false,
                     ),
                     feather_ui::componentes::botao_icone(
                         icone_fonte_menos(16.0, "#5f6368"),
-                        "Diminuir tamanho da fonte",
+                        tr("Diminuir tamanho da fonte"),
                         tem_selecao.then_some(FaixaMensagem::DiminuirFonte),
                         false,
                     ),
@@ -598,7 +598,7 @@ pub fn view_faixa<'a>(
                     menu(MenuFonte::Caixa),
                     feather_ui::componentes::botao_icone(
                         icone_limpar(14.0, "#5f6368"),
-                        "Limpar toda a formatação",
+                        tr("Limpar toda a formatação"),
                         tem_selecao.then_some(FaixaMensagem::LimparFormatacao),
                         false,
                     ),
@@ -607,17 +607,17 @@ pub fn view_faixa<'a>(
                 .align(Align::Center);
 
                 let estilo = row![
-                    feather_ui::componentes::botao_icone(icone_negrito(14.0, cor(negrito_ativo)), "Negrito (Ctrl+B)", tem_selecao.then_some(FaixaMensagem::Negrito), negrito_ativo),
-                    feather_ui::componentes::botao_icone(icone_italico(14.0, cor(italico_ativo)), "Itálico (Ctrl+I)", tem_selecao.then_some(FaixaMensagem::Italico), italico_ativo),
-                    feather_ui::componentes::botao_icone(icone_sublinhado(14.0, cor(sublinhado_ativo && !ctx.sublinhado_duplo)), "Sublinhado (Ctrl+U)", tem_selecao.then_some(FaixaMensagem::Sublinhado), sublinhado_ativo && !ctx.sublinhado_duplo),
-                    feather_ui::componentes::botao_icone(icone_tachado(14.0, cor(tachado_ativo && !ctx.tachado_duplo)), "Tachado", tem_selecao.then_some(FaixaMensagem::Tachado), tachado_ativo && !ctx.tachado_duplo),
+                    feather_ui::componentes::botao_icone(icone_negrito(14.0, cor(negrito_ativo)), tr("Negrito (Ctrl+B)"), tem_selecao.then_some(FaixaMensagem::Negrito), negrito_ativo),
+                    feather_ui::componentes::botao_icone(icone_italico(14.0, cor(italico_ativo)), tr("Itálico (Ctrl+I)"), tem_selecao.then_some(FaixaMensagem::Italico), italico_ativo),
+                    feather_ui::componentes::botao_icone(icone_sublinhado(14.0, cor(sublinhado_ativo && !ctx.sublinhado_duplo)), tr("Sublinhado (Ctrl+U)"), tem_selecao.then_some(FaixaMensagem::Sublinhado), sublinhado_ativo && !ctx.sublinhado_duplo),
+                    feather_ui::componentes::botao_icone(icone_tachado(14.0, cor(tachado_ativo && !ctx.tachado_duplo)), tr("Tachado"), tem_selecao.then_some(FaixaMensagem::Tachado), tachado_ativo && !ctx.tachado_duplo),
                     menu(MenuFonte::Tracos),
                 ]
                 .spacing(1)
                 .align(Align::Center);
                 let indices = row![
-                    feather_ui::componentes::botao_icone(icone_indice_texto(14.0, true), "Sobrescrito (x²): marque o trecho ou clique e digite", tem_selecao.then_some(FaixaMensagem::IndiceTexto(1)), ctx.indice_texto == 1),
-                    feather_ui::componentes::botao_icone(icone_indice_texto(14.0, false), "Subscrito (x₂): marque o trecho ou clique e digite", tem_selecao.then_some(FaixaMensagem::IndiceTexto(-1)), ctx.indice_texto == -1),
+                    feather_ui::componentes::botao_icone(icone_indice_texto(14.0, true), tr("Sobrescrito (x²): marque o trecho ou clique e digite"), tem_selecao.then_some(FaixaMensagem::IndiceTexto(1)), ctx.indice_texto == 1),
+                    feather_ui::componentes::botao_icone(icone_indice_texto(14.0, false), tr("Subscrito (x₂): marque o trecho ou clique e digite"), tem_selecao.then_some(FaixaMensagem::IndiceTexto(-1)), ctx.indice_texto == -1),
                     menu(MenuFonte::Espacamento),
                 ]
                 .spacing(1)
@@ -630,17 +630,17 @@ pub fn view_faixa<'a>(
                                 .padding([2, 6])
                                 .style(estilo_botao_pequeno(false))
                                 .on_press_maybe(tem_selecao.then_some(FaixaMensagem::AbrirSeletorCor(AlvoCor::Texto))),
-                            "Cor do texto",
+                            tr("Cor do texto"),
                         ),
                     ),
                     crate::medido::marcar(
                         "cor_realce",
                         dica_cor(
-                            button(com_seta("Fundo", 11))
+                            button(com_seta(tr("Fundo"), 11))
                                 .padding([2, 6])
                                 .style(estilo_botao_pequeno(false))
                                 .on_press_maybe(tem_selecao.then_some(FaixaMensagem::AbrirSeletorCor(AlvoCor::Realce))),
-                            "Cor de fundo do texto (marca-texto)",
+                            tr("Cor de fundo do texto (marca-texto)"),
                         ),
                     ),
                 ]
@@ -652,7 +652,7 @@ pub fn view_faixa<'a>(
 
                 criar_grupo(
                     column![linha_1, linha_2].spacing(6).into(),
-                    "Fonte",
+                    tr("Fonte"),
                 )
             };
 
@@ -660,7 +660,7 @@ pub fn view_faixa<'a>(
             let grupo_paragrafo = {
                 let linha_1 = row![
                     button(
-                        row![icone_lista(13.0, "#5f6368"), text("Lista").size(11)]
+                        row![icone_lista(13.0, "#5f6368"), text(tr("Lista")).size(11)]
                             .spacing(4)
                             .align(Align::Center),
                     )
@@ -668,7 +668,7 @@ pub fn view_faixa<'a>(
                     .style(estilo_botao_pequeno(false))
                     .on_press_maybe(tem_selecao.then_some(FaixaMensagem::Marcadores)),
                     button(
-                        row![icone_lista_num(13.0, "#5f6368"), text("Num").size(11)]
+                        row![icone_lista_num(13.0, "#5f6368"), text(tr("Num")).size(11)]
                             .spacing(4)
                             .align(Align::Center),
                     )
@@ -706,16 +706,16 @@ pub fn view_faixa<'a>(
                     }),
                 );
                 let linha_3 = row![
-                    vertical_botao("objeto_alinhar_topo", "Alinhar o texto ao topo", featherslide_core::modelo::Vertical::Topo, "topo"),
-                    vertical_botao("objeto_alinhar_meio", "Centralizar o texto na vertical (meio)", featherslide_core::modelo::Vertical::Meio, "meio"),
-                    vertical_botao("objeto_alinhar_base", "Alinhar o texto à base", featherslide_core::modelo::Vertical::Base, "base"),
+                    vertical_botao("objeto_alinhar_topo", tr("Alinhar o texto ao topo"), featherslide_core::modelo::Vertical::Topo, "topo"),
+                    vertical_botao("objeto_alinhar_meio", tr("Centralizar o texto na vertical (meio)"), featherslide_core::modelo::Vertical::Meio, "meio"),
+                    vertical_botao("objeto_alinhar_base", tr("Alinhar o texto à base"), featherslide_core::modelo::Vertical::Base, "base"),
                 ]
                 .spacing(3)
                 .align(Align::Center);
 
                 criar_grupo(
                     column![linha_1, linha_2, linha_3].spacing(3).into(),
-                    "Parágrafo",
+                    tr("Parágrafo"),
                 )
             };
 
@@ -723,21 +723,21 @@ pub fn view_faixa<'a>(
             let grupo_edicao = {
                 let pilha_edicao = column![
                     button(
-                        row![icone_buscar(13.0, "#5f6368"), text("Localizar").size(11)]
+                        row![icone_buscar(13.0, "#5f6368"), text(tr("Localizar")).size(11)]
                             .spacing(5)
                             .align(Align::Center),
                     )
                     .padding([2, 6])
                     .style(estilo_botao_pequeno(false)),
                     button(
-                        row![icone_substituir(13.0, "#5f6368"), text("Substituir").size(11)]
+                        row![icone_substituir(13.0, "#5f6368"), text(tr("Substituir")).size(11)]
                             .spacing(5)
                             .align(Align::Center),
                     )
                     .padding([2, 6])
                     .style(estilo_botao_pequeno(false)),
                     button(
-                        row![icone_selecionar(13.0, "#5f6368"), text("Selecionar tudo").size(11)]
+                        row![icone_selecionar(13.0, "#5f6368"), text(tr("Selecionar tudo")).size(11)]
                             .spacing(5)
                             .align(Align::Center),
                     )
@@ -747,7 +747,7 @@ pub fn view_faixa<'a>(
                 ]
                 .spacing(2);
 
-                criar_grupo(pilha_edicao.into(), "Edição")
+                criar_grupo(pilha_edicao.into(), tr("Edição"))
             };
 
             row![

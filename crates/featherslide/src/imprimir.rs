@@ -2,6 +2,7 @@
 //! (`featherslide-io::pdf`) vai para o CUPS (`lp`) no Linux e no macOS. No Windows não há `lp`:
 //! o PDF abre no leitor do sistema, de onde se imprime. Tudo local, nada sai da máquina.
 
+use crate::localidade::tr;
 use std::path::Path;
 use std::process::Command;
 
@@ -64,14 +65,14 @@ fn listar() -> (Vec<String>, usize) {
 pub fn enviar(arquivo: &Path, impressora: Option<&str>, copias: u32) -> Result<String, String> {
     if cfg!(target_os = "windows") {
         Command::new("rundll32").arg("url.dll,FileProtocolHandler").arg(arquivo).spawn().map_err(|e| e.to_string())?;
-        return Ok("PDF aberto no leitor do sistema: imprima por lá (Ctrl+P).".into());
+        return Ok(tr("PDF aberto no leitor do sistema: imprima por lá (Ctrl+P).").into());
     }
-    let impressora = impressora.ok_or("Nenhuma impressora encontrada. Dá para exportar como PDF e imprimir de outro lugar.")?;
-    let saida = Command::new("lp").arg("-d").arg(impressora).arg("-n").arg(copias.to_string()).args(["-o", "fit-to-page"]).arg(arquivo).output().map_err(|e| format!("Não consegui chamar o lp: {e}"))?;
+    let impressora = impressora.ok_or(tr("Nenhuma impressora encontrada. Dá para exportar como PDF e imprimir de outro lugar."))?;
+    let saida = Command::new("lp").arg("-d").arg(impressora).arg("-n").arg(copias.to_string()).args(["-o", "fit-to-page"]).arg(arquivo).output().map_err(|e| crate::localidade::trf("Não consegui chamar o lp: {}", &[&e]))?;
     if saida.status.success() {
-        Ok(format!("Enviado para a impressora {impressora}."))
+        Ok(crate::localidade::trf("Enviado para a impressora {}.", &[&impressora]))
     } else {
-        Err(format!("A impressora recusou: {}", String::from_utf8_lossy(&saida.stderr).trim()))
+        Err(crate::localidade::trf("A impressora recusou: {}", &[&(String::from_utf8_lossy(&saida.stderr).trim())]))
     }
 }
 
@@ -89,30 +90,30 @@ pub fn sobrepor<'a>(base: Element<'a, Mensagem>, i: &'a Impressao, tem_oculto: b
     let fundo = mouse_area(Space::new(Length::FILL, Length::FILL));
     let largura = 380.0;
     let mut impressoras = column![].spacing(3);
-    impressoras = impressoras.push(opcao("Salvar como PDF", i.pdf, ImprMsg::Pdf));
+    impressoras = impressoras.push(opcao(tr("Salvar como PDF"), i.pdf, ImprMsg::Pdf));
     for (n, nome) in i.impressoras.iter().enumerate() {
         impressoras = impressoras.push(opcao(nome, !i.pdf && n == i.escolhida, ImprMsg::Impressora(n)));
     }
     if i.impressoras.is_empty() {
-        impressoras = impressoras.push(text("Nenhuma impressora encontrada neste computador.").size(11.5).color(COR_TEXTO_MUTED()));
+        impressoras = impressoras.push(text(tr("Nenhuma impressora encontrada neste computador.")).size(11.5).color(COR_TEXTO_MUTED()));
     }
     let pode_enviar = !i.enviando;
-    let nota = if tem_oculto && !i.so_atual { "Slides ocultos não são impressos." } else { "" };
+    let nota = if tem_oculto && !i.so_atual { tr("Slides ocultos não são impressos.") } else { "" };
     let corpo = column![
-        text("Imprimir").size(14),
-        text("Impressora").size(11).color(COR_TEXTO_MUTED()),
+        text(tr("Imprimir")).size(14),
+        text(tr("Impressora")).size(11).color(COR_TEXTO_MUTED()),
         impressoras,
-        text("O que imprimir").size(11).color(COR_TEXTO_MUTED()),
-        row![opcao("Todos os slides", !i.so_atual, ImprMsg::SoAtual(false)), opcao("Só o slide atual", i.so_atual, ImprMsg::SoAtual(true))].spacing(4),
+        text(tr("O que imprimir")).size(11).color(COR_TEXTO_MUTED()),
+        row![opcao(tr("Todos os slides"), !i.so_atual, ImprMsg::SoAtual(false)), opcao(tr("Só o slide atual"), i.so_atual, ImprMsg::SoAtual(true))].spacing(4),
         text(nota).size(11).color(COR_TEXTO_MUTED()),
         row![
-            text(if i.pdf { "" } else { "Cópias" }).size(12.5),
+            text(if i.pdf { "" } else { tr("Cópias") }).size(12.5),
             botao("-", (!i.pdf).then_some(ImprMsg::Copias(-1)), false),
             text(if i.pdf { String::new() } else { i.copias.to_string() }).size(13),
             botao("+", (!i.pdf).then_some(ImprMsg::Copias(1)), false),
             Space::new(Length::FILL, Length::Shrink),
-            botao("Cancelar", Some(ImprMsg::Cancelar), false),
-            botao(if i.enviando { "Enviando…" } else if i.pdf { "Salvar PDF…" } else { "Imprimir" }, pode_enviar.then_some(ImprMsg::Confirmar), true),
+            botao(tr("Cancelar"), Some(ImprMsg::Cancelar), false),
+            botao(if i.enviando { tr("Enviando…") } else if i.pdf { tr("Salvar PDF…") } else { tr("Imprimir") }, pode_enviar.then_some(ImprMsg::Confirmar), true),
         ]
         .spacing(8)
         .align(Align::Center),

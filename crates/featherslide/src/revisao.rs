@@ -1,6 +1,7 @@
 //! Os painéis de Inserir → Link e Inserir → Comentário: uma caixa por cima do editor. A
 //! interface só pede e mostra; validar o endereço e guardar os comentários é do motor.
 
+use crate::localidade::tr;
 use pelicano::*;
 use pelicano::column;
 
@@ -51,16 +52,16 @@ fn moldura<'a>(corpo: Element<'a, RevisaoMsg>) -> Element<'a, RevisaoMsg> {
 fn caixa_link<'a>(texto: &'a str, tem_link: bool) -> Element<'a, RevisaoMsg> {
     let mut botoes = row![].spacing(8).align(Align::Center);
     if tem_link {
-        botoes = botoes.push(button(text("Remover link").size(12.5)).padding([5, 10]).style(estilo_botao_secundario).on_press(RevisaoMsg::RemoverLink));
+        botoes = botoes.push(button(text(tr("Remover link")).size(12.5)).padding([5, 10]).style(estilo_botao_secundario).on_press(RevisaoMsg::RemoverLink));
     }
     botoes = botoes
         .push(Space::new(Length::FILL, Length::Shrink))
-        .push(button(text("Cancelar").size(12.5)).padding([5, 10]).style(estilo_botao_secundario).on_press(RevisaoMsg::Fechar))
-        .push(button(text("Aplicar").size(12.5)).padding([5, 10]).style(estilo_botao_primario).on_press(RevisaoMsg::Confirmar));
+        .push(button(text(tr("Cancelar")).size(12.5)).padding([5, 10]).style(estilo_botao_secundario).on_press(RevisaoMsg::Fechar))
+        .push(button(text(tr("Aplicar")).size(12.5)).padding([5, 10]).style(estilo_botao_primario).on_press(RevisaoMsg::Confirmar));
     moldura(
         column![
-            text("Link").size(14),
-            text("Endereço da página ou e-mail. Abre ao clicar durante a apresentação.").size(11).color(COR_TEXTO_MUTED()),
+            text(tr("Link")).size(14),
+            text(tr("Endereço da página ou e-mail. Abre ao clicar durante a apresentação.")).size(11).color(COR_TEXTO_MUTED()),
             text_input("https://exemplo.com", texto).id(ID_CAMPO).on_input(RevisaoMsg::Texto).on_submit(RevisaoMsg::Confirmar).size(13).padding([6, 8]),
             botoes,
         ]
@@ -72,19 +73,19 @@ fn caixa_link<'a>(texto: &'a str, tem_link: bool) -> Element<'a, RevisaoMsg> {
 fn caixa_comentarios<'a>(texto: &'a str, comentarios: &'a [Comentario]) -> Element<'a, RevisaoMsg> {
     let mut lista = column![].spacing(6);
     if comentarios.is_empty() {
-        lista = lista.push(text("Nenhum comentário neste slide.").size(12).color(COR_TEXTO_MUTED()));
+        lista = lista.push(text(tr("Nenhum comentário neste slide.")).size(12).color(COR_TEXTO_MUTED()));
     }
     for (i, c) in comentarios.iter().enumerate() {
         let cor = if c.resolvido { COR_TEXTO_MUTED() } else { COR_TEXTO() };
-        let rotulo = if c.resolvido { "Reabrir" } else { "Resolver" };
+        let rotulo = if c.resolvido { tr("Reabrir") } else { tr("Resolver") };
         lista = lista.push(
             container(
                 column![
-                    text(format!("{}{}", c.autor, if c.resolvido { " — resolvido" } else { "" })).size(11).color(COR_TEXTO_MUTED()),
+                    text(format!("{}{}", c.autor, if c.resolvido { tr(" — resolvido") } else { "" })).size(11).color(COR_TEXTO_MUTED()),
                     text(c.texto.as_str()).size(13).color(cor),
                     row![
                         button(text(rotulo).size(11.5)).padding([2, 8]).style(estilo_botao_secundario).on_press(RevisaoMsg::Resolver(i, !c.resolvido)),
-                        button(text("Excluir").size(11.5)).padding([2, 8]).style(estilo_botao_secundario).on_press(RevisaoMsg::Excluir(i)),
+                        button(text(tr("Excluir")).size(11.5)).padding([2, 8]).style(estilo_botao_secundario).on_press(RevisaoMsg::Excluir(i)),
                     ]
                     .spacing(6),
                 ]
@@ -97,14 +98,14 @@ fn caixa_comentarios<'a>(texto: &'a str, comentarios: &'a [Comentario]) -> Eleme
     }
     moldura(
         column![
-            text("Comentários").size(14),
+            text(tr("Comentários")).size(14),
             scrollable(lista).scrollbar_width(10).scrollbar_track(COR_TRILHO_ROLAGEM()).scrollbar_color(COR_POLEGAR_ROLAGEM()).height(Length::Fixed(190.0)),
-            text_input("Escreva um comentário…", texto).id(ID_CAMPO).on_input(RevisaoMsg::Texto).on_submit(RevisaoMsg::Confirmar).size(13).padding([6, 8]),
+            text_input(tr("Escreva um comentário…"), texto).id(ID_CAMPO).on_input(RevisaoMsg::Texto).on_submit(RevisaoMsg::Confirmar).size(13).padding([6, 8]),
             row![
-                button(text("Excluir todos").size(12.5)).padding([5, 10]).style(estilo_botao_secundario).on_press(RevisaoMsg::ExcluirTodos),
+                button(text(tr("Excluir todos")).size(12.5)).padding([5, 10]).style(estilo_botao_secundario).on_press(RevisaoMsg::ExcluirTodos),
                 Space::new(Length::FILL, Length::Shrink),
-                button(text("Fechar").size(12.5)).padding([5, 10]).style(estilo_botao_secundario).on_press(RevisaoMsg::Fechar),
-                button(text("Comentar").size(12.5)).padding([5, 10]).style(estilo_botao_primario).on_press(RevisaoMsg::Confirmar),
+                button(text(tr("Fechar")).size(12.5)).padding([5, 10]).style(estilo_botao_secundario).on_press(RevisaoMsg::Fechar),
+                button(text(tr("Comentar")).size(12.5)).padding([5, 10]).style(estilo_botao_primario).on_press(RevisaoMsg::Confirmar),
             ]
             .spacing(8)
             .align(Align::Center),

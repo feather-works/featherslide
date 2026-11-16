@@ -1,6 +1,7 @@
 //! Painel de propriedades do documento: UI Iced, sem regra de negócio.
 //! A edição usa um rascunho e um único comando de confirmação no motor Rust.
 
+use crate::localidade::tr;
 use featherslide_core::metadados::{data_utc, Estatisticas, Metadados};
 use featherslide_core::modelo::Apresentacao;
 use pelicano::*;
@@ -75,11 +76,11 @@ impl Estado {
                 };
                 let nome = chave.trim();
                 if nome.is_empty() || nome.len() > 128 {
-                    self.aviso = "A chave precisa ter entre 1 e 128 bytes.".into();
+                    self.aviso = tr("A chave precisa ter entre 1 e 128 bytes.").into();
                 } else if mapa.contains_key(nome) {
-                    self.aviso = "Já existe uma propriedade com essa chave.".into();
+                    self.aviso = tr("Já existe uma propriedade com essa chave.").into();
                 } else if mapa.len() >= 100 || valor.len() > 16_384 {
-                    self.aviso = "Limite de propriedades ou de valor excedido.".into();
+                    self.aviso = tr("Limite de propriedades ou de valor excedido.").into();
                 } else {
                     mapa.insert(nome.into(), std::mem::take(valor));
                     chave.clear();
@@ -128,10 +129,10 @@ fn painel_mapa<'a>(
     }
     corpo = corpo.push(
         row![
-            text_input("Chave", chave_nova)
+            text_input(tr("Chave"), chave_nova)
                 .on_input(move |s| Msg::ChaveNova(estendido, s))
                 .size(12).padding([5, 8]).width(Length::Fixed(165.0)),
-            text_input("Valor", valor_novo)
+            text_input(tr("Valor"), valor_novo)
                 .on_input(move |s| Msg::ValorNovo(estendido, s))
                 .size(12).padding([5, 8]).width(Length::FILL),
             button(text("+").size(14)).padding([5, 11])
@@ -152,39 +153,39 @@ pub fn sobrepor<'a>(
         .on_press(Mensagem::Propriedades(Msg::Fechar));
     let dados = &estado.dados;
     let mut campos = column![
-        text("Propriedades da apresentação").size(18),
-        text("Geral").size(14),
-        campo("Título", "titulo", &estado.titulo),
-        campo("Assunto", "assunto", &dados.assunto),
-        campo("Autor", "autor", &estado.autor),
-        campo("Empresa", "empresa", &dados.empresa),
-        campo("Gerente", "gerente", &dados.gerente),
-        campo("Categoria", "categoria", &dados.categoria),
-        campo("Palavras-chave", "palavras_chave", &dados.palavras_chave),
-        campo("Comentários", "comentarios", &dados.comentarios),
-        campo("Idioma", "idioma", &dados.idioma),
-        text("Identificação e histórico (gerados pelo FeatherSlide)").size(14),
-        informacao("Identificador", &dados.identificador),
-        informacao("Criação", &data_utc(dados.criado_em_utc)),
-        informacao("Modificação", &data_utc(dados.modificado_em_utc)),
-        informacao("Último autor", &dados.ultimo_autor),
-        informacao("Revisões", &dados.revisoes.to_string()),
-        informacao("Tempo de edição", &format!("{} minutos (estimativa)", dados.tempo_edicao_segundos / 60)),
-        painel_mapa("Propriedades personalizadas", &dados.propriedades_personalizadas,
+        text(tr("Propriedades da apresentação")).size(18),
+        text(tr("Geral")).size(14),
+        campo(tr("Título"), "titulo", &estado.titulo),
+        campo(tr("Assunto"), "assunto", &dados.assunto),
+        campo(tr("Autor"), "autor", &estado.autor),
+        campo(tr("Empresa"), "empresa", &dados.empresa),
+        campo(tr("Gerente"), "gerente", &dados.gerente),
+        campo(tr("Categoria"), "categoria", &dados.categoria),
+        campo(tr("Palavras-chave"), "palavras_chave", &dados.palavras_chave),
+        campo(tr("Comentários"), "comentarios", &dados.comentarios),
+        campo(tr("Idioma"), "idioma", &dados.idioma),
+        text(tr("Identificação e histórico (gerados pelo FeatherSlide)")).size(14),
+        informacao(tr("Identificador"), &dados.identificador),
+        informacao(tr("Criação"), &data_utc(dados.criado_em_utc)),
+        informacao(tr("Modificação"), &data_utc(dados.modificado_em_utc)),
+        informacao(tr("Último autor"), &dados.ultimo_autor),
+        informacao(tr("Revisões"), &dados.revisoes.to_string()),
+        informacao(tr("Tempo de edição"), &crate::localidade::trf("{} minutos (estimativa)", &[&(dados.tempo_edicao_segundos / 60)])),
+        painel_mapa(tr("Propriedades personalizadas"), &dados.propriedades_personalizadas,
             &estado.nova_chave_personalizada, &estado.novo_valor_personalizada, false),
-        painel_mapa("Metadados estendidos", &dados.estendidos,
+        painel_mapa(tr("Metadados estendidos"), &dados.estendidos,
             &estado.nova_chave_estendida, &estado.novo_valor_estendida, true),
-        text("Estatísticas do documento (calculadas em tempo real)").size(14),
-        informacao("Slides / ocultos", &format!("{} / {}", estat.slides, estat.slides_ocultos)),
-        informacao("Elementos / formas", &format!("{} / {}", estat.elementos, estat.formas)),
-        informacao("Caixas de texto", &estat.caixas_texto.to_string()),
-        informacao("Imagens / gráficos", &format!("{} / {}", estat.imagens, estat.graficos)),
-        informacao("Tabelas", &estat.tabelas.to_string()),
-        informacao("Animações", &estat.animacoes.to_string()),
-        informacao("Notas / seções", &format!("{} / {}", estat.notas, estat.secoes)),
-        informacao("Comentários / resolvidos", &format!("{} / {}", estat.comentarios, estat.comentarios_resolvidos)),
-        informacao("Palavras / caracteres", &format!("{} / {}", estat.palavras, estat.caracteres)),
-        informacao("Fontes incorporadas", &estat.fontes_embutidas.to_string()),
+        text(tr("Estatísticas do documento (calculadas em tempo real)")).size(14),
+        informacao(tr("Slides / ocultos"), &format!("{} / {}", estat.slides, estat.slides_ocultos)),
+        informacao(tr("Elementos / formas"), &format!("{} / {}", estat.elementos, estat.formas)),
+        informacao(tr("Caixas de texto"), &estat.caixas_texto.to_string()),
+        informacao(tr("Imagens / gráficos"), &format!("{} / {}", estat.imagens, estat.graficos)),
+        informacao(tr("Tabelas"), &estat.tabelas.to_string()),
+        informacao(tr("Animações"), &estat.animacoes.to_string()),
+        informacao(tr("Notas / seções"), &format!("{} / {}", estat.notas, estat.secoes)),
+        informacao(tr("Comentários / resolvidos"), &format!("{} / {}", estat.comentarios, estat.comentarios_resolvidos)),
+        informacao(tr("Palavras / caracteres"), &format!("{} / {}", estat.palavras, estat.caracteres)),
+        informacao(tr("Fontes incorporadas"), &estat.fontes_embutidas.to_string()),
     ].spacing(10);
 
     if !estado.aviso.is_empty() {
@@ -193,9 +194,9 @@ pub fn sobrepor<'a>(
 
     let botoes = row![
         Space::new(Length::FILL, Length::Shrink),
-        button(text("Cancelar").size(12.5)).padding([7, 14])
+        button(text(tr("Cancelar")).size(12.5)).padding([7, 14])
             .style(estilo_botao_secundario).on_press(Msg::Fechar),
-        button(text("Aplicar").size(12.5)).padding([7, 14])
+        button(text(tr("Aplicar")).size(12.5)).padding([7, 14])
             .style(estilo_botao_primario).on_press(Msg::Salvar),
     ].spacing(8).align(Align::Center);
 
