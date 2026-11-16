@@ -6,7 +6,7 @@
 #   SHA256SUMS
 #
 # Uso: pacote/gerar.sh [linux|windows ...]   (sem argumentos = todos)
-# Precisa de: cargo, dpkg-deb; para Windows, o alvo x86_64-pc-windows-gnu
+# Precisa de: cargo, dpkg-deb, objdump; podman ou docker para o Linux (sem eles compila aqui); para Windows, o alvo x86_64-pc-windows-gnu
 # (rustup target add x86_64-pc-windows-gnu), mingw-w64 e makensis.
 set -euo pipefail
 
@@ -22,9 +22,34 @@ alvos=("$@")
 mkdir -p "$saida"
 echo "FeatherSlide $versao → $saida"
 
+# O binário pede a glibc de onde foi compilado: num Debian 12 (2.36) ele roda no Ubuntu 22.04+,
+# Debian 12+ e Mint 21+. Compilado aqui pediria a glibc desta máquina (2.43 em 16/11/2026).
+compilar_linux() {
+  local motor; motor="$(command -v podman || command -v docker || true)"
+  if [[ -z $motor ]]; then
+    echo "Sem podman nem docker: compilando aqui (o .deb vai pedir a glibc desta máquina)." >&2
+    cargo build --release --manifest-path "$gui/Cargo.toml"
+    bin="$alvo/release/featherslide"
+    return
+  fi
+  # A imagem com o Rust sai uma vez só; o registro de crates fica guardado num volume.
+  if ! "$motor" image inspect featherslide-debian12 >/dev/null 2>&1; then
+    "$motor" build -t featherslide-debian12 -f - "$pacote" <<'IMG'
+FROM docker.io/library/debian:12
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev curl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+ENV PATH=/root/.cargo/bin:$PATH
+IMG
+  fi
+  "$motor" run --rm -v "$raiz":/src:z -v featherslide-registro:/root/.cargo/registry -e CARGO_TARGET_DIR=/src/target/debian12 -e CARGO_BUILD_JOBS -w /src \
+    featherslide-debian12 cargo build --release --manifest-path crates/featherslide/Cargo.toml
+  bin="$raiz/target/debian12/release/featherslide"
+}
+
 linux() {
-  cargo build --release --manifest-path "$gui/Cargo.toml"
-  local bin="$alvo/release/featherslide"
+  local bin; compilar_linux
+  local glibc; glibc="$(objdump -T "$bin" | grep -o 'GLIBC_2\.[0-9]*' | sort -V | tail -1 | cut -d_ -f2)"
+  echo "glibc mínima: $glibc"
   strip "$bin" 2>/dev/null || true
 
   # .deb
@@ -48,7 +73,7 @@ Section: graphics
 Priority: optional
 Architecture: amd64
 Installed-Size: $tamanho
-Depends: libc6 (>= 2.43), libxkbcommon0, libwayland-client0 | libx11-6, libfontconfig1
+Depends: libc6 (>= $glibc), libxkbcommon0, libwayland-client0 | libx11-6, libfontconfig1
 Recommends: libvulkan1 | libgl1
 Maintainer: FeatherWorks <https://github.com/FeatherWorks>
 Homepage: https://github.com/feather-works/featherslide

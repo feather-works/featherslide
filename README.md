@@ -51,7 +51,7 @@ cd crates/featherslide
 cargo run --release
 ```
 
-Installers (`.deb`, `.tar.gz` and Windows): `pacote/gerar.sh`.
+Installers (`.deb`, `.tar.gz` and Windows): `pacote/gerar.sh` (the Linux build runs in a Debian 12 container with podman or docker, so it works on Ubuntu 22.04+ and Debian 12+).
 
 ## Privacy
 

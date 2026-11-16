@@ -26,6 +26,10 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   Release: `pacote/gerar.sh` → `.deb`, `.tar.gz`, `.exe` e `SHA256SUMS` com nomes sem versão,
   tag criada pelo `gh release create`. Não há tela de novidades no app: as novidades vão nas
   notas da release.
+- Pacote Linux compilado num contêiner Debian 12 (`compilar_linux` no `gerar.sh`, podman ou docker,
+  imagem `featherslide-debian12`, build em `target/debian12`): a v0.2.1 e a v0.2.2 saíram compiladas
+  aqui e pediam a glibc 2.43, sem abrir no Ubuntu 24.04/22.04 nem no Debian 12. Em 16/11/2026 o
+  `.deb` e o `.tar.gz` da v0.2.2 foram trocados na release pelos do contêiner (glibc ≤ 2.36).
 - Janela com barra própria: `transparent` (fora do Windows) e `cromo::moldura_redimensionavel_com`
   — cantos de 14 px, borda de redimensionar (`Mensagem::Puxar` → `DragResize`), reta maximizada
   (`Event::Maximized` → `app.maximizada`). Igual ao FeatherDB.
