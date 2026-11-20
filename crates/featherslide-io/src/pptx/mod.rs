@@ -229,7 +229,7 @@ fn nome_do_layout(layout: Option<&No>) -> &'static str {
 }
 
 /// O tipo do FeatherSlide para uma geometria pronta do PowerPoint.
-fn tipo_da_forma(prst: &str, preenchida: bool) -> Tipo {
+pub(crate) fn tipo_da_forma(prst: &str, preenchida: bool) -> Tipo {
     match prst {
         "line" | "straightConnector1" | "bentConnector2" | "bentConnector3" | "curvedConnector3" => Tipo::Linha,
         "ellipse" | "circle" => Tipo::Elipse,

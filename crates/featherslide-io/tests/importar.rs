@@ -448,12 +448,12 @@ fn pptx_hiperlink_e_ir_ao_slide_voltam_ao_abrir() {
 
 #[test]
 fn odp_hiperlink_e_ir_ao_slide_viram_link_e_destino() {
-    let ns = r#"xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:xlink="http://www.w3.org/1999/xlink""#;
+    let ns = r#"xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0""#;
     let clique = |href: &str| format!(r#"<office:event-listeners><presentation:event-listener script:event-name="dom:click" presentation:action="show" xlink:href="{href}"/></office:event-listeners>"#);
     let conteudo = format!(
         r#"<office:document-content {ns}><office:body><office:presentation>
 <draw:page draw:name="Capa"><draw:custom-shape svg:x="1cm" svg:y="1cm" svg:width="4cm" svg:height="2cm"><draw:enhanced-geometry draw:type="rectangle"/>{}</draw:custom-shape>
-<draw:custom-shape svg:x="6cm" svg:y="1cm" svg:width="4cm" svg:height="2cm"><draw:enhanced-geometry draw:type="ellipse"/>{}</draw:custom-shape></draw:page>
+<draw:custom-shape svg:x="6cm" svg:y="1cm" svg:width="4cm" svg:height="2cm"><draw:enhanced-geometry draw:type="ellipse"/>{}</draw:custom-shape><draw:custom-shape svg:x="12cm" svg:y="1cm" svg:width="4cm" svg:height="2cm"><draw:enhanced-geometry draw:type="ooxml-roundRect"/></draw:custom-shape><draw:frame svg:x="1cm" svg:y="5cm" svg:width="8cm" svg:height="2cm"><table:table><table:table-column/><table:table-column/><table:table-row><table:table-cell><text:p>Mês</text:p></table:table-cell><table:table-cell table:number-columns-spanned="1"><text:p>Total</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell table:number-columns-repeated="2"><text:p>0</text:p></table:table-cell></table:table-row></table:table><draw:image xlink:href="Pictures/TablePreview1.svm"/></draw:frame></draw:page>
 <draw:page draw:name="Fim do tema"><draw:custom-shape svg:x="1cm" svg:y="1cm" svg:width="4cm" svg:height="2cm"><draw:enhanced-geometry draw:type="rectangle"/></draw:custom-shape></draw:page>
 </office:presentation></office:body></office:document-content>"#,
         clique("https://example.com/"),
@@ -463,6 +463,9 @@ fn odp_hiperlink_e_ir_ao_slide_viram_link_e_destino() {
     let e = &ap.slides[0].elementos;
     assert_eq!((e[0].link.as_str(), e[0].destino), ("https://example.com/", 0));
     assert_eq!((e[1].link.as_str(), e[1].destino), ("", 2));
+    assert_eq!(e[2].tipo, featherslide_core::modelo::Tipo::RetanguloArredondado, "ooxml-roundRect, do .pptx convertido pelo LibreOffice");
+    let t = e.iter().find(|e| e.tipo == featherslide_core::modelo::Tipo::Tabela).expect("a tabela do .odp sumiu");
+    assert_eq!(featherslide_core::dados::ler_tabela(t), vec![vec!["Mês".to_string(), "Total".into()], vec!["0".into(), "0".into()]]);
     assert_eq!((ap.slides[1].elementos[0].link.as_str(), ap.slides[1].elementos[0].destino), ("", 0));
 }
 

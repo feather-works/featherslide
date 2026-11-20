@@ -125,6 +125,28 @@ fn transformacao(f: &No) -> Option<(f64, f64, f64)> {
     Some((a, medida(partes.next()?)?, medida(partes.next().unwrap_or("0"))?))
 }
 
+/// As linhas de uma `table:table` (também as de `table:table-header-rows`), com as células repetidas
+/// (`table:number-columns-repeated`) abertas; a célula coberta por uma mesclagem fica vazia.
+fn grade_da_tabela(t: &No) -> Vec<Vec<String>> {
+    let mut grade = Vec::new();
+    for f in &t.filhos {
+        match f.nome.as_str() {
+            "table:table-header-rows" | "table:table-rows" => grade.extend(grade_da_tabela(f)),
+            "table:table-row" => {
+                let mut linha = Vec::new();
+                for c in f.filhos.iter().filter(|c| c.nome == "table:table-cell" || c.nome == "table:covered-table-cell") {
+                    let texto = if c.nome == "table:table-cell" { c.filhos("text:p").map(texto_do_paragrafo).collect::<Vec<_>>().join("\n") } else { String::new() };
+                    let vezes = c.attr("table:number-columns-repeated").and_then(|n| n.parse::<usize>().ok()).unwrap_or(1).clamp(1, 64);
+                    linha.extend(std::iter::repeat_n(texto, vezes));
+                }
+                grade.push(linha);
+            }
+            _ => {}
+        }
+    }
+    grade
+}
+
 /// O texto de um parágrafo (`text:p`, `text:h`): trechos, espaços (`text:s`), tabulações e quebras.
 fn texto_do_paragrafo(p: &No) -> String {
     let mut s = String::new();
@@ -344,6 +366,16 @@ impl Leitor<'_> {
     fn quadro(&mut self, f: &No) -> Result<Option<Elemento>, String> {
         let Some([x, y, w, h]) = self.retangulo(f) else { return Ok(None) };
         let estilos = [f.attr("presentation:style-name"), f.attr("draw:style-name"), f.attr("draw:text-style-name")];
+        // Tabela: a grade do `table:table`. A imagem ao lado é só a prévia (`.svm`), que não abre.
+        if let Some(tabela) = f.filho("table:table") {
+            let grade = grade_da_tabela(tabela);
+            if grade.is_empty() {
+                return Ok(None);
+            }
+            let mut e = self.elemento(Tipo::Tabela, Papel::Livre, [x, y, w, h]);
+            e.dados = featherslide_core::dados::gravar_tabela(&grade);
+            return Ok(Some(e));
+        }
         if let Some(img) = f.filho("draw:image").and_then(|i| i.attr("xlink:href")).filter(|h| self.pac.tem(h)).map(String::from) {
             let bytes = self.pac.parte(&img)?;
             let tipo = if img.to_ascii_lowercase().ends_with(".png") { "image/png" } else if img.to_ascii_lowercase().ends_with(".svg") { "image/svg+xml" } else { "image/jpeg" };
@@ -382,6 +414,8 @@ impl Leitor<'_> {
             ("draw:line" | "draw:connector", _) => Tipo::Linha,
             ("draw:ellipse", _) | (_, "ellipse" | "circle") => Tipo::Elipse,
             (_, "round-rectangle") => Tipo::RetanguloArredondado,
+            // Forma que veio de um .pptx: o LibreOffice guarda o nome do PowerPoint (`ooxml-roundRect`).
+            (_, g) if g.starts_with("ooxml-") => crate::pptx::tipo_da_forma(&g["ooxml-".len()..], true),
             (_, "isosceles-triangle" | "right-triangle") => Tipo::Triangulo,
             (_, "right-arrow" | "left-arrow") => Tipo::Seta,
             _ => Tipo::Retangulo,
