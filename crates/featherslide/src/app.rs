@@ -781,7 +781,7 @@ impl FeatherSlideApp {
                             let arquivo = rfd::AsyncFileDialog::new().add_filter(tr("Imagem"), &["png", "jpg", "jpeg", "webp", "bmp"]).pick_file().await?;
                             let caminho = arquivo.path().to_path_buf();
                             tokio::task::spawn_blocking(move || {
-                                let bytes = std::fs::read(caminho).ok()?;
+                                let bytes = crate::imagem_arquivo::em_pe(std::fs::read(caminho).ok()?);
                                 let formato = image::guess_format(&bytes).ok()?;
                                 image::load_from_memory(&bytes).ok()?;
                                 let mime = match formato { image::ImageFormat::Jpeg => "image/jpeg", image::ImageFormat::WebP => "image/webp", image::ImageFormat::Bmp => "image/bmp", _ => "image/png" };
@@ -3385,6 +3385,7 @@ impl FeatherSlideApp {
                     let img = tokio::task::spawn_blocking(move || {
                         let bytes = std::fs::read(&caminho).ok()?;
                         if bytes.len() > 64*1024*1024 { return None; }
+                        let bytes = crate::imagem_arquivo::em_pe(bytes);
                         let tipo = match caminho.extension()?.to_string_lossy().to_lowercase().as_str() {
                             "jpeg"|"jpg" => "image/jpeg",
                             "gif" => "image/gif", "bmp" => "image/bmp",
@@ -4437,7 +4438,7 @@ impl FeatherSlideApp {
                             .await
                             .map(|f| f.path().to_path_buf())?;
                         tokio::task::spawn_blocking(move || {
-                            let bytes = std::fs::read(&caminho).ok()?;
+                            let bytes = crate::imagem_arquivo::em_pe(std::fs::read(&caminho).ok()?);
                             let ext = caminho.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
                             let tipo = match ext.as_str() {
                                 "jpg" | "jpeg" => "image/jpeg",

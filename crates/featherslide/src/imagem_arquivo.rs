@@ -39,6 +39,26 @@ pub fn recomprimir(origem: &str, lado: Option<u32>, qualidade: u8) -> Result<Str
     Ok(featherslide_io::base64::para_data_url(tipo, &out))
 }
 
+/// A foto do celular guarda "deitada" + a orientação no EXIF; quem desenha os bytes não olha o EXIF
+/// e a foto entra de lado. Com orientação, gira os pixels e regrava o JPEG; sem, devolve os bytes intactos.
+// shortcut: só JPEG (é onde a câmera grava a orientação); PNG/WebP com EXIF seguem como estão.
+pub fn em_pe(bytes: Vec<u8>) -> Vec<u8> {
+    use image::ImageDecoder;
+    if image::guess_format(&bytes).ok() != Some(image::ImageFormat::Jpeg) {
+        return bytes;
+    }
+    let girada = (|| {
+        let mut dec = image::codecs::jpeg::JpegDecoder::new(Cursor::new(&bytes)).ok()?;
+        let o = dec.orientation().ok().filter(|o| *o != image::metadata::Orientation::NoTransforms)?;
+        let mut img = image::DynamicImage::from_decoder(dec).ok()?;
+        img.apply_orientation(o);
+        let mut out = Vec::new();
+        image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, 92).encode_image(&img.to_rgb8()).ok()?;
+        Some(out)
+    })();
+    girada.unwrap_or(bytes)
+}
+
 #[cfg(test)]
 mod testes {
     use super::*;
@@ -62,5 +82,21 @@ mod testes {
         let dado=featherslide_io::base64::para_data_url("image/png",&buf.into_inner());
         let out=recomprimir(&dado,None,60).unwrap();
         assert!(out.starts_with("data:image/png;"));
+    }
+
+    #[test]
+    fn foto_com_orientacao_no_exif_entra_em_pe() {
+        let mut jpeg = Vec::new();
+        image::RgbImage::from_pixel(2, 1, image::Rgb([200, 10, 10]))
+            .write_to(&mut std::io::Cursor::new(&mut jpeg), image::ImageFormat::Jpeg).unwrap();
+        let sem_exif = jpeg.clone();
+        let tiff: &[u8] = b"Exif\0\0MM\0\x2a\0\0\0\x08\0\x01\x01\x12\0\x03\0\0\0\x01\0\x06\0\0\0\0\0\0";
+        let mut app1 = vec![0xFF, 0xE1];
+        app1.extend_from_slice(&((tiff.len() + 2) as u16).to_be_bytes());
+        app1.extend_from_slice(tiff);
+        jpeg.splice(2..2, app1);
+        let foto = image::load_from_memory(&super::em_pe(jpeg)).unwrap();
+        assert_eq!((foto.width(), foto.height()), (1, 2));
+        assert_eq!(super::em_pe(sem_exif.clone()), sem_exif, "sem orientação, os bytes não mudam");
     }
 }
