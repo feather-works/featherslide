@@ -161,7 +161,7 @@
     "titulo": "Archivos",
     "corpo": [
      "La presentación se guarda como .fsdz: un contenedor con las diapositivas en columnas Arrow y las imágenes como archivos.",
-     "• Abrir también lee .pptx (PowerPoint y Google Presentaciones) y .odp (LibreOffice Impress): diapositivas, cuadros, formas, imágenes, fondo y notas, con el tamaño de diapositiva del archivo (16:10, A4 y otros no se estiran) y con las fuentes incrustadas en el archivo, para que el texto salte en las mismas líneas. Al guardar, la presentación pasa a .fsdz (el original no se toca).",
+     "• Abrir también lee .pptx (PowerPoint y Google Presentaciones) y .odp (LibreOffice Impress): diapositivas, cuadros, formas, imágenes, tablas (del .pptx), fondo y notas, con el tamaño de diapositiva del archivo (16:10, A4 y otros no se estiran) y con las fuentes incrustadas en el archivo, para que el texto salte en las mismas líneas. Al guardar, la presentación pasa a .fsdz (el original no se toca).",
      "• Para enviarla a quien usa PowerPoint o Google Presentaciones: el botón Exportar como PowerPoint (.pptx), en la barra de arriba. Van diapositivas, cuadros de texto, formas, fotos, tablas, gráficos, fondo y notas; los iconos, WordArt y dibujos libres aún quedan fuera (la barra de estado avisa cuántos).",
      "• El margen interno de cada cuadro de texto viene del archivo .pptx (incluso el margen cero) y se guarda en el .fsdz.",
      "• Cada vez que se guarda la presentación (también con el guardado automático), la versión anterior queda en el Historial de versiones, en Archivos; se conservan las 20 más recientes.",
