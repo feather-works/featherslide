@@ -407,3 +407,21 @@ fn pptx_gravado_leva_tabela_e_grafico_nativos() {
     assert!(ler("[Content_Types].xml").contains("/ppt/charts/chart1.xml"));
     assert!(ler("ppt/slides/_rels/slide1.xml.rels").contains("../charts/chart1.xml"));
 }
+
+#[test]
+fn pptx_tabela_volta_ao_abrir() {
+    use featherslide_core::modelo::Tipo;
+    use featherslide_core::sessao::Sessao;
+    let mut s = Sessao::default();
+    s.tabela_inserir(3, 2).unwrap();
+    let original = s.apresentacao().slides[0].elementos.iter().find(|e| e.tipo == Tipo::Tabela).unwrap().clone();
+    let mut grade = featherslide_core::dados::ler_tabela(&original);
+    grade[0][0] = "Mês".into();
+    grade[1][1] = "linha 1\nlinha 2".into();
+    let mut ap = s.apresentacao().clone();
+    ap.slides[0].elementos.iter_mut().find(|e| e.tipo == Tipo::Tabela).unwrap().dados = featherslide_core::dados::gravar_tabela(&grade);
+    let lida = pptx::ler(&pptx::gravar::gravar(&ap).unwrap().bytes).unwrap();
+    let t = lida.slides[0].elementos.iter().find(|e| e.tipo == Tipo::Tabela).expect("a tabela sumiu ao abrir");
+    assert_eq!(featherslide_core::dados::ler_tabela(t), grade);
+    assert!((t.largura - original.largura).abs() < 1.0 && (t.x - original.x).abs() < 1.0);
+}

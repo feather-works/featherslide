@@ -7,8 +7,8 @@
 //! arredondado, elipse, setor, triângulo, seta), linhas e conectores, imagens (também a forma
 //! preenchida com imagem, e a foto recortada em elipse), sombra, transparência, grupos
 //! (achatados), fundo sólido, as formas do layout e do mestre (entram no slide como fundo,
-//! [`Papel::Fundo`]), slide oculto e as anotações. O que fica de fora, por ora: tabelas e
-//! gráficos (`p:graphicFrame`), fundo com imagem ou gradiente, recorte da imagem (`a:srcRect`),
+//! [`Papel::Fundo`]), slide oculto, as anotações e tabelas (só os textos, a cor do cabeçalho e a
+//! letra). O que fica de fora, por ora: gráficos (`p:graphicFrame`), fundo com imagem ou gradiente, recorte da imagem (`a:srcRect`),
 //! estilo diferente por trecho (vale o predominante), animações e transições.
 
 mod cores;
@@ -386,6 +386,7 @@ impl Leitor<'_> {
                 "p:sp" if f.caminho(&["p:spPr", "a:blipFill", "a:blip"]).is_some() => saida.extend(self.imagem(f, t, ctx, o)?),
                 "p:sp" | "p:cxnSp" => saida.extend(self.forma(f, t, ctx, o)),
                 "p:pic" => saida.extend(self.imagem(f, t, ctx, o)?),
+                "p:graphicFrame" if !o.fundo => saida.extend(self.tabela(f, t, ctx)),
                 "p:grpSp" => {
                     let interna = f.caminho(&["p:grpSpPr", "a:xfrm"]).map_or(t, |x| t.do_grupo(x));
                     self.formas(f, interna, ctx, o, saida)?;
@@ -469,6 +470,58 @@ impl Leitor<'_> {
             estilo: texto::estilo(corpo, &heranca, tema, self.escala),
             ajustes: ajustes_da_forma(prst, geom, xfrm),
             sombra: self.sombra(sp_pr, tema),
+            ..Elemento::default()
+        })
+    }
+
+    /// Uma tabela (`p:graphicFrame` com `a:tbl`): os textos das células (célula mesclada fica vazia), a cor
+    /// do cabeçalho e a letra da primeira célula com texto. Antes de 20/11/2026 a tabela sumia ao abrir.
+    fn tabela(&mut self, f: &No, t: Transformacao, ctx: &Contexto) -> Option<Elemento> {
+        let tbl = f.caminho(&["a:graphic", "a:graphicData", "a:tbl"])?;
+        let [x, y, w, h] = t.retangulo(f.filho("p:xfrm")?)?;
+        let texto_da_celula = |tc: &No| -> String {
+            let Some(corpo) = tc.filho("a:txBody") else { return String::new() };
+            corpo.filhos("a:p").map(|p| {
+                let mut linha = String::new();
+                for r in &p.filhos {
+                    match r.nome.as_str() {
+                        "a:r" | "a:fld" => linha.push_str(r.filho("a:t").map_or("", |t| t.texto.as_str())),
+                        "a:br" => linha.push('\n'),
+                        _ => {}
+                    }
+                }
+                linha
+            }).collect::<Vec<_>>().join("\n")
+        };
+        let grade: Vec<Vec<String>> = tbl.filhos("a:tr").map(|tr| tr.filhos("a:tc").map(|tc| {
+            let mesclada = ["hMerge", "vMerge"].iter().any(|a| matches!(tc.attr(a), Some("1" | "true")));
+            if mesclada { String::new() } else { texto_da_celula(tc) }
+        }).collect()).collect();
+        if grade.is_empty() {
+            return None;
+        }
+        let primeira = tbl.filho("a:tr").and_then(|tr| tr.filho("a:tc"));
+        let preenchimento = primeira.and_then(|tc| tc.filho("a:tcPr")).and_then(|p| ctx.tema.preenchimento(p)).unwrap_or_default();
+        let sz = tbl.filhos("a:tr").flat_map(|tr| tr.filhos("a:tc")).find_map(|tc| {
+            let mut runs = Vec::new();
+            tc.todos("a:rPr", &mut runs);
+            runs.into_iter().find_map(|r| r.num("sz"))
+        });
+        let mut estilo = Elemento::default().estilo;
+        if let Some(sz) = sz {
+            estilo.tamanho = (sz / 100.0) as f32 * self.escala;
+        }
+        Some(Elemento {
+            id: self.novo_id(),
+            tipo: Tipo::Tabela,
+            papel: Papel::Livre,
+            x,
+            y,
+            largura: w,
+            altura: h,
+            preenchimento,
+            dados: featherslide_core::dados::gravar_tabela(&grade),
+            estilo,
             ..Elemento::default()
         })
     }
