@@ -161,6 +161,15 @@ fn ler_texto(p: &Path) -> Option<String> {
     Some(t.trim_start_matches('\u{feff}').to_string())
 }
 
+/// Acrescenta `palavra` no fim do arquivo, sem regravar o resto: um arquivo que não dá para ler
+/// como texto (acento em outra codificação) não vira só a palavra nova.
+fn acrescentar_linha(caminho: &Path, palavra: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    let quebra = std::fs::read(caminho).is_ok_and(|b| b.last().is_some_and(|c| *c != b'\n'));
+    let mut f = std::fs::OpenOptions::new().create(true).append(true).open(caminho)?;
+    write!(f, "{}{palavra}\n", if quebra { "\n" } else { "" })
+}
+
 fn carregar_dicionario(pasta: &Path, idioma: &str) -> Option<Dictionary> {
     let aff = ler_texto(&pasta.join(format!("{idioma}.aff")))?;
     let dic = ler_texto(&pasta.join(format!("{idioma}.dic")))?;
@@ -361,13 +370,7 @@ impl Corretor {
         if let Some(pasta) = caminho.parent() {
             std::fs::create_dir_all(pasta).map_err(|e| e.to_string())?;
         }
-        let mut atual = ler_texto(&caminho).unwrap_or_default();
-        if !atual.is_empty() && !atual.ends_with('\n') {
-            atual.push('\n');
-        }
-        atual.push_str(palavra);
-        atual.push('\n');
-        std::fs::write(&caminho, atual).map_err(|e| e.to_string())
+        acrescentar_linha(&caminho, palavra).map_err(|e| e.to_string())
     }
 
     /// As palavras erradas do texto de um elemento, na ordem em que aparecem.
@@ -540,6 +543,15 @@ fn guardar(saida: &mut Vec<(usize, usize)>, texto: &str, ini: usize, fim: usize)
 
 #[cfg(test)]
 mod testes {
+    #[test]
+    fn dicionario_pessoal_so_acrescenta() {
+        let p = std::env::temp_dir().join(format!("fs-dic-{}.txt", std::process::id()));
+        std::fs::write(&p, b"caf\xe9").unwrap(); // Latin-1: não é UTF-8
+        acrescentar_linha(&p, "nova").unwrap();
+        assert_eq!(std::fs::read(&p).unwrap(), b"caf\xe9\nnova\n");
+        std::fs::remove_file(&p).unwrap();
+    }
+
     use super::*;
 
     #[test]
