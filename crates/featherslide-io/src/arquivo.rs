@@ -10,6 +10,9 @@ static SEQUENCIA: AtomicU64 = AtomicU64::new(0);
 /// Em caso de erro antes da renomeação, conserva o destino e remove o temporário.
 /// Não garante persistência dos metadados do diretório após queda de energia.
 pub fn gravar_atomico(destino: &Path, bytes: &[u8]) -> Result<(), String> {
+    // Um atalho (symlink) é seguido: o renomear trocava o atalho por um arquivo e o original ficava velho.
+    let real = fs::canonicalize(destino).ok();
+    let destino = real.as_deref().unwrap_or(destino);
     let pai = destino.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new("."));
     let nome = destino.file_name().ok_or("O destino precisa ter um nome de arquivo.")?;
     let (temporario, mut arquivo) = loop {
@@ -23,7 +26,10 @@ pub fn gravar_atomico(destino: &Path, bytes: &[u8]) -> Result<(), String> {
             Err(e) => return Err(format!("Não foi possível criar o arquivo temporário: {e}")),
         }
     };
-    let escrita = arquivo.write_all(bytes).and_then(|()| arquivo.sync_all());
+    // As permissões do arquivo que já existe ficam (0600 não vira 0644).
+    let permissoes = fs::metadata(destino).map(|m| m.permissions());
+    let escrita = permissoes.map_or(Ok(()), |p| arquivo.set_permissions(p))
+        .and_then(|()| arquivo.write_all(bytes)).and_then(|()| arquivo.sync_all());
     drop(arquivo);
     let resultado = escrita.and_then(|()| fs::rename(&temporario, destino));
     if resultado.is_err() {
@@ -35,6 +41,24 @@ pub fn gravar_atomico(destino: &Path, bytes: &[u8]) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn gravar_por_um_atalho_grava_no_original_e_mantem_permissoes() {
+        use std::os::unix::fs::PermissionsExt;
+        let pasta = std::env::temp_dir().join(format!("fsl-atalho-{}", std::process::id()));
+        fs::create_dir_all(&pasta).unwrap();
+        let (real, atalho) = (pasta.join("real.pptx"), pasta.join("atalho.pptx"));
+        fs::write(&real, b"velho").unwrap();
+        fs::set_permissions(&real, fs::Permissions::from_mode(0o600)).unwrap();
+        std::os::unix::fs::symlink(&real, &atalho).unwrap();
+        gravar_atomico(&atalho, b"novo").unwrap();
+        let conteudo = fs::read(&real).unwrap();
+        let link = fs::symlink_metadata(&atalho).unwrap().file_type().is_symlink();
+        let modo = fs::metadata(&real).unwrap().permissions().mode() & 0o777;
+        let _ = fs::remove_dir_all(&pasta);
+        assert_eq!((conteudo.as_slice(), link, modo), (&b"novo"[..], true, 0o600));
+    }
 
     #[test]
     fn substitui_arquivo_e_limpa_temporarios_em_falha() {
