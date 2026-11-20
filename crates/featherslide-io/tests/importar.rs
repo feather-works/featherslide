@@ -425,3 +425,23 @@ fn pptx_tabela_volta_ao_abrir() {
     assert_eq!(featherslide_core::dados::ler_tabela(t), grade);
     assert!((t.largura - original.largura).abs() < 1.0 && (t.x - original.x).abs() < 1.0);
 }
+
+#[test]
+fn pptx_hiperlink_e_ir_ao_slide_voltam_ao_abrir() {
+    use featherslide_core::modelo::Tipo;
+    use featherslide_core::sessao::Sessao;
+    let mut s = Sessao::default();
+    s.elemento_inserir(Tipo::Retangulo, Some([10.0, 10.0, 100.0, 50.0]), None).unwrap();
+    s.elemento_inserir(Tipo::Elipse, Some([200.0, 10.0, 100.0, 50.0]), None).unwrap();
+    let mut ap = s.apresentacao().clone();
+    ap.slides.push(ap.slides[0].clone());
+    let n = ap.slides[0].elementos.len();
+    ap.slides[0].elementos[n - 2].link = "https://example.com/a?b=1&c=2".into();
+    ap.slides[0].elementos[n - 1].destino = 2;
+    let lida = pptx::ler(&pptx::gravar::gravar(&ap).unwrap().bytes).unwrap();
+    let ret = lida.slides[0].elementos.iter().find(|e| e.tipo == Tipo::Retangulo).unwrap();
+    let eli = lida.slides[0].elementos.iter().find(|e| e.tipo == Tipo::Elipse).unwrap();
+    assert_eq!(ret.link, "https://example.com/a?b=1&c=2");
+    assert_eq!((eli.destino, eli.link.as_str()), (2, ""));
+    assert_eq!(lida.slides[1].elementos.iter().find(|e| e.tipo == Tipo::Retangulo).unwrap().link, "");
+}

@@ -116,6 +116,8 @@ struct Contexto {
     tema: Rc<Tema>,
     /// As ligações do slide (para as imagens).
     ligacoes: HashMap<String, String>,
+    /// Os hiperlinks do slide (ligações para fora do pacote).
+    externas: HashMap<String, String>,
     /// Os caminhos do layout e do mestre (as ligações deles, para as imagens do fundo).
     layout_c: Option<String>,
     mestre_c: Option<String>,
@@ -135,6 +137,8 @@ struct Leitor<'a> {
     escala: f32,
     proximo: u64,
     temas: HashMap<String, Rc<Tema>>,
+    /// Os caminhos dos slides, na ordem: o gatilho "ir ao slide" vira o número dele.
+    slides: Vec<String>,
 }
 
 /// Lê um `.pptx`. Arquivo malformado dá erro em português, nunca pânico.
@@ -154,7 +158,7 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
     let caminhos: Vec<String> = pres.filho("p:sldIdLst").map(|l| l.filhos("p:sldId").filter_map(|s| s.attr("r:id")).filter_map(|id| rels.get(id).cloned()).collect()).unwrap_or_default();
     let fontes = fontes::ler_fontes(&pres, &mut pac, &rels);
     let (titulo, autor, metadados) = crate::metadados_externos::pptx(&mut pac);
-    let mut leitor = Leitor { pac, t: Transformacao::nova(sx, sy), escala: (sx.min(sy) * EMU_POR_PT) as f32, proximo: 1, temas: HashMap::new() };
+    let mut leitor = Leitor { pac, t: Transformacao::nova(sx, sy), escala: (sx.min(sy) * EMU_POR_PT) as f32, proximo: 1, temas: HashMap::new(), slides: caminhos.clone() };
     let mut slides = Vec::new();
     for c in caminhos {
         slides.push(leitor.slide(&c)?);
@@ -337,7 +341,8 @@ impl Leitor<'_> {
         let mestre_c = layout_c.as_ref().map(|c| self.pac.ligacoes(c)).and_then(|r| ligada(&r, "slideMasters/"));
         let mestre = mestre_c.as_deref().and_then(|c| self.pac.xml(c).ok());
         let tema = self.tema(mestre_c.as_deref().unwrap_or(""), mestre.as_deref());
-        Contexto { layout, mestre, tema, ligacoes, layout_c, mestre_c }
+        let externas = self.pac.externas(caminho);
+        Contexto { layout, mestre, tema, ligacoes, externas, layout_c, mestre_c }
     }
 
     fn slide(&mut self, caminho: &str) -> Result<Slide, String> {
@@ -382,6 +387,7 @@ impl Leitor<'_> {
             if o.fundo && ph_de(f).is_some() {
                 continue;
             }
+            let antes = saida.len();
             match f.nome.as_str() {
                 "p:sp" if f.caminho(&["p:spPr", "a:blipFill", "a:blip"]).is_some() => saida.extend(self.imagem(f, t, ctx, o)?),
                 "p:sp" | "p:cxnSp" => saida.extend(self.forma(f, t, ctx, o)),
@@ -400,8 +406,26 @@ impl Leitor<'_> {
                 }
                 _ => {}
             }
+            if !o.fundo && f.nome != "p:grpSp" && f.nome != "mc:AlternateContent" {
+                let (link, destino) = self.clique(f, ctx);
+                for e in &mut saida[antes..] {
+                    e.link.clone_from(&link);
+                    e.destino = destino;
+                }
+            }
         }
         Ok(())
+    }
+
+    /// O `a:hlinkClick` da forma: o endereço do hiperlink, ou o número do slide a que o clique leva.
+    fn clique(&self, f: &No, ctx: &Contexto) -> (String, u32) {
+        let Some(h) = f.filhos.iter().filter(|n| n.nome.starts_with("p:nv")).find_map(|n| n.caminho(&["p:cNvPr", "a:hlinkClick"])) else { return (String::new(), 0) };
+        let Some(id) = h.attr("r:id").filter(|i| !i.is_empty()) else { return (String::new(), 0) };
+        if h.attr("action").is_some_and(|a| a.starts_with("ppaction://hlinksldjump")) {
+            let n = ctx.ligacoes.get(id).and_then(|c| self.slides.iter().position(|s| s == c));
+            return (String::new(), n.map_or(0, |n| n as u32 + 1));
+        }
+        (ctx.externas.get(id).cloned().unwrap_or_default(), 0)
     }
 
     /// Uma forma (caixa de texto, forma pronta, linha), com a herança do layout e do mestre.

@@ -64,6 +64,16 @@ impl<'a> Pacote<'a> {
 
     /// As ligações de uma parte do `.pptx` (`Id` → caminho da parte ligada, já resolvido).
     /// Sem o arquivo de ligações, nenhuma.
+    /// As ligações para fora do pacote (`TargetMode="External"`, os hiperlinks): id → endereço como está.
+    pub fn externas(&mut self, parte: &str) -> HashMap<String, String> {
+        let (pasta, arquivo) = parte.rsplit_once('/').unwrap_or(("", parte));
+        let Ok(rels) = self.xml(&format!("{pasta}/_rels/{arquivo}.rels")) else { return HashMap::new() };
+        rels.filhos("Relationship")
+            .filter(|r| r.attr("TargetMode") == Some("External"))
+            .filter_map(|r| Some((r.attr("Id")?.to_string(), r.attr("Target")?.to_string())))
+            .collect()
+    }
+
     pub fn ligacoes(&mut self, parte: &str) -> HashMap<String, String> {
         let (pasta, arquivo) = parte.rsplit_once('/').unwrap_or(("", parte));
         let nome = format!("{pasta}/_rels/{arquivo}.rels");

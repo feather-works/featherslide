@@ -34,6 +34,7 @@ const R_IMAGEM: &str = "http://schemas.openxmlformats.org/officeDocument/2006/re
 const R_NOTAS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide";
 const R_MESTRE_NOTAS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster";
 const R_GRAFICO: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart";
+const R_LINK: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink";
 
 fn emu(pt: f32) -> i64 {
     (f64::from(pt) * EMU_POR_PT).round() as i64
@@ -358,7 +359,8 @@ fn grafico_xml(e: &Elemento) -> String {
 fn rels(itens: &[(String, &str, String)]) -> String {
     let mut s = String::from(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">"#);
     for (id, tipo, alvo) in itens {
-        let _ = write!(s, r#"<Relationship Id="{id}" Type="{tipo}" Target="{}"/>"#, esc(alvo));
+        let modo = if *tipo == R_LINK { r#" TargetMode="External""# } else { "" };
+        let _ = write!(s, r#"<Relationship Id="{id}" Type="{tipo}" Target="{}"{modo}/>"#, esc(alvo));
     }
     s.push_str("</Relationships>");
     s
@@ -371,47 +373,30 @@ type Midia = Vec<(String, Vec<u8>)>;
 type Graficos = Vec<(usize, String)>;
 
 /// O XML de um slide, as ligações dele e as fotos que ele leva.
-fn slide(sl: &Slide, n: usize, midia: &mut Midia, graficos: &mut Graficos, de_fora: &mut usize) -> (String, String) {
+fn slide(sl: &Slide, n: usize, total: usize, midia: &mut Midia, graficos: &mut Graficos, de_fora: &mut usize) -> (String, String) {
     let mut ligacoes: Vec<(String, &str, String)> = vec![("rId1".into(), R_LAYOUT, "../slideLayouts/slideLayout1.xml".into())];
     let mut arvore = String::new();
     let mut id = 2;
     for e in sl.elementos.iter().filter(|e| !e.oculto) {
         id += 1;
-        if e.tipo == Tipo::Imagem {
-            match de_data_url(&e.imagem) {
-                Some((mime, bytes)) => {
-                    let ext = match mime.as_str() {
-                        "image/jpeg" => "jpeg",
-                        "image/gif" => "gif",
-                        "image/bmp" => "bmp",
-                        "image/svg+xml" => "svg",
-                        "image/webp" => "webp",
-                        _ => "png",
-                    };
-                    let nome = format!("imagem{}_{}.{ext}", n, midia.len() + 1);
-                    let rid = format!("rId{}", ligacoes.len() + 1);
-                    ligacoes.push((rid.clone(), R_IMAGEM, format!("../media/{nome}")));
-                    midia.push((nome, bytes));
-                    arvore.push_str(&foto(e, id, &rid));
+        let inicio = arvore.len();
+        elemento(e, id, n, &mut ligacoes, &mut arvore, midia, graficos, de_fora);
+        // Hiperlink ou gatilho (clicar leva ao slide): o `a:hlinkClick` dentro do `p:cNvPr` da forma.
+        let clique = if (1..=total).contains(&(e.destino as usize)) {
+            Some((R_SLIDE, format!("slide{}.xml", e.destino), r#" action="ppaction://hlinksldjump""#))
+        } else if !e.link.trim().is_empty() {
+            Some((R_LINK, e.link.trim().to_string(), ""))
+        } else {
+            None
+        };
+        if let Some((tipo, alvo, acao)) = clique {
+            let rid = format!("rId{}", ligacoes.len() + 1);
+            if let Some(p) = arvore[inicio..].find("<p:cNvPr ").map(|p| p + inicio) {
+                if let Some(fim) = arvore[p..].find("/>").map(|f| f + p) {
+                    arvore.replace_range(fim..fim + 2, &format!(r#"><a:hlinkClick r:id="{rid}"{acao}/></p:cNvPr>"#));
+                    ligacoes.push((rid, tipo, alvo));
                 }
-                None => *de_fora += 1,
             }
-            continue;
-        }
-        match e.tipo {
-            Tipo::Tabela => arvore.push_str(&tabela(e, id)),
-            Tipo::Grafico => {
-                let k = graficos.len() + 1;
-                let rid = format!("rId{}", ligacoes.len() + 1);
-                ligacoes.push((rid.clone(), R_GRAFICO, format!("../charts/chart{k}.xml")));
-                graficos.push((k, grafico_xml(e)));
-                let dentro = format!(r#"<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="{rid}"/>"#);
-                arvore.push_str(&quadro_grafico(e, id, "Gráfico", "http://schemas.openxmlformats.org/drawingml/2006/chart", &dentro));
-            }
-            _ => match geometria(e.tipo) {
-                Some(g) => arvore.push_str(&forma(e, id, g)),
-                None => *de_fora += 1,
-            },
         }
     }
     let fundo = hex(&sl.fundo).map_or(String::new(), |c| format!(r#"<p:bg><p:bgPr><a:solidFill><a:srgbClr val="{c}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>"#));
@@ -423,6 +408,47 @@ fn slide(sl: &Slide, n: usize, midia: &mut Midia, graficos: &mut Graficos, de_fo
         ligacoes.push((format!("rId{}", ligacoes.len() + 1), R_NOTAS, format!("../notesSlides/notesSlide{n}.xml")));
     }
     (xml, rels(&ligacoes))
+}
+
+/// O XML de um elemento do slide, com as ligações (mídia, gráfico) que ele pede.
+#[allow(clippy::too_many_arguments)]
+fn elemento(e: &Elemento, id: usize, n: usize, ligacoes: &mut Vec<(String, &'static str, String)>, arvore: &mut String, midia: &mut Midia, graficos: &mut Graficos, de_fora: &mut usize) {
+    if e.tipo == Tipo::Imagem {
+        match de_data_url(&e.imagem) {
+            Some((mime, bytes)) => {
+                let ext = match mime.as_str() {
+                    "image/jpeg" => "jpeg",
+                    "image/gif" => "gif",
+                    "image/bmp" => "bmp",
+                    "image/svg+xml" => "svg",
+                    "image/webp" => "webp",
+                    _ => "png",
+                };
+                let nome = format!("imagem{}_{}.{ext}", n, midia.len() + 1);
+                let rid = format!("rId{}", ligacoes.len() + 1);
+                ligacoes.push((rid.clone(), R_IMAGEM, format!("../media/{nome}")));
+                midia.push((nome, bytes));
+                arvore.push_str(&foto(e, id, &rid));
+            }
+            None => *de_fora += 1,
+        }
+        return;
+    }
+    match e.tipo {
+        Tipo::Tabela => arvore.push_str(&tabela(e, id)),
+        Tipo::Grafico => {
+            let k = graficos.len() + 1;
+            let rid = format!("rId{}", ligacoes.len() + 1);
+            ligacoes.push((rid.clone(), R_GRAFICO, format!("../charts/chart{k}.xml")));
+            graficos.push((k, grafico_xml(e)));
+            let dentro = format!(r#"<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="{rid}"/>"#);
+            arvore.push_str(&quadro_grafico(e, id, "Gráfico", "http://schemas.openxmlformats.org/drawingml/2006/chart", &dentro));
+        }
+        _ => match geometria(e.tipo) {
+            Some(g) => arvore.push_str(&forma(e, id, g)),
+            None => *de_fora += 1,
+        },
+    }
 }
 
 /// As anotações de um slide.
@@ -461,7 +487,7 @@ pub fn gravar(ap: &Apresentacao) -> Result<Gravado, String> {
             com_rodape = Slide { elementos: sl.elementos.iter().cloned().chain(rodape).collect(), ..sl.clone() };
             &com_rodape
         };
-        let (xml, r) = slide(sl, k, &mut midia, &mut graficos, &mut de_fora);
+        let (xml, r) = slide(sl, k, ap.slides.len(), &mut midia, &mut graficos, &mut de_fora);
         partes.push((format!("ppt/slides/slide{k}.xml"), xml.into_bytes()));
         partes.push((format!("ppt/slides/_rels/slide{k}.xml.rels"), r.into_bytes()));
         let _ = write!(tipos, r#"<Override PartName="/ppt/slides/slide{k}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>"#);
