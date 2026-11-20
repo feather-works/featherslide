@@ -80,6 +80,8 @@ struct Leitor<'a> {
     sx: f64,
     sy: f64,
     proximo: u64,
+    /// O nome de cada slide (`draw:name`), na ordem: o clique "ir ao slide" (`#nome`) vira o número dele.
+    paginas: Vec<String>,
 }
 
 /// Lê um `.odp`. Arquivo malformado dá erro em português, nunca pânico.
@@ -103,13 +105,24 @@ pub fn ler(bytes: &[u8]) -> Result<Apresentacao, String> {
     let (proporcao, dimensoes) = Proporcao::de_tamanho(pw, ph);
     let (w, h) = if dimensoes[0] > 0.0 { (dimensoes[0], dimensoes[1]) } else { proporcao.tamanho() };
     let apresentacao = conteudo.caminho(&["office:body", "office:presentation"]).ok_or("O .odp não tem apresentação (falta office:presentation).")?;
-    let mut leitor = Leitor { pac, estilos, sx: f64::from(w) / pw, sy: f64::from(h) / ph, proximo: 1 };
+    let mut leitor = Leitor { pac, estilos, sx: f64::from(w) / pw, sy: f64::from(h) / ph, proximo: 1, paginas: apresentacao.filhos("draw:page").map(|p| p.attr("draw:name").unwrap_or("").to_string()).collect() };
     let mut slides = Vec::new();
     let mestres = estilos_xml.as_deref().and_then(|e| e.filho("office:master-styles"));
     for p in apresentacao.filhos("draw:page") {
         slides.push(leitor.slide(p, mestres)?);
     }
     Ok(Apresentacao { titulo, autor, proporcao, dimensoes, slides, proximo_id: leitor.proximo, fontes: Vec::new(), tema: String::new(), modelo: String::new(), metadados, rodape: Default::default() })
+}
+
+/// O `draw:transform` da forma (`rotate (a) translate (x y)`): o ângulo em radianos (anti-horário) e o
+/// deslocamento em pontos. Sem `translate`, `None` (escala e inclinação ficam de fora).
+fn transformacao(f: &No) -> Option<(f64, f64, f64)> {
+    let t = f.attr("draw:transform")?;
+    let dentro = |nome: &str| t.find(nome).and_then(|i| { let r = &t[i + nome.len()..]; let a = r.find('(')?; let b = r.find(')')?; Some(r[a + 1..b].to_string()) });
+    let a = dentro("rotate").and_then(|v| v.trim().parse::<f64>().ok()).unwrap_or(0.0);
+    let d = dentro("translate")?;
+    let mut partes = d.split(|c: char| c == ',' || c.is_whitespace()).filter(|p| !p.is_empty());
+    Some((a, medida(partes.next()?)?, medida(partes.next().unwrap_or("0"))?))
 }
 
 /// O texto de um parágrafo (`text:p`, `text:h`): trechos, espaços (`text:s`), tabulações e quebras.
@@ -200,14 +213,42 @@ impl Leitor<'_> {
 
     fn formas(&mut self, pai: &No, saida: &mut Vec<Elemento>) -> Result<(), String> {
         for f in &pai.filhos {
+            let antes = saida.len();
             match f.nome.as_str() {
                 "draw:frame" => saida.extend(self.quadro(f)?),
                 "draw:custom-shape" | "draw:rect" | "draw:ellipse" | "draw:line" | "draw:connector" => saida.extend(self.forma(f)),
                 "draw:g" => self.formas(f, saida)?,
                 _ => {}
             }
+            if f.nome != "draw:g" {
+                let (link, destino) = self.clique(f);
+                let giro = transformacao(f).map_or(0.0, |(a, _, _)| -a.to_degrees() as f32);
+                for e in &mut saida[antes..] {
+                    e.link.clone_from(&link);
+                    e.destino = destino;
+                    if giro.abs() > 0.01 {
+                        e.rotacao = giro.rem_euclid(360.0);
+                    }
+                }
+            }
         }
         Ok(())
+    }
+
+    /// O clique da forma (`presentation:event-listener` com `action="show"`): o endereço do hiperlink,
+    /// ou, com `#nome`, o número do slide a que leva.
+    fn clique(&self, f: &No) -> (String, u32) {
+        let ouvinte = f.filho("office:event-listeners").and_then(|l| {
+            l.filhos("presentation:event-listener").find(|e| e.attr("script:event-name") == Some("dom:click") && e.attr("presentation:action") == Some("show"))
+        });
+        let Some(alvo) = ouvinte.and_then(|o| o.attr("xlink:href")).map(str::trim).filter(|a| !a.is_empty()) else { return (String::new(), 0) };
+        match alvo.strip_prefix('#') {
+            Some(nome) => {
+                let nome = nome.replace("%20", " ");
+                (String::new(), self.paginas.iter().position(|p| *p == nome).map_or(0, |i| i as u32 + 1))
+            }
+            None => (alvo.to_string(), 0),
+        }
     }
 
     /// O retângulo em pontos do slide (`svg:x`…; na linha, os dois pontos).
@@ -217,7 +258,18 @@ impl Leitor<'_> {
             let (x1, y1) = (m("svg:x1")?, m("svg:y1")?);
             (x1, y1, m("svg:x2")? - x1, m("svg:y2")? - y1)
         } else {
-            (m("svg:x")?, m("svg:y")?, m("svg:width").unwrap_or(0.0), m("svg:height").unwrap_or(0.0))
+            let (w, h) = (m("svg:width").unwrap_or(0.0), m("svg:height").unwrap_or(0.0));
+            match (m("svg:x"), m("svg:y"), transformacao(f)) {
+                (Some(x), Some(y), None) => (x, y, w, h),
+                (x, y, Some((a, tx, ty))) => {
+                    // Girada (o LibreOffice tira o `svg:x`/`svg:y`): a caixa nasce na origem, gira `a`
+                    // (anti-horário) em volta do canto e anda até (tx, ty). O centro dá a posição.
+                    let (sen, cos) = a.sin_cos();
+                    let (cx, cy) = (w / 2.0 * cos + h / 2.0 * sen + tx + x.unwrap_or(0.0), -w / 2.0 * sen + h / 2.0 * cos + ty + y.unwrap_or(0.0));
+                    (cx - w / 2.0, cy - h / 2.0, w, h)
+                }
+                _ => return None,
+            }
         };
         Some([(x * self.sx) as f32, (y * self.sy) as f32, (w * self.sx) as f32, (h * self.sy) as f32])
     }

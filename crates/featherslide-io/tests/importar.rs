@@ -445,3 +445,41 @@ fn pptx_hiperlink_e_ir_ao_slide_voltam_ao_abrir() {
     assert_eq!((eli.destino, eli.link.as_str()), (2, ""));
     assert_eq!(lida.slides[1].elementos.iter().find(|e| e.tipo == Tipo::Retangulo).unwrap().link, "");
 }
+
+#[test]
+fn odp_hiperlink_e_ir_ao_slide_viram_link_e_destino() {
+    let ns = r#"xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:xlink="http://www.w3.org/1999/xlink""#;
+    let clique = |href: &str| format!(r#"<office:event-listeners><presentation:event-listener script:event-name="dom:click" presentation:action="show" xlink:href="{href}"/></office:event-listeners>"#);
+    let conteudo = format!(
+        r#"<office:document-content {ns}><office:body><office:presentation>
+<draw:page draw:name="Capa"><draw:custom-shape svg:x="1cm" svg:y="1cm" svg:width="4cm" svg:height="2cm"><draw:enhanced-geometry draw:type="rectangle"/>{}</draw:custom-shape>
+<draw:custom-shape svg:x="6cm" svg:y="1cm" svg:width="4cm" svg:height="2cm"><draw:enhanced-geometry draw:type="ellipse"/>{}</draw:custom-shape></draw:page>
+<draw:page draw:name="Fim do tema"><draw:custom-shape svg:x="1cm" svg:y="1cm" svg:width="4cm" svg:height="2cm"><draw:enhanced-geometry draw:type="rectangle"/></draw:custom-shape></draw:page>
+</office:presentation></office:body></office:document-content>"#,
+        clique("https://example.com/"),
+        clique("#Fim%20do%20tema"),
+    );
+    let ap = odp::ler(&zip(&[("mimetype", "application/vnd.oasis.opendocument.presentation"), ("content.xml", &conteudo)])).unwrap();
+    let e = &ap.slides[0].elementos;
+    assert_eq!((e[0].link.as_str(), e[0].destino), ("https://example.com/", 0));
+    assert_eq!((e[1].link.as_str(), e[1].destino), ("", 2));
+    assert_eq!((ap.slides[1].elementos[0].link.as_str(), ap.slides[1].elementos[0].destino), ("", 0));
+}
+
+#[test]
+fn odp_forma_girada_nao_some_e_volta_no_lugar() {
+    let ns = r#"xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0""#;
+    // 15° no sentido horário, como o LibreOffice grava: sem svg:x/svg:y, só o draw:transform.
+    let conteudo = format!(
+        r#"<office:document-content {ns}><office:body><office:presentation><draw:page draw:name="p1">
+<draw:custom-shape svg:width="4cm" svg:height="2cm" draw:transform="rotate (-0.261799387799149) translate (3cm 1cm)"><draw:enhanced-geometry draw:type="rectangle"/></draw:custom-shape>
+<draw:custom-shape svg:x="2.673033cm" svg:y="1.483564cm" svg:width="4cm" svg:height="2cm"><draw:enhanced-geometry draw:type="rectangle"/></draw:custom-shape>
+</draw:page></office:presentation></office:body></office:document-content>"#
+    );
+    let ap = odp::ler(&zip(&[("mimetype", "application/vnd.oasis.opendocument.presentation"), ("content.xml", &conteudo)])).unwrap();
+    let e = &ap.slides[0].elementos;
+    assert_eq!(e.len(), 2, "a forma girada sumiu");
+    assert!((e[0].rotacao - 15.0).abs() < 0.01, "{}", e[0].rotacao);
+    assert_eq!(e[1].rotacao, 0.0);
+    assert!((e[0].x - e[1].x).abs() < 0.05 && (e[0].y - e[1].y).abs() < 0.05, "{:?} × {:?}", (e[0].x, e[0].y), (e[1].x, e[1].y));
+}
