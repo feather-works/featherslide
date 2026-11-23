@@ -2151,6 +2151,7 @@ impl FeatherSlideApp {
                             self.ir_na_apresentacao(ultimo, false);
                         }
                         Key::Character(c) => match c.to_lowercase().as_str() {
+                            "l" => self.repro.laser = !self.repro.laser,
                             "n" => return self.avancar(),
                             "p" => self.voltar(),
                             "b" => {
@@ -5460,7 +5461,7 @@ impl FeatherSlideApp {
             .map(|e| ([e.x, e.y, e.largura, e.altura], e.id))
             .collect();
         let slide: Element<'_, Mensagem> = Element::from(
-            program(Programa { quadro, fundo_externo: Color::BLACK, escala_relativa: 1.0, pan: (0.0, 0.0), efeitos: self.efeitos_atuais(), transicao, tela, gatilhos, links }).width(Length::FILL).height(Length::FILL),
+            program(Programa { quadro, fundo_externo: Color::BLACK, escala_relativa: 1.0, pan: (0.0, 0.0), efeitos: self.efeitos_atuais(), transicao, tela, gatilhos, links, laser: self.repro.laser }).width(Length::FILL).height(Length::FILL),
         )
         .map(Mensagem::ApresentacaoAcao);
 

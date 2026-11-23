@@ -28,12 +28,14 @@ pub struct Reproducao {
     pub transicao: Option<EmCurso>,
     pub preta: bool,
     pub branca: bool,
+    /// Ponteiro laser (tecla L ou Ctrl+L, como no PowerPoint).
+    pub laser: bool,
     pub exibido_em: Instant,
 }
 
 impl Default for Reproducao {
     fn default() -> Self {
-        Self { passo: 0, inicio_passo: None, transicao: None, preta: false, branca: false, exibido_em: Instant::now() }
+        Self { passo: 0, inicio_passo: None, transicao: None, preta: false, branca: false, laser: false, exibido_em: Instant::now() }
     }
 }
 
@@ -72,6 +74,8 @@ pub struct Programa {
     pub gatilhos: Vec<([f32; 4], usize)>,
     /// Os elementos com hiperlink: retângulo (pontos do slide) e o id do elemento.
     pub links: Vec<([f32; 4], u64)>,
+    /// Ponteiro laser: um ponto vermelho no lugar do mouse.
+    pub laser: bool,
 }
 
 fn suavizar(p: f32) -> f32 {
@@ -137,14 +141,16 @@ impl Program<Acao> for Programa {
     }
 
     fn mouse_interaction(&self, _: &f32, bounds: Rectangle, cursor: Option<Point>) -> CursorIcon {
-        if self.tela.is_none() && self.alvo(bounds, cursor).is_some() {
+        if self.laser && self.tela.is_none() {
+            CursorIcon::Crosshair
+        } else if self.tela.is_none() && self.alvo(bounds, cursor).is_some() {
             CursorIcon::Pointer
         } else {
             CursorIcon::Default
         }
     }
 
-    fn draw(&self, _: &f32, frame: &mut Renderer, bounds: Rectangle, _: &Theme, _: Option<Point>) {
+    fn draw(&self, _: &f32, frame: &mut Renderer, bounds: Rectangle, _: &Theme, cursor: Option<Point>) {
         let canto = Point::new(bounds.x, bounds.y);
         preencher_ret(frame, canto, bounds.size(), self.fundo_externo);
         if let Some(cor) = self.tela {
@@ -211,5 +217,12 @@ impl Program<Acao> for Programa {
         preencher_ret(frame, Point::new(bx, oy + sh), Size::new(w, (h - ly - sh).max(0.0)), self.fundo_externo);
         preencher_ret(frame, Point::new(bx, oy), Size::new(lx.max(0.0), sh), self.fundo_externo);
         preencher_ret(frame, Point::new(ox + sw, oy), Size::new((w - lx - sw).max(0.0), sh), self.fundo_externo);
+        if let Some(c) = cursor.filter(|c| self.laser && bounds.contains(*c)) {
+            // O brilho em volta e o ponto, do tamanho do laser do PowerPoint.
+            for (raio, cor) in [(14.0, Color::rgba(1.0, 0.1, 0.1, 0.25)), (7.0, Color::rgb(0.95, 0.05, 0.05))] {
+                let caixa = Rectangle::new(Point::new(c.x - raio, c.y - raio), Size::new(raio * 2.0, raio * 2.0));
+                frame.fill_quad(caixa, Some(&cor.into()), pelicano::Border { radius: [raio; 4], ..Default::default() }, None);
+            }
+        }
     }
 }

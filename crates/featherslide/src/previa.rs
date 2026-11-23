@@ -63,6 +63,7 @@ impl Previa {
             }
         };
         Some(Programa {
+            laser: false,
             quadro: self.quadro.clone(),
             fundo_externo: crate::tema::COR_MESA(),
             escala_relativa: 0.95,
