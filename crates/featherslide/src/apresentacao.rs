@@ -32,6 +32,8 @@ pub struct Reproducao {
     pub laser: bool,
     /// Caneta (Ctrl+P): arrastar risca o slide.
     pub caneta: bool,
+    /// Grade de slides (G ou -): todos em miniatura, clique vai a um deles.
+    pub grade: bool,
     /// A tinta de cada slide (índice → traços em pontos do slide); fica até o fim da apresentação.
     pub tinta: std::collections::HashMap<usize, Vec<Vec<[f32; 2]>>>,
     pub exibido_em: Instant,
@@ -39,7 +41,7 @@ pub struct Reproducao {
 
 impl Default for Reproducao {
     fn default() -> Self {
-        Self { passo: 0, inicio_passo: None, transicao: None, preta: false, branca: false, laser: false, caneta: false, tinta: Default::default(), exibido_em: Instant::now() }
+        Self { passo: 0, inicio_passo: None, transicao: None, preta: false, branca: false, laser: false, caneta: false, grade: false, tinta: Default::default(), exibido_em: Instant::now() }
     }
 }
 

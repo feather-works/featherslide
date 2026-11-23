@@ -29,6 +29,7 @@ pub fn deslocamento_minutos() -> i64 {
 }
 
 /// Dias desde 1/1/1970 da data civil (algoritmo de Howard Hinnant).
+#[cfg(any(windows, test))]
 fn dias_desde_1970(ano: i64, mes: i64, dia: i64) -> i64 {
     let a = if mes <= 2 { ano - 1 } else { ano };
     let era = a.div_euclid(400);

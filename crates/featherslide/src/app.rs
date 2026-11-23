@@ -1570,6 +1570,7 @@ impl FeatherSlideApp {
                 }
             }
             Mensagem::ApresentacaoAcao(Acao::Ir(i)) => {
+                self.repro.grade = false;
                 self.repro.preta = false;
                 self.repro.branca = false;
                 self.ir_na_apresentacao(i, true);
@@ -2139,6 +2140,8 @@ impl FeatherSlideApp {
                     // Número + Enter vai ao slide (como no PowerPoint); outra tecla esquece o número.
                     let digitado = std::mem::take(&mut self.numero_digitado);
                     match &key {
+                        // Esc com a grade de slides aberta só fecha a grade.
+                        Key::Named(Named::Escape) if self.repro.grade => self.repro.grade = false,
                         Key::Named(Named::Escape) => return self.sair_da_apresentacao(),
                         Key::Named(Named::Enter) if !digitado.is_empty() => {
                             let n = digitado.parse::<usize>().unwrap_or(0);
@@ -2166,6 +2169,7 @@ impl FeatherSlideApp {
                                 self.repro.laser = !self.repro.laser;
                                 self.repro.caneta = false;
                             }
+                            "g" | "-" => self.repro.grade = !self.repro.grade,
                             // Apaga a tinta do slide (E, como no PowerPoint).
                             "e" => { self.repro.tinta.remove(&self.sessao.atual()); }
                             "n" => return self.avancar(),
@@ -5449,6 +5453,9 @@ impl FeatherSlideApp {
 
     /// A apresentação em tela cheia: o slide, e embaixo uma barra de controles discreta.
     fn view_apresentacao(&self, com_barra: bool) -> Element<'_, Mensagem> {
+        if self.repro.grade {
+            return self.view_grade_de_slides();
+        }
         let Some(quadro) = self.sessao.quadro(self.sessao.atual(), None, false).ok().flatten() else {
             return Space::new(Length::FILL, Length::FILL).into();
         };
@@ -5514,6 +5521,40 @@ impl FeatherSlideApp {
             container(barra).width(Length::FILL).height(Length::FILL).align_x(Align::Center).align_y(Align::End).padding(18),
         ]
         .into()
+    }
+
+    /// A grade de slides da apresentação (G ou -, como o zoom do PowerPoint): todos em miniatura, o atual
+    /// destacado; clicar vai ao slide e fecha a grade.
+    fn view_grade_de_slides(&self) -> Element<'_, Mensagem> {
+        const POR_LINHA: usize = 4;
+        let atual = self.sessao.atual();
+        let slides = &self.sessao.apresentacao().slides;
+        let mut linhas = column![].spacing(16);
+        for inicio in (0..slides.len()).step_by(POR_LINHA) {
+            let mut linha = row![].spacing(16);
+            for i in inicio..(inicio + POR_LINHA).min(slides.len()) {
+                let mini = Element::from(program(Miniatura::nova(self.quadro_em_cache(i), None, slides[i].oculto)).width(Length::FILL).height(Length::Fixed(150.0)))
+                    .map(|_: MiniaturaMensagem| Mensagem::Tique);
+                let destaque = i == atual;
+                let cartao = button(column![mini, text(format!("{}", i + 1)).size(13).color(Color::WHITE)].spacing(4).align(Align::Center))
+                    .padding(4)
+                    .width(Length::Fill(1))
+                    .style(move |_, status| Style {
+                        background: Some(Background::Color(if destaque || matches!(status, pelicano::Status::Hovered) { Color::rgb8(255, 255, 255).alpha(0.12) } else { Color::TRANSPARENT })),
+                        border: Border { color: if destaque { Color::rgb8(240, 180, 40) } else { Color::TRANSPARENT }, width: 3.0, radius: [6.0; 4] },
+                        ..Style::default()
+                    })
+                    .on_press(Mensagem::ApresentacaoAcao(Acao::Ir(i)));
+                linha = linha.push(cartao);
+            }
+            // A última linha incompleta não estica as miniaturas.
+            for _ in (slides.len() - inicio).min(POR_LINHA)..POR_LINHA { linha = linha.push(Space::new(Length::Fill(1), 0)); }
+            linhas = linhas.push(linha);
+        }
+        container(crate::tema::rolagem(container(linhas).padding(32)).height(Length::FILL))
+            .width(Length::FILL).height(Length::FILL)
+            .style(|_| Style { background: Some(Background::Color(Color::rgb8(18, 18, 18))), ..Style::default() })
+            .into()
     }
 
     /// A tela do apresentador (monitor principal, com dois monitores): o slide atual, o próximo,
@@ -5979,6 +6020,14 @@ mod testes_do_app {
         assert!(app.repro.laser && !app.repro.caneta,"laser e caneta não andam juntos");
         tecla(&mut app,Key::Character("e".into()),Some("e"),false);
         assert!(app.repro.tinta.is_empty(),"E apaga a tinta do slide");
+        app.sessao.slide_novo("em_branco").unwrap();
+        tecla(&mut app,Key::Character("g".into()),Some("g"),false);
+        assert!(app.repro.grade,"G abre a grade de slides");
+        tecla(&mut app,Key::Named(NamedKey::Escape),None,false);
+        assert!(!app.repro.grade && app.em_apresentacao,"Esc fecha só a grade");
+        tecla(&mut app,Key::Character("-".into()),Some("-"),false);
+        let _=app.update(Mensagem::ApresentacaoAcao(Acao::Ir(0)));
+        assert!(!app.repro.grade && app.sessao.atual()==0,"clicar numa miniatura vai ao slide e fecha a grade");
     }
     #[test]
     fn galerias_e_desenho_livre_pela_interface() {
