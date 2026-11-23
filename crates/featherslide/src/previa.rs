@@ -64,6 +64,8 @@ impl Previa {
         };
         Some(Programa {
             laser: false,
+            caneta: false,
+            tinta: vec![],
             quadro: self.quadro.clone(),
             fundo_externo: crate::tema::COR_MESA(),
             escala_relativa: 0.95,
@@ -84,7 +86,7 @@ impl Program<()> for CanvasPrevia {
     type State = ();
 
     fn draw(&self, _: &(), renderer: &mut Renderer, bounds: Rect, tema: &Theme, cursor: Option<Point>) {
-        Program::<crate::apresentacao::Acao>::draw(&self.0, &0.0, renderer, bounds, tema, cursor)
+        Program::<crate::apresentacao::Acao>::draw(&self.0, &(0.0, false), renderer, bounds, tema, cursor)
     }
 }
 

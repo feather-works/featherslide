@@ -1574,6 +1574,12 @@ impl FeatherSlideApp {
                 self.repro.branca = false;
                 self.ir_na_apresentacao(i, true);
             }
+            Mensagem::ApresentacaoAcao(Acao::TintaInicio(p)) => {
+                self.repro.tinta.entry(self.sessao.atual()).or_default().push(vec![p]);
+            }
+            Mensagem::ApresentacaoAcao(Acao::TintaPonto(p)) => {
+                if let Some(t) = self.repro.tinta.get_mut(&self.sessao.atual()).and_then(|t| t.last_mut()) { t.push(p); }
+            }
             Mensagem::ApresentacaoAcao(Acao::Link(id)) => {
                 // Só por clique explícito do usuário; o app não abre nada sozinho.
                 if let Some(url) = self.sessao.link_do_elemento(self.sessao.atual(), id) {
@@ -2150,8 +2156,18 @@ impl FeatherSlideApp {
                             let ultimo = self.ultimo_visivel();
                             self.ir_na_apresentacao(ultimo, false);
                         }
+                        // Ctrl+P: caneta, como no PowerPoint (P sozinho volta um slide).
+                        Key::Character(c) if modifiers.control_key() && c.eq_ignore_ascii_case("p") => {
+                            self.repro.caneta = !self.repro.caneta;
+                            self.repro.laser = false;
+                        }
                         Key::Character(c) => match c.to_lowercase().as_str() {
-                            "l" => self.repro.laser = !self.repro.laser,
+                            "l" => {
+                                self.repro.laser = !self.repro.laser;
+                                self.repro.caneta = false;
+                            }
+                            // Apaga a tinta do slide (E, como no PowerPoint).
+                            "e" => { self.repro.tinta.remove(&self.sessao.atual()); }
                             "n" => return self.avancar(),
                             "p" => self.voltar(),
                             "b" => {
@@ -5461,7 +5477,7 @@ impl FeatherSlideApp {
             .map(|e| ([e.x, e.y, e.largura, e.altura], e.id))
             .collect();
         let slide: Element<'_, Mensagem> = Element::from(
-            program(Programa { quadro, fundo_externo: Color::BLACK, escala_relativa: 1.0, pan: (0.0, 0.0), efeitos: self.efeitos_atuais(), transicao, tela, gatilhos, links, laser: self.repro.laser }).width(Length::FILL).height(Length::FILL),
+            program(Programa { quadro, fundo_externo: Color::BLACK, escala_relativa: 1.0, pan: (0.0, 0.0), efeitos: self.efeitos_atuais(), transicao, tela, gatilhos, links, laser: self.repro.laser, caneta: self.repro.caneta, tinta: self.repro.tinta.get(&self.sessao.atual()).cloned().unwrap_or_default() }).width(Length::FILL).height(Length::FILL),
         )
         .map(Mensagem::ApresentacaoAcao);
 
@@ -5947,6 +5963,22 @@ mod testes_do_app {
         let _=app.update(Mensagem::Faixa(FaixaMensagem::InserirConector("curvo")));
         tecla(&mut app,Key::Named(NamedKey::Escape),None,false);
         assert!(app.conector_modo.is_none());assert_eq!(app.sessao.slide().elementos.len(),2);
+    }
+    #[test]
+    fn caneta_risca_o_slide_e_e_apaga() {
+        use crate::apresentacao::Acao;
+        let mut app=FeatherSlideApp::default();
+        let _=app.update(Mensagem::Faixa(FaixaMensagem::Apresentar));
+        assert!(app.em_apresentacao);
+        tecla(&mut app,Key::Character("p".into()),Some("p"),true);
+        assert!(app.repro.caneta,"Ctrl+P liga a caneta");
+        let _=app.update(Mensagem::ApresentacaoAcao(Acao::TintaInicio([10.0,10.0])));
+        let _=app.update(Mensagem::ApresentacaoAcao(Acao::TintaPonto([20.0,15.0])));
+        assert_eq!(app.repro.tinta.get(&app.sessao.atual()).map(|t|t[0].len()),Some(2));
+        tecla(&mut app,Key::Character("l".into()),Some("l"),false);
+        assert!(app.repro.laser && !app.repro.caneta,"laser e caneta não andam juntos");
+        tecla(&mut app,Key::Character("e".into()),Some("e"),false);
+        assert!(app.repro.tinta.is_empty(),"E apaga a tinta do slide");
     }
     #[test]
     fn galerias_e_desenho_livre_pela_interface() {

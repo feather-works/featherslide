@@ -111,7 +111,7 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   foto (documentos sem identificador dividiam a chave); algarismo digitado sobrando de uma apresentação
   não vale na seguinte.
 - Data local no Windows: feita em 23/11/2026 (`data_local.rs`, sem o `date`: fuso por `localtime_r`/`GetLocalTime`,
-  calendário em conta; também conserta o macOS, cujo `date` não aceita `-d`). Ponteiro laser feito em 23/11/2026 (tecla L: `Reproducao::laser`, ponto vermelho com brilho no cursor e mira; sem foto, a captura não tem mouse). Ficou para depois: caneta e grade de slides durante a apresentação; espanhol (es-ES) — feito em 16/11/2026.
+  calendário em conta; também conserta o macOS, cujo `date` não aceita `-d`). Ponteiro laser feito em 23/11/2026 (tecla L: `Reproducao::laser`, ponto vermelho com brilho no cursor e mira; sem foto, a captura não tem mouse). Caneta feita em 23/11/2026 (Ctrl+P; `Reproducao::tinta` por slide, só na memória até sair; E apaga; `Acao::TintaInicio/TintaPonto`; teste `caneta_risca_o_slide_e_e_apaga`). Ficou para depois: grade de slides durante a apresentação; espanhol (es-ES) — feito em 16/11/2026.
 
 ## Brainstorm de 05/11/2026 — entregas
 

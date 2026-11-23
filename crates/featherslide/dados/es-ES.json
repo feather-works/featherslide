@@ -154,7 +154,7 @@
      "Insertar → Fecha y hora o N.º de diapositiva: abre Encabezado y pie de página. La fecha, el número de diapositiva y un texto aparecen al pie de todas las diapositivas y se actualizan solos (el número cambia cuando las diapositivas cambian de lugar). Se puede ocultar en la diapositiva de título. \"Empezar en\" elige el número de la primera diapositiva (0 para que no cuente la portada).",
      "Animaciones → Salida: el efecto elegido se reproduce al revés y el elemento sale de la diapositiva. Antes del clic está en pantalla. Cada elemento tiene una animación: entrada o salida.",
      "• Avanza con →, Espacio, Enter o clic; retrocede con ← o Retroceso. Inicio y Fin van a la primera y a la última. Escribe el número de una diapositiva y Enter para ir directo a ella.",
-     "• Esc sale de la presentación.", "• L activa y desactiva el puntero láser: un punto rojo sigue al ratón para señalar partes de la diapositiva. B deja la pantalla negra y W, blanca."
+     "• Esc sale de la presentación.", "• L activa y desactiva el puntero láser: un punto rojo sigue al ratón para señalar partes de la diapositiva. B deja la pantalla negra y W, blanca. Ctrl+P activa el lápiz: arrastre para dibujar en la diapositiva (la tinta queda en cada diapositiva hasta el final de la presentación); E borra la tinta de la diapositiva."
     ]
    },
    "arquivos": {

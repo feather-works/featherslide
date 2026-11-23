@@ -30,12 +30,16 @@ pub struct Reproducao {
     pub branca: bool,
     /// Ponteiro laser (tecla L ou Ctrl+L, como no PowerPoint).
     pub laser: bool,
+    /// Caneta (Ctrl+P): arrastar risca o slide.
+    pub caneta: bool,
+    /// A tinta de cada slide (índice → traços em pontos do slide); fica até o fim da apresentação.
+    pub tinta: std::collections::HashMap<usize, Vec<Vec<[f32; 2]>>>,
     pub exibido_em: Instant,
 }
 
 impl Default for Reproducao {
     fn default() -> Self {
-        Self { passo: 0, inicio_passo: None, transicao: None, preta: false, branca: false, laser: false, exibido_em: Instant::now() }
+        Self { passo: 0, inicio_passo: None, transicao: None, preta: false, branca: false, laser: false, caneta: false, tinta: Default::default(), exibido_em: Instant::now() }
     }
 }
 
@@ -55,6 +59,9 @@ pub enum Acao {
     Ir(usize),
     /// Clicou num elemento com hiperlink (o id do elemento).
     Link(u64),
+    /// Caneta: começa um traço / continua o traço (pontos do slide).
+    TintaInicio([f32; 2]),
+    TintaPonto([f32; 2]),
 }
 
 /// O que o canvas da apresentação pinta num instante.
@@ -76,6 +83,10 @@ pub struct Programa {
     pub links: Vec<([f32; 4], u64)>,
     /// Ponteiro laser: um ponto vermelho no lugar do mouse.
     pub laser: bool,
+    /// Caneta ligada: o mouse risca em vez de avançar.
+    pub caneta: bool,
+    /// A tinta deste slide, em pontos do slide.
+    pub tinta: Vec<Vec<[f32; 2]>>,
 }
 
 fn suavizar(p: f32) -> f32 {
@@ -93,13 +104,18 @@ fn de_onde(d: Direcao) -> (f32, f32) {
 }
 
 impl Programa {
-    /// O gatilho ou o link sob o cursor, se houver (o gatilho tem prioridade).
-    fn alvo(&self, bounds: Rectangle, cursor: Option<Point>) -> Option<Acao> {
+    /// O cursor em pontos do slide (tela cheia, sem zoom nem deslocamento).
+    fn no_slide(&self, bounds: Rectangle, cursor: Option<Point>) -> Option<[f32; 2]> {
         let q = &self.quadro;
         let escala = (bounds.width / q.largura).min(bounds.height / q.altura);
         let (ox, oy) = ((bounds.width - q.largura * escala) / 2.0, (bounds.height - q.altura * escala) / 2.0);
         let p = cursor.filter(|p| bounds.contains(*p)).map(|p| Point::new(p.x - bounds.x, p.y - bounds.y))?;
-        let (x, y) = ((p.x - ox) / escala, (p.y - oy) / escala);
+        Some([(p.x - ox) / escala, (p.y - oy) / escala])
+    }
+
+    /// O gatilho ou o link sob o cursor, se houver (o gatilho tem prioridade).
+    fn alvo(&self, bounds: Rectangle, cursor: Option<Point>) -> Option<Acao> {
+        let [x, y] = self.no_slide(bounds, cursor)?;
         let dentro = |[gx, gy, gw, gh]: &[f32; 4]| x >= *gx && x <= gx + gw && y >= *gy && y <= gy + gh;
         if let Some((_, d)) = self.gatilhos.iter().rev().find(|(r, _)| dentro(r)) {
             return Some(Acao::Ir(*d));
@@ -109,11 +125,27 @@ impl Programa {
 }
 
 impl Program<Acao> for Programa {
-    /// A roda acumulada: o pelicano reparte um passo da roda em vários eventos (rolagem suave).
-    type State = f32;
+    /// A roda acumulada (o pelicano reparte um passo da roda em vários eventos) e se a caneta está riscando.
+    type State = (f32, bool);
 
-    fn update(&self, roda: &mut f32, evento: &Event, bounds: Rectangle, cursor: Option<Point>, publish: &mut dyn FnMut(Acao)) -> Captured {
+    fn update(&self, estado: &mut (f32, bool), evento: &Event, bounds: Rectangle, cursor: Option<Point>, publish: &mut dyn FnMut(Acao)) -> Captured {
+        let (roda, riscando) = (&mut estado.0, &mut estado.1);
         let dentro = cursor.is_some();
+        if self.caneta && self.tela.is_none() {
+            match *evento {
+                Event::MousePressed(MouseButton::Left) if dentro => {
+                    *riscando = true;
+                    if let Some(p) = self.no_slide(bounds, cursor) { publish(Acao::TintaInicio(p)); }
+                    return Captured::Yes;
+                }
+                Event::CursorMoved(_) if *riscando => {
+                    if let Some(p) = self.no_slide(bounds, cursor) { publish(Acao::TintaPonto(p)); }
+                    return Captured::Yes;
+                }
+                Event::MouseReleased(MouseButton::Left) => *riscando = false,
+                _ => {}
+            }
+        }
         let acao = match *evento {
             Event::MousePressed(MouseButton::Left) if dentro && (!self.gatilhos.is_empty() || !self.links.is_empty()) && self.tela.is_none() => {
                 Some(self.alvo(bounds, cursor).unwrap_or(Acao::Proximo))
@@ -140,8 +172,8 @@ impl Program<Acao> for Programa {
         }
     }
 
-    fn mouse_interaction(&self, _: &f32, bounds: Rectangle, cursor: Option<Point>) -> CursorIcon {
-        if self.laser && self.tela.is_none() {
+    fn mouse_interaction(&self, _: &(f32, bool), bounds: Rectangle, cursor: Option<Point>) -> CursorIcon {
+        if (self.laser || self.caneta) && self.tela.is_none() {
             CursorIcon::Crosshair
         } else if self.tela.is_none() && self.alvo(bounds, cursor).is_some() {
             CursorIcon::Pointer
@@ -150,7 +182,7 @@ impl Program<Acao> for Programa {
         }
     }
 
-    fn draw(&self, _: &f32, frame: &mut Renderer, bounds: Rectangle, _: &Theme, cursor: Option<Point>) {
+    fn draw(&self, _: &(f32, bool), frame: &mut Renderer, bounds: Rectangle, _: &Theme, cursor: Option<Point>) {
         let canto = Point::new(bounds.x, bounds.y);
         preencher_ret(frame, canto, bounds.size(), self.fundo_externo);
         if let Some(cor) = self.tela {
@@ -217,6 +249,20 @@ impl Program<Acao> for Programa {
         preencher_ret(frame, Point::new(bx, oy + sh), Size::new(w, (h - ly - sh).max(0.0)), self.fundo_externo);
         preencher_ret(frame, Point::new(bx, oy), Size::new(lx.max(0.0), sh), self.fundo_externo);
         preencher_ret(frame, Point::new(ox + sw, oy), Size::new((w - lx - sw).max(0.0), sh), self.fundo_externo);
+        // A tinta da caneta, por cima do slide (não durante a transição: o slide ainda está entrando).
+        if self.transicao.is_none() {
+            let traco = pelicano::Stroke::new((3.0 * escala).max(2.0)).cap(pelicano::LineCap::Round).join(pelicano::LineJoin::Round);
+            for t in self.tinta.iter().filter(|t| !t.is_empty()) {
+                let ponto = |p: &[f32; 2]| Point::new(ox + p[0] * escala, oy + p[1] * escala);
+                let caminho = pelicano::Path::new(|b| {
+                    b.move_to(ponto(&t[0]));
+                    // Um clique sem arrasto vira um pontinho.
+                    if t.len() == 1 { b.line_to(Point::new(ponto(&t[0]).x + 0.1, ponto(&t[0]).y)); }
+                    for p in &t[1..] { b.line_to(ponto(p)); }
+                });
+                if let Some(c) = caminho { frame.stroke_path(&c, &traco, Color::rgb(0.9, 0.1, 0.1)); }
+            }
+        }
         if let Some(c) = cursor.filter(|c| self.laser && bounds.contains(*c)) {
             // O brilho em volta e o ponto, do tamanho do laser do PowerPoint.
             for (raio, cor) in [(14.0, Color::rgba(1.0, 0.1, 0.1, 0.25)), (7.0, Color::rgb(0.95, 0.05, 0.05))] {
