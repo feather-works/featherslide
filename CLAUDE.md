@@ -61,6 +61,14 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   `push_transform`. Capturas: `FEATHERSLIDE_CAPTURAR=foto.png`, `FEATHERSLIDE_CAPTURAR_ABA=organizar|…`.
   Testes com limite: `systemd-run --user --scope -p MemoryMax=6G -p MemorySwapMax=0 cargo test --release -j 4`.
 
+## Transições no `.pptx` (23/11/2026, no `main`, sem versão)
+
+- `io/src/pptx/transicao.rs`: `p:transition` lido e gravado (fade, cover, push, pull, wipe, zoom ↔ Esmaecer,
+  Deslizar, Empurrar, Revelar, Cortina, Zoom; `dir` do pptx é para onde anda, a `Direcao` é de onde vem).
+  Grava como o PowerPoint: `mc:AlternateContent` com `p14:dur` (duração exata) e `Fallback` só com `spd`;
+  `advTm` = `Transicao::apos`. Efeito do PowerPoint que não temos toca como esmaecer (`shortcut:`).
+  Conferido no LibreOffice (pptx → odp: pushWipe fromBottom, 2 s, avanço em 5 s). Falta: transições do `.odp`.
+
 ## Tamanho do slide ao abrir `.pptx`/`.odp` (05/11/2026, issue #1)
 
 - Antes, todo arquivo de fora virava 16:9 ou 4:3 com escala diferente em x e y: num slide
@@ -590,7 +598,7 @@ do aplicativo continuam sendo conteúdo textual e identidade do produto.
 - **Zoom**: com zoom > 100 %, roda do mouse rola a tela (Shift = lado) e botão do meio arrasta (`pan` em `app.rs`, limitado em `palco.rs`).
 - **Ideia adiada (07/10)**: extrair texto de imagem com `ocrs` (Rust puro, modelos ~10 MB, só sob pedido); fórmulas ficam de fora (modelos pesados).
 - **Falta/Próximo**: Monitor de CPU "estranho" (usuário reclamou) — falta gráfico de CPU e conferir a leitura; testar tudo visualmente
-  (não há captura de tela no ambiente); commitar (nada foi commitado); importar seções/tabelas/transições do `.pptx`.
+  (não há captura de tela no ambiente); commitar (nada foi commitado); importar seções/tabelas do `.pptx` (transições: feito em 23/11/2026).
 - **Link e Comentário (07/10)**: `Elemento::link` (só `http`/`https`/`mailto`, validado em `core/src/links.rs`; `exemplo.com` vira `https://`) e `Slide::comentarios` (autor, texto, resolvido). Colunas `link` e `comentarios` no `.fsdz` sem subir a versão (arquivo antigo lê como vazio). Na apresentação, clicar no elemento com link abre com `xdg-open` (só por clique); gatilho de slide tem prioridade. Caixas em `gui/src/revisao.rs` (Inserir → Link / Comentário). Testes no core, no io e no app. Falta: link em trecho de texto (hoje é do elemento), importar link/comentário do `.pptx`, MCP.
 
 ## Ajustes da interface nativa — 07/10/2026 (Codex)

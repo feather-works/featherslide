@@ -15,6 +15,7 @@ mod cores;
 pub mod gravar;
 mod fontes;
 mod texto;
+mod transicao;
 
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -374,7 +375,7 @@ impl Leitor<'_> {
             elementos,
             notas,
             oculto: arvore.attr("show") == Some("0"),
-            transicao: Default::default(),
+            transicao: transicao::ler(&arvore),
             secao: String::new(),
             comentarios: Vec::new(),
         })

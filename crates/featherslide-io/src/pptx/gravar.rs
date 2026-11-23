@@ -401,8 +401,9 @@ fn slide(sl: &Slide, n: usize, total: usize, midia: &mut Midia, graficos: &mut G
     }
     let fundo = hex(&sl.fundo).map_or(String::new(), |c| format!(r#"<p:bg><p:bgPr><a:solidFill><a:srgbClr val="{c}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>"#));
     let oculto = if sl.oculto { r#" show="0""# } else { "" };
+    let transicao = super::transicao::gravar(&sl.transicao);
     let xml = format!(
-        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld {NS}{oculto}><p:cSld>{fundo}<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>{arvore}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>"#
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld {NS}{oculto}><p:cSld>{fundo}<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>{arvore}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>{transicao}</p:sld>"#
     );
     if !sl.notas.trim().is_empty() {
         ligacoes.push((format!("rId{}", ligacoes.len() + 1), R_NOTAS, format!("../notesSlides/notesSlide{n}.xml")));
