@@ -110,8 +110,8 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   arquivo sem extensão conhecida vira `.fsdz` (senão sumia da Recuperação); o resumo do zoom inclui a
   foto (documentos sem identificador dividiam a chave); algarismo digitado sobrando de uma apresentação
   não vale na seguinte.
-- Ficou para depois: data local no Windows (`date` não existe lá: rodapé cai no UTC e os recentes
-  ficam sem data); ponteiro laser/caneta e grade de slides durante a apresentação; espanhol (es-ES) — feito em 16/11/2026.
+- Data local no Windows: feita em 23/11/2026 (`data_local.rs`, sem o `date`: fuso por `localtime_r`/`GetLocalTime`,
+  calendário em conta; também conserta o macOS, cujo `date` não aceita `-d`). Ficou para depois: ponteiro laser/caneta e grade de slides durante a apresentação; espanhol (es-ES) — feito em 16/11/2026.
 
 ## Brainstorm de 05/11/2026 — entregas
 

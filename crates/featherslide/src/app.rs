@@ -595,7 +595,7 @@ impl FeatherSlideApp {
             titulo: ajuda::t("dicas.titulo"),
             subtitulo: ajuda::t("dicas.subtitulo"),
             corpo: ajuda::t("dicas.corpo"),
-            hoje: chrono_like_hoje().split(' ').next().unwrap_or("").to_string(),
+            hoje: crate::data_local::agora().0,
         });
     }
 
@@ -5795,15 +5795,6 @@ fn resumo(texto: &str) -> u64 {
 }
 
 /// A data e a hora de agora, no fuso do sistema (`dd/mm/aaaa HH:MM`).
-fn chrono_like_hoje() -> String {
-    std::process::Command::new("date")
-        .arg("+%d/%m/%Y %H:%M")
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        .unwrap_or_default()
-}
 
 #[cfg(test)]
 #[test]

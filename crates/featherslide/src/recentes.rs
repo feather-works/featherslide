@@ -3,7 +3,6 @@
 //! `.pptx` grande leva tempo.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use featherslide_core::quadro::{Dicas, Quadro};
 use featherslide_core::sessao::Sessao;
@@ -51,21 +50,16 @@ pub fn caminhos(config: &Configuracao) -> Vec<PathBuf> {
     lista
 }
 
-fn data_local(segundos: u64, formato: &str) -> Option<String> {
-    let saida = Command::new("date").arg("-d").arg(format!("@{segundos}")).arg(format!("+{formato}")).output().ok()?;
-    saida.status.success().then(|| String::from_utf8_lossy(&saida.stdout).trim().to_string())
-}
-
 fn descrever_data(p: &Path) -> String {
     let Some(segundos) = std::fs::metadata(p).ok().and_then(|m| m.modified().ok()).and_then(|m| m.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_secs()) else {
         return String::new();
     };
     let agora = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-    let (dia, hora) = (data_local(segundos, "%d/%m/%Y"), data_local(segundos, "%H:%M"));
-    match (dia, hora) {
-        (Some(d), Some(h)) if Some(&d) == data_local(agora, "%d/%m/%Y").as_ref() => crate::localidade::trf("Modificado hoje {}", &[&h]),
-        (Some(d), Some(h)) => crate::localidade::trf("Modificado em {} {}", &[&d, &h]),
-        _ => String::new(),
+    let (d, h) = crate::data_local::formatar(segundos as i64);
+    if d == crate::data_local::formatar(agora as i64).0 {
+        crate::localidade::trf("Modificado hoje {}", &[&h])
+    } else {
+        crate::localidade::trf("Modificado em {} {}", &[&d, &h])
     }
 }
 
