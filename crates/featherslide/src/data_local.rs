@@ -85,25 +85,30 @@ mod testes {
         let t = dias_desde_1970(2026, 11, 23) * 86_400 + 2 * 3600 + 30 * 60;
         assert_eq!(formatar_com(t, -180), ("22/11/2026".into(), "23:30".into()));
         assert_eq!(formatar_com(t, 330), ("23/11/2026".into(), "08:00".into()));
-        // Fuso da própria data: em Berlim julho é UTC+2 e dezembro UTC+1.
-        #[cfg(unix)]
-        {
-            let antes = std::env::var_os("TZ");
-            std::env::set_var("TZ", "Europe/Berlin");
-            unsafe extern "C" { fn tzset(); }
-            unsafe { tzset() };
-            let julho = dias_desde_1970(2026, 7, 1) * 86_400 + 12 * 3600;
-            let dezembro = dias_desde_1970(2026, 12, 1) * 86_400 + 12 * 3600;
-            if deslocamento_em(dezembro) == 60 {
-                assert_eq!(formatar(julho).1, "14:00");
-                assert_eq!(formatar(dezembro).1, "13:00");
-            }
-            match antes { Some(v) => std::env::set_var("TZ", v), None => std::env::remove_var("TZ") }
-            unsafe { tzset() };
-        }
         // Ano bissexto e virada de século.
         for (a, m, d) in [(2024, 2, 29), (2000, 2, 29), (2100, 3, 1), (1969, 12, 31)] {
             assert_eq!(data_civil(dias_desde_1970(a, m, d)), (a, m, d));
         }
+    }
+
+    /// Muda o `TZ` do processo inteiro: com outros testes em paralelo (que leem o ambiente) seria
+    /// comportamento indefinido na glibc. Rodar sozinho: `cargo test fuso_da_propria_data -- --ignored`.
+    #[cfg(unix)]
+    #[test]
+    #[ignore = "muda o TZ do processo; rodar sozinho com --ignored"]
+    fn fuso_da_propria_data() {
+        // Fuso da própria data: em Berlim julho é UTC+2 e dezembro UTC+1.
+        let antes = std::env::var_os("TZ");
+        std::env::set_var("TZ", "Europe/Berlin");
+        unsafe extern "C" { fn tzset(); }
+        unsafe { tzset() };
+        let julho = dias_desde_1970(2026, 7, 1) * 86_400 + 12 * 3600;
+        let dezembro = dias_desde_1970(2026, 12, 1) * 86_400 + 12 * 3600;
+        if deslocamento_em(dezembro) == 60 {
+            assert_eq!(formatar(julho).1, "14:00");
+            assert_eq!(formatar(dezembro).1, "13:00");
+        }
+        match antes { Some(v) => std::env::set_var("TZ", v), None => std::env::remove_var("TZ") }
+        unsafe { tzset() };
     }
 }
