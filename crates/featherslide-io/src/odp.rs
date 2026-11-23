@@ -203,6 +203,56 @@ fn cor(v: Option<String>) -> Option<String> {
     v.filter(|c| c.starts_with('#') && c.len() == 7).map(|c| c.to_lowercase())
 }
 
+/// Segundos de um tempo do ODF: `2s`, `0.5s`, `PT5S` ou `PT00H01M05S`.
+fn segundos(v: &str) -> Option<f32> {
+    let v = v.trim();
+    if let Some(iso) = v.strip_prefix("PT") {
+        let (mut total, mut numero) = (0.0_f32, String::new());
+        for c in iso.chars() {
+            match c {
+                'H' | 'M' | 'S' => {
+                    let n: f32 = numero.parse().ok()?;
+                    total += n * match c { 'H' => 3600.0, 'M' => 60.0, _ => 1.0 };
+                    numero.clear();
+                }
+                c => numero.push(c),
+            }
+        }
+        return Some(total);
+    }
+    v.strip_suffix('s').unwrap_or(v).parse().ok()
+}
+
+/// A transição do slide pelo `anim:transitionFilter` que o Impress grava na página.
+fn transicao(filtro: Option<&No>, apos: f32) -> featherslide_core::modelo::Transicao {
+    use featherslide_core::modelo::{Direcao, TipoTransicao, Transicao};
+    let padrao = Transicao { apos: apos.clamp(0.0, 86_400.0), ..Transicao::default() };
+    let Some(f) = filtro else { return padrao };
+    let sub = f.attr("smil:subtype").unwrap_or("");
+    let ao_contrario = f.attr("smil:direction") == Some("reverse");
+    // `fromLeft` = vem da esquerda; o `barWipe` diz para onde varre (`leftToRight` = vem da esquerda).
+    let mut direcao = if sub.starts_with("fromLeft") || sub == "leftToRight" || sub == "fromTopLeft" || sub == "fromBottomLeft" { Direcao::Esquerda }
+        else if sub.starts_with("fromTop") || sub == "topToBottom" { Direcao::Cima }
+        else if sub.starts_with("fromBottom") { Direcao::Baixo }
+        else { Direcao::Direita };
+    let tipo = match f.attr("smil:type") {
+        Some("fade") => TipoTransicao::Esmaecer,
+        Some("pushWipe") => TipoTransicao::Empurrar,
+        Some("slideWipe") if ao_contrario => TipoTransicao::Revelar,
+        Some("slideWipe") => TipoTransicao::Deslizar,
+        Some("barWipe") => {
+            if ao_contrario {
+                direcao = match direcao { Direcao::Esquerda => Direcao::Direita, Direcao::Direita => Direcao::Esquerda, Direcao::Cima => Direcao::Baixo, Direcao::Baixo => Direcao::Cima };
+            }
+            TipoTransicao::Cortina
+        }
+        // shortcut: os efeitos do Impress que ainda não temos tocam como esmaecer; mapear um a um quando houver o efeito.
+        _ => TipoTransicao::Esmaecer,
+    };
+    let duracao = f.attr("smil:dur").and_then(segundos).unwrap_or(0.7).clamp(0.05, 10.0);
+    Transicao { tipo, direcao, duracao, apos: padrao.apos }
+}
+
 impl Leitor<'_> {
     fn novo_id(&mut self) -> u64 {
         self.proximo += 1;
@@ -230,7 +280,11 @@ impl Leitor<'_> {
             Some(n) if n.contains("Title") && n.contains("Content") => "titulo_conteudo",
             _ => "em_branco",
         };
-        Ok(Slide { id: self.novo_id(), layout: layout.into(), fundo, fundo_config: Default::default(), ocultar_mestre: false, elementos, notas: notas.unwrap_or_default(), oculto, transicao: Default::default(), secao: String::new(), comentarios: Vec::new() })
+        let estilo = |attr: &str| self.estilos.propriedade(p.attr("draw:style-name"), "style:drawing-page-properties", attr);
+        let apos = (estilo("presentation:transition-type").as_deref() == Some("automatic"))
+            .then(|| estilo("presentation:duration").as_deref().and_then(segundos)).flatten().unwrap_or(0.0);
+        let transicao = transicao(p.busca("anim:transitionFilter"), apos);
+        Ok(Slide { id: self.novo_id(), layout: layout.into(), fundo, fundo_config: Default::default(), ocultar_mestre: false, elementos, notas: notas.unwrap_or_default(), oculto, transicao, secao: String::new(), comentarios: Vec::new() })
     }
 
     fn formas(&mut self, pai: &No, saida: &mut Vec<Elemento>) -> Result<(), String> {
@@ -449,6 +503,22 @@ impl Leitor<'_> {
 #[cfg(test)]
 mod testes {
     use super::medida;
+
+    #[test]
+    fn transicao_do_impress() {
+        use featherslide_core::modelo::{Direcao, TipoTransicao};
+        let filtro = |xml: &str| crate::xml::ler(xml.as_bytes(), "t").unwrap();
+        // O que o Impress grava para "Empurrar de baixo, 2 s".
+        let t = super::transicao(Some(&filtro(r#"<anim:transitionFilter smil:dur="2s" smil:type="pushWipe" smil:subtype="fromBottom"/>"#)), 5.0);
+        assert_eq!((t.tipo, t.direcao, t.duracao, t.apos), (TipoTransicao::Empurrar, Direcao::Baixo, 2.0, 5.0));
+        let t = super::transicao(Some(&filtro(r#"<anim:transitionFilter smil:type="slideWipe" smil:subtype="fromLeft" smil:direction="reverse"/>"#)), 0.0);
+        assert_eq!((t.tipo, t.direcao), (TipoTransicao::Revelar, Direcao::Esquerda));
+        let t = super::transicao(Some(&filtro(r#"<anim:transitionFilter smil:type="barWipe" smil:subtype="leftToRight" smil:direction="reverse"/>"#)), 0.0);
+        assert_eq!((t.tipo, t.direcao), (TipoTransicao::Cortina, Direcao::Direita));
+        assert_eq!(super::transicao(None, 3.0).tipo, TipoTransicao::Nenhuma);
+        assert_eq!(super::segundos("PT00H01M05S"), Some(65.0));
+        assert_eq!(super::segundos("PT5S"), Some(5.0));
+    }
 
     #[test]
     fn espaco_repetido_tem_teto() {

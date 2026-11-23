@@ -67,7 +67,8 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   Deslizar, Empurrar, Revelar, Cortina, Zoom; `dir` do pptx é para onde anda, a `Direcao` é de onde vem).
   Grava como o PowerPoint: `mc:AlternateContent` com `p14:dur` (duração exata) e `Fallback` só com `spd`;
   `advTm` = `Transicao::apos`. Efeito do PowerPoint que não temos toca como esmaecer (`shortcut:`).
-  Conferido no LibreOffice (pptx → odp: pushWipe fromBottom, 2 s, avanço em 5 s). Falta: transições do `.odp`.
+  Conferido no LibreOffice (pptx → odp: pushWipe fromBottom, 2 s, avanço em 5 s).
+- `.odp` (só leitura): `odp::transicao` lê o `anim:transitionFilter` da página (fade, pushWipe, slideWipe e o reverse, barWipe) e o avanço do estilo (`presentation:transition-type="automatic"` + `presentation:duration`). Conferido: nosso .pptx → Impress → .odp → FeatherSlide volta igual.
 
 ## Tamanho do slide ao abrir `.pptx`/`.odp` (05/11/2026, issue #1)
 
