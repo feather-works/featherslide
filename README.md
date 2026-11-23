@@ -1,5 +1,7 @@
 # FeatherSlide
 
+[![Discord](https://img.shields.io/badge/Discord-Maragon.Dev-5865F2?logo=discord&logoColor=white)](https://discord.gg/b4Epb4eSSH)
+
 **Presentations for the FeatherWorks suite, written in Rust with a native
 interface on [pelicano](https://github.com/feather-works/pelicano)** — light,
 fast and without WebKit. Opens `.pptx` and `.odp`, saves to its own `.fsdz`
