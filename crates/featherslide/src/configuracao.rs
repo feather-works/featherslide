@@ -136,7 +136,8 @@ impl Configuracao {
             std::fs::create_dir_all(pasta)?;
         }
         let bytes = serde_json::to_vec_pretty(self).map_err(std::io::Error::other)?;
-        std::fs::write(path, bytes)
+        // Atômico: uma queda no meio deixava o JSON cortado e recentes, favoritos e atalhos voltavam ao padrão.
+        featherslide_io::arquivo::gravar_atomico(path, &bytes).map_err(std::io::Error::other)
     }
 
     pub fn carregar() -> Self {
