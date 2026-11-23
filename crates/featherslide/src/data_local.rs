@@ -2,11 +2,12 @@
 //! aceita `-d` (o rodapé caía no UTC e os recentes ficavam sem data). O fuso vem do sistema; o
 //! calendário é conta.
 
-/// Minutos a leste de UTC agora (Brasília: -180). Sem fuso conhecido, 0.
-pub fn deslocamento_minutos() -> i64 {
+/// Minutos a leste de UTC no instante `segundos` (Brasília: -180): com horário de verão, julho e
+/// dezembro têm deslocamentos diferentes. Sem fuso conhecido, 0.
+fn deslocamento_em(segundos: i64) -> i64 {
     #[cfg(unix)]
     {
-        let agora = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs() as libc::time_t;
+        let agora = segundos as libc::time_t;
         // SAFETY: `localtime_r` só escreve na `tm` que passamos.
         let mut tm: libc::tm = unsafe { std::mem::zeroed() };
         if !unsafe { libc::localtime_r(&agora, &mut tm) }.is_null() {
@@ -14,8 +15,11 @@ pub fn deslocamento_minutos() -> i64 {
         }
         0
     }
+    // shortcut: no Windows vale o fuso de agora (uma data do outro lado do horário de verão sai 1 h
+    // diferente); usar SystemTimeToTzSpecificLocalTime se alguém notar.
     #[cfg(windows)]
     {
+        let _ = segundos;
         use windows_sys::Win32::Foundation::SYSTEMTIME;
         use windows_sys::Win32::System::SystemInformation::{GetLocalTime, GetSystemTime};
         let minutos = |t: &SYSTEMTIME| dias_desde_1970(t.wYear as i64, t.wMonth as i64, t.wDay as i64) * 1440 + t.wHour as i64 * 60 + t.wMinute as i64;
@@ -25,7 +29,7 @@ pub fn deslocamento_minutos() -> i64 {
         minutos(&local) - minutos(&utc)
     }
     #[cfg(not(any(unix, windows)))]
-    { 0 }
+    { let _ = segundos; 0 }
 }
 
 /// Dias desde 1/1/1970 da data civil (algoritmo de Howard Hinnant).
@@ -61,9 +65,8 @@ fn formatar_com(segundos: i64, minutos_leste: i64) -> (String, String) {
 }
 
 /// `("dd/mm/aaaa", "HH:MM")` locais de um instante em segundos UTC.
-// shortcut: usa o fuso de agora (uma data de antes da mudança de horário de verão pode sair 1 h diferente); usar o fuso da data se alguém notar.
 pub fn formatar(segundos: i64) -> (String, String) {
-    formatar_com(segundos, deslocamento_minutos())
+    formatar_com(segundos, deslocamento_em(segundos))
 }
 
 /// `("dd/mm/aaaa", "HH:MM")` de agora, na hora local.
@@ -82,6 +85,22 @@ mod testes {
         let t = dias_desde_1970(2026, 11, 23) * 86_400 + 2 * 3600 + 30 * 60;
         assert_eq!(formatar_com(t, -180), ("22/11/2026".into(), "23:30".into()));
         assert_eq!(formatar_com(t, 330), ("23/11/2026".into(), "08:00".into()));
+        // Fuso da própria data: em Berlim julho é UTC+2 e dezembro UTC+1.
+        #[cfg(unix)]
+        {
+            let antes = std::env::var_os("TZ");
+            std::env::set_var("TZ", "Europe/Berlin");
+            unsafe extern "C" { fn tzset(); }
+            unsafe { tzset() };
+            let julho = dias_desde_1970(2026, 7, 1) * 86_400 + 12 * 3600;
+            let dezembro = dias_desde_1970(2026, 12, 1) * 86_400 + 12 * 3600;
+            if deslocamento_em(dezembro) == 60 {
+                assert_eq!(formatar(julho).1, "14:00");
+                assert_eq!(formatar(dezembro).1, "13:00");
+            }
+            match antes { Some(v) => std::env::set_var("TZ", v), None => std::env::remove_var("TZ") }
+            unsafe { tzset() };
+        }
         // Ano bissexto e virada de século.
         for (a, m, d) in [(2024, 2, 29), (2000, 2, 29), (2100, 3, 1), (1969, 12, 31)] {
             assert_eq!(data_civil(dias_desde_1970(a, m, d)), (a, m, d));
