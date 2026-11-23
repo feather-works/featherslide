@@ -1787,7 +1787,10 @@ impl FeatherSlideApp {
                 }
                 let apos = self.sessao.slide().transicao.apos;
                 // No ensaio quem decide quando passar é a pessoa, não os tempos antigos.
-                if apos > 0.0 && self.ensaio.is_none() && self.repro.transicao.is_none() && self.repro.exibido_em.elapsed().as_secs_f32() >= apos {
+                // Com a grade aberta ou a caneta ligada o slide não anda sozinho (ia no meio da escolha ou do traço).
+                if apos > 0.0 && (self.repro.grade || self.repro.caneta) {
+                    self.repro.exibido_em = std::time::Instant::now();
+                } else if apos > 0.0 && self.ensaio.is_none() && self.repro.transicao.is_none() && self.repro.exibido_em.elapsed().as_secs_f32() >= apos {
                     return self.proximo_slide();
                 }
             }

@@ -34,7 +34,8 @@ pub(crate) fn ler(slide: &No) -> Transicao {
         _ => 0.75,
     });
     let apos = t.num("advTm").map_or(0.0, |ms| (ms / 1000.0) as f32);
-    let efeito = t.filhos.first();
+    // O som (`p:sndAc`) e as extensões não são o efeito: transição só com som não vira esmaecer.
+    let efeito = t.filhos.iter().find(|f| f.nome != "p:sndAc" && f.nome != "p:extLst");
     let tipo = match efeito.map(|e| e.nome.as_str()) {
         None => TipoTransicao::Nenhuma,
         Some("p:fade") => TipoTransicao::Esmaecer,
@@ -105,5 +106,7 @@ mod testes {
         let t = ler(&slide_com(r#"<p:transition spd="med"><p:randomBar/></p:transition>"#));
         assert_eq!(t.tipo, TipoTransicao::Esmaecer, "efeito que não temos ainda vira esmaecer");
         assert_eq!(ler(&slide_com("")).tipo, TipoTransicao::Nenhuma);
+        let t = ler(&slide_com(r#"<p:transition><p:sndAc><p:stSnd><p:snd r:embed="rId2"/></p:stSnd></p:sndAc></p:transition>"#));
+        assert_eq!(t.tipo, TipoTransicao::Nenhuma, "só som não é esmaecer");
     }
 }

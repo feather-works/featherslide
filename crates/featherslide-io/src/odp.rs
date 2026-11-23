@@ -127,6 +127,21 @@ fn transformacao(f: &No) -> Option<(f64, f64, f64)> {
 
 /// As linhas de uma `table:table` (também as de `table:table-header-rows`), com as células repetidas
 /// (`table:number-columns-repeated`) abertas; a célula coberta por uma mesclagem fica vazia.
+/// `Introdu%C3%A7%C3%A3o` → `Introdução`: o `%XX` são bytes UTF-8.
+fn sem_porcento(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut bytes = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        let hex = (b[i] == b'%').then(|| s.get(i + 1..i + 3)).flatten().and_then(|h| u8::from_str_radix(h, 16).ok());
+        match hex {
+            Some(v) => { bytes.push(v); i += 3; }
+            None => { bytes.push(b[i]); i += 1; }
+        }
+    }
+    String::from_utf8_lossy(&bytes).into_owned()
+}
+
 fn grade_da_tabela(t: &No) -> Vec<Vec<String>> {
     let mut grade = Vec::new();
     for f in &t.filhos {
@@ -139,7 +154,9 @@ fn grade_da_tabela(t: &No) -> Vec<Vec<String>> {
                     let vezes = c.attr("table:number-columns-repeated").and_then(|n| n.parse::<usize>().ok()).unwrap_or(1).clamp(1, 64);
                     linha.extend(std::iter::repeat_n(texto, vezes));
                 }
-                grade.push(linha);
+                // Linhas iguais seguidas (do Calc) vêm numa só, com `table:number-rows-repeated`.
+                let vezes = f.attr("table:number-rows-repeated").and_then(|n| n.parse::<usize>().ok()).unwrap_or(1).clamp(1, 64);
+                grade.extend(std::iter::repeat_n(linha, vezes));
             }
             _ => {}
         }
@@ -283,7 +300,11 @@ impl Leitor<'_> {
         let estilo = |attr: &str| self.estilos.propriedade(p.attr("draw:style-name"), "style:drawing-page-properties", attr);
         let apos = (estilo("presentation:transition-type").as_deref() == Some("automatic"))
             .then(|| estilo("presentation:duration").as_deref().and_then(segundos)).flatten().unwrap_or(0.0);
-        let transicao = transicao(p.busca("anim:transitionFilter"), apos);
+        // O efeito de entrada de uma forma também é um `anim:transitionFilter` (com `smil:targetElement`):
+        // a transição do slide é o que não aponta para forma nenhuma.
+        let mut filtros = Vec::new();
+        p.todos("anim:transitionFilter", &mut filtros);
+        let transicao = transicao(filtros.into_iter().find(|f| f.attr("smil:targetElement").is_none()), apos);
         Ok(Slide { id: self.novo_id(), layout: layout.into(), fundo, fundo_config: Default::default(), ocultar_mestre: false, elementos, notas: notas.unwrap_or_default(), oculto, transicao, secao: String::new(), comentarios: Vec::new() })
     }
 
@@ -320,7 +341,7 @@ impl Leitor<'_> {
         let Some(alvo) = ouvinte.and_then(|o| o.attr("xlink:href")).map(str::trim).filter(|a| !a.is_empty()) else { return (String::new(), 0) };
         match alvo.strip_prefix('#') {
             Some(nome) => {
-                let nome = nome.replace("%20", " ");
+                let nome = sem_porcento(nome);
                 (String::new(), self.paginas.iter().position(|p| *p == nome).map_or(0, |i| i as u32 + 1))
             }
             None => (alvo.to_string(), 0),
@@ -502,6 +523,12 @@ impl Leitor<'_> {
 
 #[cfg(test)]
 mod testes {
+    #[test]
+    fn link_com_acento_acha_o_slide() {
+        assert_eq!(super::sem_porcento("Introdu%C3%A7%C3%A3o%20geral"), "Introdução geral");
+        assert_eq!(super::sem_porcento("100%"), "100%");
+    }
+
     use super::medida;
 
     #[test]
