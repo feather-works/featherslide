@@ -1122,7 +1122,9 @@ impl FeatherSlideApp {
                         use crate::faixa::AbaDaFaixa as A;
                         self.aba_faixa = match a.as_str() { "inserir" => A::Inserir, "organizar" => A::Organizar, "design" => A::Design, "transicoes" => A::Transicoes, "animacoes" => A::Animacoes, "apresentacao" => A::Apresentacao, "revisao" => A::Revisao, "exibir" => A::Exibir, _ => self.aba_faixa };
                     }
-                    if self.sessao.elemento_inserir(Tipo::Texto, None, None).is_ok() {
+                    // `FEATHERSLIDE_CAPTURAR_TELA=slide`: o slide do arquivo aberto, sem a caixa de exemplo.
+                    let exemplo = std::env::var("FEATHERSLIDE_CAPTURAR_TELA").as_deref() != Ok("slide");
+                    if exemplo && self.sessao.elemento_inserir(Tipo::Texto, None, None).is_ok() {
                         if let Some(id) = self.sessao.slide().elementos.last().map(|e| e.id) {
                             let _ = self.sessao.texto_definir(id, tr("Exemplo de texto"));
                             self.sessao.selecionar_por_id(id);
