@@ -17,6 +17,8 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   junto com o `featherslide-ponte` (sem uso); os dois ficam no histórico do git. Menções ao
   Iced abaixo são registro histórico.
 - Dependências: pelicano 0.1.34 (crates.io) e feather-ui pela tag v0.3.16.
+- **v0.3.0 (24/11/2026):** interface em inglês e espanhol, caneta/laser/grade ao apresentar, transições no `.pptx`/`.odp`,
+  `.pptx` com forma livre (`custGeom`), degradê, entrelinha, caixa alta e a base do texto certa (`desenho::BASE_DO_TEXTO`).
 - **v0.2.2 (16/11/2026):** fontes embutidas no `.pptx` (Barlow Condensed etc.) medidas e desenhadas
   com as próprias larguras: o título não quebra antes da hora nem desce sobre o texto ao abrir (#1).
 - **v0.2.1 (12/11/2026):** pelicano 0.1.27 → 0.1.34. Em placa de vídeo sem Vulkan/OpenGL
