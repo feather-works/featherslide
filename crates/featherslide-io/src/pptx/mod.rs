@@ -243,6 +243,47 @@ pub(crate) fn tipo_da_forma(prst: &str, preenchida: bool) -> Tipo {
     }
 }
 
+/// A forma livre (`a:custGeom`) em SVG1 (coordenadas de 0 a 1 na caixa) e se alguma parte é
+/// preenchida (`fill="none"` é só traço). Cada `a:path` tem o próprio `w`×`h` (sem eles, o tamanho
+/// da forma em EMU). `None` se não sobra nenhum trecho desenhável.
+fn caminho_livre(cust: &No, xfrm: &No, flip_h: bool, flip_v: bool) -> Option<(String, bool)> {
+    let ext = xfrm.filho("a:ext");
+    let mut svg = String::from("SVG1\nnormal\n");
+    let mut cheio = false;
+    let mut algum = false;
+    for p in cust.filho("a:pathLst")?.filhos("a:path") {
+        let w = p.num("w").filter(|w| *w > 0.0).or_else(|| ext.and_then(|e| e.num("cx"))).filter(|w| *w > 0.0);
+        let h = p.num("h").filter(|h| *h > 0.0).or_else(|| ext.and_then(|e| e.num("cy"))).filter(|h| *h > 0.0);
+        let (Some(w), Some(h)) = (w, h) else { continue };
+        let ponto = |n: &No| -> Option<String> {
+            let (x, y) = (n.num("x")? / w, n.num("y")? / h);
+            Some(format!("{} {}", if flip_h { 1.0 - x } else { x }, if flip_v { 1.0 - y } else { y }))
+        };
+        let mut aberto = false;
+        for c in &p.filhos {
+            // Ponto com fórmula (nome de guia) não tem número: o comando fica de fora.
+            let Some(pts) = c.filhos("a:pt").map(ponto).collect::<Option<Vec<_>>>() else { continue };
+            // shortcut: `a:arcTo` fica de fora (o arco vira o próximo trecho reto); fazer se aparecer arquivo com ele.
+            let linha = match (c.nome.as_str(), pts.as_slice()) {
+                ("a:moveTo", [a]) => format!("M {a}"),
+                ("a:lnTo", [a]) if aberto => format!("L {a}"),
+                ("a:quadBezTo", [a, b]) if aberto => format!("Q {a} {b}"),
+                ("a:cubicBezTo", [a, b, d]) if aberto => format!("C {a} {b} {d}"),
+                ("a:close", []) if aberto => "Z".into(),
+                _ => continue,
+            };
+            aberto = true;
+            svg.push_str(&linha);
+            svg.push('\n');
+        }
+        if aberto {
+            algum = true;
+            cheio |= p.attr("fill") != Some("none");
+        }
+    }
+    algum.then_some((svg, cheio))
+}
+
 /// O valor de um ajuste da geometria (`<a:gd name="adj1" fmla="val 50000"/>`).
 fn ajuste(geom: Option<&No>, nome: &str, padrao: f64) -> f64 {
     geom.and_then(|g| g.filho("a:avLst"))
@@ -439,13 +480,18 @@ impl Leitor<'_> {
         let xfrm = [Some(f), no_layout, no_mestre].into_iter().flatten().find_map(|n| n.caminho(&["p:spPr", "a:xfrm"]).filter(|x| x.filho("a:off").is_some()))?;
         let [mut x, mut y, mut w, mut h] = t.retangulo(xfrm)?;
         let tema = &ctx.tema;
-        let preenchimento = sp_pr.and_then(|s| tema.preenchimento(s)).or_else(|| f.caminho(&["p:style", "a:fillRef"]).filter(|r| r.attr("idx") != Some("0")).and_then(|r| tema.cor(r))).unwrap_or_default();
+        let gradiente = sp_pr.and_then(|s| tema.gradiente(s));
+        // A cor sólida fica com a primeira do degradê (miniatura, PDF e quem não pinta degradê).
+        let preenchimento = sp_pr.and_then(|s| tema.preenchimento(s)).or_else(|| gradiente.as_ref().map(|g| g.pontos[0].cor.clone())).or_else(|| f.caminho(&["p:style", "a:fillRef"]).filter(|r| r.attr("idx") != Some("0")).and_then(|r| tema.cor(r))).unwrap_or_default();
         let ln = sp_pr.and_then(|s| s.filho("a:ln"));
         let contorno = ln.and_then(|l| tema.preenchimento(l)).or_else(|| f.caminho(&["p:style", "a:lnRef"]).filter(|r| r.attr("idx") != Some("0")).and_then(|r| tema.cor(r))).unwrap_or_default();
         let espessura = ln.and_then(|l| l.num("w")).map_or(1.0, |e| (e / EMU_POR_PT) as f32 * self.escala).max(0.25);
         let geom = sp_pr.and_then(|s| s.filho("a:prstGeom"));
         let prst = geom.and_then(|g| g.attr("prst")).unwrap_or("rect");
-        let tipo = tipo_da_forma(prst, !preenchimento.is_empty() || !contorno.is_empty());
+        // Forma livre (`a:custGeom`): o caminho vetorial dela, não um retângulo cheio.
+        let livre = sp_pr.and_then(|s| s.filho("a:custGeom")).and_then(|c| caminho_livre(c, xfrm, (xfrm.attr("flipH") == Some("1")) != t.espelhada(), xfrm.attr("flipV") == Some("1")));
+        let preenchimento = if livre.as_ref().is_some_and(|l| !l.1) { String::new() } else { preenchimento };
+        let tipo = if livre.is_some() { Tipo::Caminho } else { tipo_da_forma(prst, !preenchimento.is_empty() || !contorno.is_empty()) };
         if tipo == Tipo::Linha {
             if (xfrm.attr("flipH") == Some("1")) != t.espelhada() {
                 (x, w) = (x + w, -w);
@@ -488,10 +534,12 @@ impl Leitor<'_> {
             altura: h,
             rotacao: t.rotacao(xfrm),
             preenchimento,
+            gradiente,
             contorno,
             espessura,
             texto,
             margem,
+            dados: livre.map(|l| l.0).unwrap_or_default(),
             estilo: texto::estilo(corpo, &heranca, tema, self.escala),
             ajustes: ajustes_da_forma(prst, geom, xfrm),
             sombra: self.sombra(sp_pr, tema),

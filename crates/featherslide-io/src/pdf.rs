@@ -697,7 +697,27 @@ pub fn raster_forma(el: &ElementoDesenhado) -> Option<ImagemRgba> {
         false
     };
     let mut paths = Vec::new();
+    let mut regra = FillRule::Winding;
     for p in &el.primitivas {
+        // O caminho vetorial (SVG, forma livre do .pptx), com as curvas.
+        if let Primitiva::Vetor { segmentos, par, .. } = p {
+            use featherslide_core::vetores::Segmento as S;
+            let q = |a: [f32; 2]| (a[0] - el.x, a[1] - el.y);
+            let mut b = PathBuilder::new();
+            for s in segmentos {
+                match *s {
+                    S::M(a) => { let (x, y) = q(a); b.move_to(x, y) }
+                    S::L(a) => { let (x, y) = q(a); b.line_to(x, y) }
+                    S::Q(c, a) => { let ((cx, cy), (x, y)) = (q(c), q(a)); b.quad_to(cx, cy, x, y) }
+                    S::C(c1, c2, a) => { let ((x1, y1), (x2, y2), (x, y)) = (q(c1), q(c2), q(a)); b.cubic_to(x1, y1, x2, y2, x, y) }
+                    S::Z => b.close(),
+                }
+            }
+            if *par { regra = FillRule::EvenOdd; }
+            if let Some(p) = b.finish() {
+                paths.push(p);
+            }
+        }
         if let Primitiva::Caminho { contornos, .. } = p {
             let mut b = PathBuilder::new();
             for cont in contornos {
@@ -730,7 +750,7 @@ pub fn raster_forma(el: &ElementoDesenhado) -> Option<ImagemRgba> {
     let t = Transform::from_row(escala, 0.0, 0.0, escala, borda as f32, borda as f32);
     for p in paths {
         if preencher {
-            pix.fill_path(&p, &paint, FillRule::Winding, t, None);
+            pix.fill_path(&p, &paint, regra, t, None);
         }
         if let Some(c) = cor(&el.contorno) {
             if el.espessura > 0.0 {

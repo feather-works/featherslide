@@ -32,7 +32,7 @@ fn criar(e: &ElementoDesenhado) -> Vec<Primitiva> {
     let intensidade = e.ajustes.first().copied().unwrap_or(0.5);
     let mut partes = Vec::new();
     for linha in &e.linhas {
-        let em = Point::new(linha.x, linha.y - e.tamanho * 0.8);
+        let em = Point::new(linha.x, linha.y - e.tamanho * crate::desenho::BASE_DO_TEXTO);
         let curvas = MEDIDOR.with(|r| {
             feather_ui::texto_contorno::contornos_deformados(&mut r.borrow_mut(), &linha.texto, e.tamanho, crate::desenho::fonte_do_elemento(e), em, |q| wordart::transformar(q, e.base, modo, intensidade))
         });

@@ -486,3 +486,60 @@ fn odp_forma_girada_nao_some_e_volta_no_lugar() {
     assert_eq!(e[1].rotacao, 0.0);
     assert!((e[0].x - e[1].x).abs() < 0.05 && (e[0].y - e[1].y).abs() < 0.05, "{:?} × {:?}", (e[0].x, e[0].y), (e[1].x, e[1].y));
 }
+
+#[test]
+fn pptx_forma_livre_vira_caminho_e_degrade_vira_gradiente() {
+    // Antes de 24/11/2026 toda `a:custGeom` virava um retângulo cheio por cima do slide.
+    let cheia = r#"<p:sp><p:nvSpPr><p:cNvPr id="9" name="onda"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1270000" cy="1270000"/></a:xfrm><a:custGeom><a:pathLst><a:path w="100" h="100"><a:moveTo><a:pt x="0" y="100"/></a:moveTo><a:cubicBezTo><a:pt x="0" y="0"/><a:pt x="100" y="0"/><a:pt x="100" y="100"/></a:cubicBezTo><a:close/></a:path></a:pathLst></a:custGeom><a:gradFill><a:gsLst><a:gs pos="0"><a:srgbClr val="0000FF"/></a:gs><a:gs pos="100000"><a:schemeClr val="accent1"/></a:gs></a:gsLst><a:lin ang="5400000"/></a:gradFill></p:spPr></p:sp>"#;
+    let traco = r#"<p:sp><p:nvSpPr><p:cNvPr id="10" name="linha"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm flipH="1"><a:off x="0" y="0"/><a:ext cx="1270000" cy="1270000"/></a:xfrm><a:custGeom><a:pathLst><a:path w="10" h="10" fill="none"><a:moveTo><a:pt x="0" y="0"/></a:moveTo><a:lnTo><a:pt x="10" y="5"/></a:lnTo></a:path></a:pathLst></a:custGeom><a:solidFill><a:srgbClr val="00FF00"/></a:solidFill><a:ln w="12700"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></p:spPr></p:sp>"#;
+    let mut z = zip::ZipArchive::new(Cursor::new(pptx_minimo())).unwrap();
+    let mut partes = Vec::new();
+    for i in 0..z.len() {
+        let mut f = z.by_index(i).unwrap();
+        let mut c = String::new();
+        std::io::Read::read_to_string(&mut f, &mut c).unwrap();
+        partes.push((f.name().to_string(), c.replace("</p:grpSp>\n</p:spTree>", &format!("</p:grpSp>{cheia}{traco}</p:spTree>"))));
+    }
+    let partes: Vec<(&str, &str)> = partes.iter().map(|(n, c)| (n.as_str(), c.as_str())).collect();
+    let ap = pptx::ler(&zip(&partes)).unwrap();
+    let livres: Vec<_> = ap.slides[0].elementos.iter().filter(|e| e.tipo == Tipo::Caminho).collect();
+    assert_eq!(livres.len(), 2);
+    let (onda, linha) = (livres[0], livres[1]);
+    assert_eq!(onda.dados, "SVG1\nnormal\nM 0 1\nC 0 0 1 0 1 1\nZ\n");
+    let g = onda.gradiente.as_ref().expect("degradê");
+    assert_eq!((g.angulo, g.pontos[0].cor.as_str(), g.pontos[1].cor.as_str()), (90.0, "#0000ff", "#ff0000"));
+    assert_eq!(onda.preenchimento, "#0000ff");
+    // Só traço: sem preenchimento; flipH espelha o caminho.
+    assert_eq!(linha.preenchimento, "");
+    assert_eq!(linha.dados, "SVG1\nnormal\nM 1 0\nL 0 0.5\n");
+    // O desenho com degradê pinta a curva (o meio de baixo é cheio; o canto de cima, vazio).
+    let q = featherslide_core::quadro::quadro(&ap.slides[0], (960.0, 540.0), 1, &Default::default(), false);
+    let d = q.elementos.iter().find(|e| e.id == onda.id).unwrap();
+    let (w, h, px) = featherslide_io::pdf::raster_forma(d).expect("raster da forma livre");
+    let alfa = |x: u32, y: u32| px[((y * w + x) * 4 + 3) as usize];
+    assert!(alfa(w / 2, h * 9 / 10) > 200);
+    assert_eq!(alfa(2, 2), 0);
+}
+
+#[test]
+fn pptx_le_entrelinha_e_caixa_alta() {
+    // Antes de 24/11/2026 o título de entrelinha 90 % descia sobre o subtítulo e `cap="all"` saía em minúsculas.
+    let mut z = zip::ZipArchive::new(Cursor::new(pptx_minimo())).unwrap();
+    let mut partes = Vec::new();
+    for i in 0..z.len() {
+        let mut f = z.by_index(i).unwrap();
+        let mut c = String::new();
+        std::io::Read::read_to_string(&mut f, &mut c).unwrap();
+        let c = c
+            .replace(r#"<a:lvl1pPr algn="ctr">"#, r#"<a:lvl1pPr algn="ctr"><a:lnSpc><a:spcPct val="90000"/></a:lnSpc>"#)
+            .replace(r#"<a:rPr lang="pt-BR"/><a:t>Título herdado"#, r#"<a:rPr lang="pt-BR" cap="all" spc="-150"/><a:t>Título herdado"#);
+        partes.push((f.name().to_string(), c));
+    }
+    let partes: Vec<(&str, &str)> = partes.iter().map(|(n, c)| (n.as_str(), c.as_str())).collect();
+    let ap = pptx::ler(&zip(&partes)).unwrap();
+    let titulo = ap.slides[0].elementos.iter().find(|e| e.papel == Papel::Titulo).unwrap();
+    assert_eq!(titulo.texto, "TÍTULO HERDADO");
+    assert!((titulo.estilo.entrelinha - 1.08).abs() < 1e-4, "entrelinha {}", titulo.estilo.entrelinha);
+    // `spc` fica de fora: a tela põe letra a letra pela medida AFM e abre buracos na palavra quando a fonte é outra.
+    assert_eq!(titulo.espacamento_letras, 0.0);
+}

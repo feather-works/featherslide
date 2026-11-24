@@ -62,11 +62,17 @@ fn marcador(p: &No, niveis: &[&No]) -> Option<String> {
 }
 
 /// O texto de um parágrafo: trechos, campos e quebras de linha.
-fn texto_do_paragrafo(p: &No) -> String {
+/// `cap="all"` (caixa alta) vem no trecho ou nos níveis; o texto sai em maiúsculas.
+fn texto_do_paragrafo(p: &No, niveis: &[&No]) -> String {
     let mut s = String::new();
     for f in &p.filhos {
         match f.nome.as_str() {
-            "a:r" | "a:fld" => s.push_str(f.filho("a:t").map_or("", |t| t.texto.as_str())),
+            "a:r" | "a:fld" => {
+                let t = f.filho("a:t").map_or("", |t| t.texto.as_str());
+                let cap = f.filho("a:rPr").into_iter().chain(niveis.iter().filter_map(|n| n.filho("a:defRPr"))).find_map(|n| n.attr("cap"));
+                // shortcut: caixa alta vira o próprio texto em maiúsculas (editar mostra maiúsculas); guardar a opção se pedirem.
+                if cap == Some("all") { s.push_str(&t.to_uppercase()) } else { s.push_str(t) }
+            }
             "a:br" => s.push('\n'),
             _ => {}
         }
@@ -79,8 +85,9 @@ pub fn texto(corpo: &No, h: &Heranca) -> String {
     let mut linhas: Vec<String> = corpo
         .filhos("a:p")
         .map(|p| {
-            let t = texto_do_paragrafo(p);
-            match marcador(p, &h.niveis(nivel_de(p))) {
+            let niveis = h.niveis(nivel_de(p));
+            let t = texto_do_paragrafo(p, &niveis);
+            match marcador(p, &niveis) {
                 Some(m) if !t.is_empty() => format!("{}{m} {t}", "    ".repeat(nivel_de(p))),
                 _ => t,
             }
@@ -94,7 +101,7 @@ pub fn texto(corpo: &No, h: &Heranca) -> String {
 
 /// O primeiro parágrafo com texto (é o alinhamento dele que vale para a caixa).
 fn primeiro_paragrafo(corpo: &No) -> Option<&No> {
-    corpo.filhos("a:p").find(|p| !texto_do_paragrafo(p).trim().is_empty()).or_else(|| corpo.filho("a:p"))
+    corpo.filhos("a:p").find(|p| !texto_do_paragrafo(p, &[]).trim().is_empty()).or_else(|| corpo.filho("a:p"))
 }
 
 /// O estilo de um trecho (`a:rPr`, ou nenhum) no nível dado, com a herança resolvida.
@@ -108,7 +115,9 @@ fn estilo_do_trecho(trecho: Option<&No>, niveis: &[&No], h: &Heranca, tema: &Tem
     EstiloDoTexto {
         fonte: achar(&|n| n.filho("a:latin").and_then(|l| l.attr("typeface")).map(|f| tema.fonte(f))).filter(|f| !f.is_empty()).unwrap_or(padrao.fonte),
         tamanho: (tamanho * fator * escala * 10.0).round() / 10.0,
-        cor: achar(&|n| n.filho("a:solidFill").and_then(|s| tema.cor(s))).unwrap_or_else(|| tema.cor_do_texto()),
+        // shortcut: letra vazada (`a:noFill` + `a:ln`) sai cheia na cor do contorno; desenhar só o contorno se pedirem.
+        cor: achar(&|n| n.filho("a:solidFill").and_then(|s| tema.cor(s)).or_else(|| n.filho("a:noFill").and(n.caminho(&["a:ln", "a:solidFill"])).and_then(|s| tema.cor(s))))
+            .unwrap_or_else(|| tema.cor_do_texto()),
         negrito: liga("b"),
         italico: liga("i"),
         sublinhado: achar(&|n| n.attr("u").map(String::from)).is_some_and(|u| u != "none"),
@@ -143,7 +152,14 @@ pub fn estilo(corpo: Option<&No>, h: &Heranca, tema: &Tema, escala: f32) -> Esti
     let base = contagem.into_iter().max_by_key(|(_, n)| *n).map(|(e, _)| e).unwrap_or_else(|| estilo_do_trecho(None, &niveis, h, tema, escala));
     let alinhar = paragrafo.and_then(|p| p.filho("a:pPr")).and_then(|pp| pp.attr("algn")).or_else(|| niveis.iter().find_map(|n| n.attr("algn")));
     let ancora = h.corpos().iter().find_map(|b| b.attr("anchor"));
+    // Entrelinha: `spcPct` é fração da linha simples (1,2 × a letra); `spcPts`, em centésimos de ponto.
+    let lnspc = paragrafo.and_then(|p| p.filho("a:pPr")).into_iter().chain(niveis.iter().copied()).find_map(|n| n.filho("a:lnSpc"));
+    let entrelinha = lnspc.and_then(|l| l.filho("a:spcPct")).and_then(|s| s.num("val")).map(|v| (v / 100_000.0) as f32 * featherslide_core::quadro::ENTRELINHA)
+        .or_else(|| lnspc.and_then(|l| l.filho("a:spcPts")).and_then(|s| s.num("val")).filter(|_| base.tamanho > 0.0).map(|v| (v / 100.0) as f32 * escala / base.tamanho))
+        .filter(|e| e.is_finite() && *e > 0.0)
+        .unwrap_or(base.entrelinha);
     EstiloDoTexto {
+        entrelinha,
         alinhamento: match alinhar {
             Some("ctr") => Alinhamento::Centro,
             Some("r") => Alinhamento::Direita,

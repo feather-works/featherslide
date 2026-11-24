@@ -13,6 +13,18 @@ use pelicano::{Border, Color, FillRule, Font, Image as Handle, LineCap, LineJoin
 
 use crate::palco::{cor_hex, OPACIDADE};
 
+/// Do topo pedido ao pelicano até a linha de base, em múltiplos do tamanho. O pelicano centra a letra
+/// numa linha de 1,3: a base fica em (1,3 + subida − descida) / 2 ≈ 0,99 (Liberation 0,997, Open Sans
+/// 0,988, Montserrat 1,004). Com 0,8 todo texto descia 0,2 × o tamanho abaixo do motor (24/11/2026).
+/// O teste `rastros` é sensível a esse valor: com 0,98/0,99/0,995 um pixel da borda de uma letra girada
+/// sai com antisserrilhado diferente no quadro parcial (não é rastro); com 0,985 e 1,0 passa.
+pub(crate) const BASE_DO_TEXTO: f32 = 1.0;
+
+/// Quantas formas com degradê/sombra ficam desenhadas em imagem. Com 8, um slide com 13 delas (mais
+/// as miniaturas) esvaziava o cache a cada quadro e redesenhava tudo (240 ms por quadro, 24/11/2026).
+// shortcut: limite por quantidade, não por bytes (até ~4 MB cada); medir em bytes se a memória pesar.
+const FORMAS_GUARDADAS: usize = 96;
+
 /// Entrega ao pelicano as fontes embutidas no documento (uma vez cada família), para o palco
 /// desenhar com a mesma letra que o motor usou para quebrar as linhas (issue #1).
 pub fn registrar_fontes(fontes: &[featherslide_core::modelo::FonteEmbutida]) {
@@ -1683,7 +1695,8 @@ pub fn pintar_quadro(
                     traco(f, &p, espessura, c);
                 }
             } else if el.gradiente.is_some() || el.opacidade != 1.0 || el.sombra.is_some() {
-                let chave = format!("{}:{}:{}:{:?}:{:?}:{}:{}:{}", el.tipo, el.largura, el.altura, el.ajustes, el.gradiente, el.preenchimento, el.contorno, el.espessura) + &format!(":{}",el.opacidade);
+                // O id separa formas livres diferentes do mesmo tamanho e cor (a chave não leva o caminho).
+                let chave = format!("{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}", el.id, el.tipo, el.largura, el.altura, el.ajustes, el.gradiente, el.preenchimento, el.contorno, el.espessura) + &format!(":{}",el.opacidade);
                 if let Some(sombra)=&el.sombra {
                     let sombra_chave=format!("{chave}:{sombra:?}");
                     let camada=SOMBRAS_FORMA.with(|cache| {
@@ -1691,7 +1704,7 @@ pub fn pintar_quadro(
                         if let Some(h)=cache.get(&sombra_chave){return Some(h.clone());}
                         let ((w,h,px),margem)=featherslide_io::pdf::raster_sombra(el)?;
                         let h=(imagem_rgba(w,h,px),margem);
-                        if cache.len()>=8{cache.clear();}cache.insert(sombra_chave,h.clone());Some(h)
+                        if cache.len()>=FORMAS_GUARDADAS{cache.clear();}cache.insert(sombra_chave,h.clone());Some(h)
                     });
                     if let Some((h,m))=camada {
                         imagem(f, &h, Rectangle::new(Point::new(ex+(sombra.dx-m)*escala,ey+(sombra.dy-m)*escala),Size::new(ew+2.0*m*escala,eh+2.0*m*escala)), OPACIDADE.with(|o|o.get()));
@@ -1702,7 +1715,7 @@ pub fn pintar_quadro(
                     if let Some(h) = cache.get(&chave) { return Some(h.clone()); }
                     let (w,h,px) = featherslide_io::pdf::raster_forma(el)?;
                     let handle = imagem_rgba(w,h,px);
-                    if cache.len() >= 8 { cache.clear(); }
+                    if cache.len() >= FORMAS_GUARDADAS { cache.clear(); }
                     cache.insert(chave,handle.clone()); Some(handle)
                 });
                 if let Some(handle) = handle {
@@ -1753,10 +1766,10 @@ pub fn pintar_quadro(
                 }
                 if !linha.glifos.is_empty() {
                     for g in &linha.glifos {
-                        escrever(f, &g.texto, (g.tamanho*escala).max(com_texto_minimo), fonte_do_elemento(el), cor_texto, Point::new(ox+(g.x+dx)*escala,oy+(g.y+dy-g.tamanho*0.8)*escala));
+                        escrever(f, &g.texto, (g.tamanho*escala).max(com_texto_minimo), fonte_do_elemento(el), cor_texto, Point::new(ox+(g.x+dx)*escala,oy+(g.y+dy-g.tamanho*BASE_DO_TEXTO)*escala));
                     }
                 } else {
-                escrever(f, &linha.texto, tam, fonte_do_elemento(el), cor_texto, Point::new(ox + (linha.x + dx) * escala, oy + (linha.y + dy - el.tamanho * 0.8) * escala));
+                escrever(f, &linha.texto, tam, fonte_do_elemento(el), cor_texto, Point::new(ox + (linha.x + dx) * escala, oy + (linha.y + dy - el.tamanho * BASE_DO_TEXTO) * escala));
                 }
                 let (lx, ly) = (ox + (linha.x + dx) * escala, oy + (linha.y + dy) * escala);
                 let grossura = (el.tamanho * escala / 16.0).max(1.0);

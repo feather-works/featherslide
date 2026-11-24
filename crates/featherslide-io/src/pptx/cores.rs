@@ -93,6 +93,22 @@ impl Tema {
         }
         pai.filho("a:solidFill").and_then(|s| self.cor(s))
     }
+
+    /// O degradê de `pai` (o `a:gradFill` filho dele): `a:lin` vira linear no mesmo ângulo
+    /// (60 000 avos de grau, horário), `a:path` vira radial. `None` se não há ou tem menos de 2 cores.
+    pub fn gradiente(&self, pai: &No) -> Option<featherslide_core::estilo_forma::Gradiente> {
+        use featherslide_core::estilo_forma::{Gradiente, PontoCor, TipoGradiente};
+        let g = pai.filho("a:gradFill")?;
+        let pontos: Vec<PontoCor> = g.filho("a:gsLst")?.filhos("a:gs")
+            .filter_map(|gs| Some(PontoCor { posicao: (gs.num("pos")? / 100_000.0).clamp(0.0, 1.0) as f32, cor: self.cor(gs)? }))
+            .take(16)
+            .collect();
+        (pontos.len() >= 2).then(|| Gradiente {
+            tipo: if g.filho("a:path").is_some() { TipoGradiente::Radial } else { TipoGradiente::Linear },
+            angulo: g.filho("a:lin").and_then(|l| l.num("ang")).map_or(0.0, |a| (a / 60_000.0) as f32),
+            pontos,
+        })
+    }
 }
 
 fn rgb(hex: &str) -> (f64, f64, f64) {
