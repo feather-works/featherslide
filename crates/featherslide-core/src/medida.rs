@@ -148,10 +148,20 @@ fn familia(fonte: &str) -> Familia {
     let f = fonte.to_lowercase();
     if ["mono", "courier", "consolas", "menlo", "code"].iter().any(|n| f.contains(n)) {
         Familia::Mono
-    } else if ["serif", "times", "georgia", "cambria", "garamond", "palatino", "antiqua", "book", "baskerville", "caslon"].iter().any(|n| f.contains(n)) && !f.contains("sans") {
+    } else if ["serif", "times", "georgia", "cambria", "garamond", "palatino", "antiqua", "baskerville", "caslon"].iter().any(|n| f.contains(n)) && !f.contains("sans") {
         Familia::Serifa
     } else {
         Familia::Sans
+    }
+}
+
+/// As fontes de mesma métrica das tabelas com que `fonte` é medida (a Liberation e a equivalente
+/// do Windows): quem desenha usa uma delas quando `fonte` não existe, para a linha caber como foi medida.
+pub fn substitutas(fonte: &str) -> [&'static str; 2] {
+    match familia(fonte) {
+        Familia::Sans => ["Liberation Sans", "Arial"],
+        Familia::Serifa => ["Liberation Serif", "Times New Roman"],
+        Familia::Mono => ["Liberation Mono", "Courier New"],
     }
 }
 

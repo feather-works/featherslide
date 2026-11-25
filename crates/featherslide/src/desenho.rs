@@ -28,13 +28,14 @@ const FORMAS_GUARDADAS: usize = 96;
 /// Entrega ao pelicano as fontes embutidas no documento (uma vez cada família), para o palco
 /// desenhar com a mesma letra que o motor usou para quebrar as linhas (issue #1).
 pub fn registrar_fontes(fontes: &[featherslide_core::modelo::FonteEmbutida]) {
-    thread_local! { static FEITAS: RefCell<std::collections::HashSet<String>> = RefCell::default(); }
-    FEITAS.with(|feitas| {
+    EMBUTIDAS.with(|feitas| {
         for f in fontes {
             if feitas.borrow_mut().insert(f.nome.clone()) {
                 for bytes in [&f.regular, &f.negrito, &f.italico, &f.negrito_italico].into_iter().flatten() {
                     pelicano::load_font(largura_normal(bytes.clone()));
                 }
+                // Se já foi desenhada antes de chegar (com a substituta), passa a usar a própria.
+                FAMILIAS.with(|n| n.borrow_mut().remove(&f.nome));
             }
         }
     });
@@ -1148,12 +1149,37 @@ pub fn posicoes_alcas_giradas(x: f32, y: f32, w: f32, h: f32, rotacao: f32) -> [
 
 thread_local! {
     static FAMILIAS: RefCell<HashMap<String, &'static str>> = RefCell::new(HashMap::new());
+    /// As fontes que vieram dentro dos arquivos (`registrar_fontes`).
+    static EMBUTIDAS: RefCell<std::collections::HashSet<String>> = RefCell::default();
+}
+
+/// As famílias instaladas no sistema, em minúsculas (lidas uma vez, na primeira fonte pedida).
+fn instalada(nome: &str) -> bool {
+    static SISTEMA: std::sync::OnceLock<std::collections::HashSet<String>> = std::sync::OnceLock::new();
+    SISTEMA
+        .get_or_init(|| {
+            let mut db = fontdb::Database::new();
+            db.load_system_fonts();
+            db.faces().flat_map(|f| f.families.iter().map(|(n, _)| n.to_lowercase())).collect()
+        })
+        .contains(&nome.to_lowercase())
+}
+
+/// O nome com que o pelicano desenha `fonte`: ela mesma se existe (no sistema ou no arquivo);
+/// senão a Liberation (ou Arial…) com que o motor a mediu — a substituta do sistema é outra
+/// largura e o texto vazava da caixa ("FT Base" de modelo corporativo).
+fn fonte_para_desenhar(fonte: &str) -> &str {
+    if EMBUTIDAS.with(|e| e.borrow().contains(fonte)) || instalada(fonte) {
+        return fonte;
+    }
+    featherslide_core::medida::substitutas(fonte).into_iter().find(|s| instalada(s)).unwrap_or(fonte)
 }
 
 /// A fonte do elemento. O pelicano pede o nome com vida `'static`: cada nome é guardado uma vez.
 pub(crate) fn fonte_do_elemento(el: &ElementoDesenhado) -> Font {
-    let familia = (!el.fonte.trim().is_empty())
-        .then(|| FAMILIAS.with(|f| *f.borrow_mut().entry(el.fonte.clone()).or_insert_with(|| Box::leak(el.fonte.clone().into_boxed_str()))));
+    let familia = (!el.fonte.trim().is_empty()).then(|| {
+        FAMILIAS.with(|f| *f.borrow_mut().entry(el.fonte.clone()).or_insert_with(|| Box::leak(fonte_para_desenhar(&el.fonte).to_string().into_boxed_str())))
+    });
     Font { family: familia, weight: if el.negrito { 700 } else { 400 }, italic: el.italico }
 }
 

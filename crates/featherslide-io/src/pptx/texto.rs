@@ -19,6 +19,8 @@ pub struct Heranca<'a> {
     pub mestre: Option<&'a No>,
     /// O estilo do mestre para este tipo de caixa (`p:titleStyle`, `p:bodyStyle`, `p:otherStyle`).
     pub estilo_mestre: Option<&'a No>,
+    /// O número do slide, que entra no campo `a:fld type="slidenum"` (0 = deixar o texto do campo).
+    pub numero: usize,
 }
 
 impl<'a> Heranca<'a> {
@@ -52,7 +54,8 @@ fn marcador(p: &No, niveis: &[&No]) -> Option<String> {
             return None;
         }
         if let Some(c) = pp.filho("a:buChar") {
-            return c.attr("char").map(|_| "•".to_string());
+            // Marcador invisível (espaço de largura zero) é o jeito de um modelo não mostrar marcador.
+            return c.attr("char").filter(|c| !c.trim_matches(|x: char| x.is_whitespace() || x == '\u{200b}').is_empty()).map(|_| "•".to_string());
         }
         if pp.filho("a:buAutoNum").is_some() {
             return Some("•".to_string());
@@ -63,12 +66,13 @@ fn marcador(p: &No, niveis: &[&No]) -> Option<String> {
 
 /// O texto de um parágrafo: trechos, campos e quebras de linha.
 /// `cap="all"` (caixa alta) vem no trecho ou nos níveis; o texto sai em maiúsculas.
-fn texto_do_paragrafo(p: &No, niveis: &[&No]) -> String {
+fn texto_do_paragrafo(p: &No, niveis: &[&No], numero: usize) -> String {
     let mut s = String::new();
     for f in &p.filhos {
         match f.nome.as_str() {
             "a:r" | "a:fld" => {
-                let t = f.filho("a:t").map_or("", |t| t.texto.as_str());
+                let numero = (numero > 0 && f.attr("type") == Some("slidenum")).then(|| numero.to_string());
+                let t = numero.as_deref().unwrap_or_else(|| f.filho("a:t").map_or("", |t| t.texto.as_str()));
                 let cap = f.filho("a:rPr").into_iter().chain(niveis.iter().filter_map(|n| n.filho("a:defRPr"))).find_map(|n| n.attr("cap"));
                 // shortcut: caixa alta vira o próprio texto em maiúsculas (editar mostra maiúsculas); guardar a opção se pedirem.
                 if cap == Some("all") { s.push_str(&t.to_uppercase()) } else { s.push_str(t) }
@@ -86,7 +90,7 @@ pub fn texto(corpo: &No, h: &Heranca) -> String {
         .filhos("a:p")
         .map(|p| {
             let niveis = h.niveis(nivel_de(p));
-            let t = texto_do_paragrafo(p, &niveis);
+            let t = texto_do_paragrafo(p, &niveis, h.numero);
             match marcador(p, &niveis) {
                 Some(m) if !t.is_empty() => format!("{}{m} {t}", "    ".repeat(nivel_de(p))),
                 _ => t,
@@ -101,7 +105,7 @@ pub fn texto(corpo: &No, h: &Heranca) -> String {
 
 /// O primeiro parágrafo com texto (é o alinhamento dele que vale para a caixa).
 fn primeiro_paragrafo(corpo: &No) -> Option<&No> {
-    corpo.filhos("a:p").find(|p| !texto_do_paragrafo(p, &[]).trim().is_empty()).or_else(|| corpo.filho("a:p"))
+    corpo.filhos("a:p").find(|p| !texto_do_paragrafo(p, &[], 0).trim().is_empty()).or_else(|| corpo.filho("a:p"))
 }
 
 /// O estilo de um trecho (`a:rPr`, ou nenhum) no nível dado, com a herança resolvida.

@@ -17,6 +17,10 @@ FeatherCAD. Checklist completa: `docs/INVENTARIO-FUNCIONALIDADES.md` (44 áreas,
   junto com o `featherslide-ponte` (sem uso); os dois ficam no histórico do git. Menções ao
   Iced abaixo são registro histórico.
 - Dependências: pelicano 0.1.34 (crates.io) e feather-ui pela tag v0.3.16.
+- **24/11/2026, depois da v0.3.0 (no `main`):** `.pptx` pula formas `hidden="1"` (guias de modelo), troca o campo
+  `slidenum` pelo número, marcador de espaço invisível não vira "•", `alphaModFix` vira `Elemento::opacidade`; fonte que
+  não existe (nem embutida) desenha na Liberation/Arial com que `medida` mediu (`desenho::fonte_para_desenhar`, via `fontdb`).
+  `FEATHERSLIDE_CAPTURAR` não abre janela (o usuário reclamou do pisca-pisca).
 - **v0.3.0 (24/11/2026):** interface em inglês e espanhol, caneta/laser/grade ao apresentar, transições no `.pptx`/`.odp`,
   `.pptx` com forma livre (`custGeom`), degradê, entrelinha, caixa alta e a base do texto certa (`desenho::BASE_DO_TEXTO`).
 - **v0.2.2 (16/11/2026):** fontes embutidas no `.pptx` (Barlow Condensed etc.) medidas e desenhadas

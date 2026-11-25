@@ -122,6 +122,8 @@ struct Contexto {
     /// Os caminhos do layout e do mestre (as ligações deles, para as imagens do fundo).
     layout_c: Option<String>,
     mestre_c: Option<String>,
+    /// O número do slide (1, 2…), para o campo `slidenum`.
+    numero: usize,
 }
 
 /// De onde vêm as formas que se está lendo: o slide, ou o layout/mestre (o fundo).
@@ -384,7 +386,8 @@ impl Leitor<'_> {
         let mestre = mestre_c.as_deref().and_then(|c| self.pac.xml(c).ok());
         let tema = self.tema(mestre_c.as_deref().unwrap_or(""), mestre.as_deref());
         let externas = self.pac.externas(caminho);
-        Contexto { layout, mestre, tema, ligacoes, externas, layout_c, mestre_c }
+        let numero = self.slides.iter().position(|s| s == caminho).map_or(0, |n| n + 1);
+        Contexto { layout, mestre, tema, ligacoes, externas, layout_c, mestre_c, numero }
     }
 
     fn slide(&mut self, caminho: &str) -> Result<Slide, String> {
@@ -427,6 +430,10 @@ impl Leitor<'_> {
         for f in &raiz.filhos {
             // No fundo, as caixas de layout (título, corpo…) são moldes, não conteúdo.
             if o.fundo && ph_de(f).is_some() {
+                continue;
+            }
+            // `hidden="1"` no `p:cNvPr`: guias e notas do modelo que o PowerPoint não mostra.
+            if f.filhos.iter().filter(|n| n.nome.starts_with("p:nv")).filter_map(|n| n.filho("p:cNvPr")).any(|c| matches!(c.attr("hidden"), Some("1" | "true"))) {
                 continue;
             }
             let antes = saida.len();
@@ -506,7 +513,7 @@ impl Leitor<'_> {
             Some(_) => ts.filho("p:bodyStyle"),
             None => ts.filho("p:otherStyle"),
         });
-        let heranca = Heranca { proprio: corpo, layout: no_layout.and_then(|n| n.filho("p:txBody")), mestre: no_mestre.and_then(|n| n.filho("p:txBody")), estilo_mestre };
+        let heranca = Heranca { proprio: corpo, layout: no_layout.and_then(|n| n.filho("p:txBody")), mestre: no_mestre.and_then(|n| n.filho("p:txBody")), estilo_mestre, numero: ctx.numero };
         let texto = corpo.map(|c| texto::texto(c, &heranca)).unwrap_or_default();
         let papel = match tipo_ph.as_deref() {
             _ if o.fundo => Papel::Fundo,
@@ -641,6 +648,8 @@ impl Leitor<'_> {
             recorte: recorte_da_imagem(prst),
             ajustes: ajustes_da_forma(prst, geom, xfrm),
             sombra: self.sombra(sp_pr, &ctx.tema),
+            // `a:alphaModFix amt="27000"`: a foto a 27 % (fundo esmaecido atrás do texto).
+            opacidade: blip.and_then(|b| b.filho("a:alphaModFix")).and_then(|a| a.num("amt")).map_or(1.0, |v| (v / 100_000.0).clamp(0.0, 1.0) as f32),
             ..Elemento::default()
         }))
     }
@@ -652,7 +661,7 @@ impl Leitor<'_> {
         let mut formas = Vec::new();
         arvore.todos("p:sp", &mut formas);
         let corpo = formas.into_iter().find(|f| ph_de(f).is_some_and(|(t, _)| t == "body"));
-        let heranca = Heranca { proprio: None, layout: None, mestre: None, estilo_mestre: None };
+        let heranca = Heranca { proprio: None, layout: None, mestre: None, estilo_mestre: None, numero: 0 };
         corpo.and_then(|f| f.filho("p:txBody")).map(|tx| texto::texto(tx, &heranca)).unwrap_or_default()
     }
 }

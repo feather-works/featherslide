@@ -68,7 +68,8 @@ pub fn main() -> Result<(), pelicano::Error> {
     // Várias janelas (o Monitor, F12, abre uma à parte). A principal abre pelo `FeatherSlideApp::new`,
     // com a moldura que a configuração pede; quem fecha o app é ela (`Mensagem::FecharJanela`).
     pelicano::run(
-        pelicano::Settings { start_hidden: true, ..Default::default() },
+        // Na captura não há janela: o app segue até o `Exit` do último passo.
+        pelicano::Settings { start_hidden: true, run_in_background: std::env::var_os("FEATHERSLIDE_CAPTURAR").is_some(), ..Default::default() },
         FeatherSlideApp::new,
     )
 }

@@ -1507,6 +1507,7 @@ dependencies = [
  "featherslide-mcp",
  "featherslide-ortografia",
  "featherslide-tabelas",
+ "fontdb 0.16.2",
  "image",
  "libc",
  "pelicano",

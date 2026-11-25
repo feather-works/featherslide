@@ -586,6 +586,8 @@ impl FeatherSlideApp {
             async move { tokio::task::spawn_blocking(move || recentes::carregar(caminhos)).await.unwrap_or_default() },
             Mensagem::RecentesCarregados,
         );
+        // A captura (`FEATHERSLIDE_CAPTURAR`) desenha direto num PNG: sem janela piscando na tela.
+        let abrir = if std::env::var_os("FEATHERSLIDE_CAPTURAR").is_some() { Task::none() } else { abrir };
         (app, Task::batch([abrir, carregar]))
     }
 
